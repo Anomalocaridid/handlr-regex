@@ -4,7 +4,7 @@ use clap::Parser;
 #[derive(Parser)]
 #[clap(global_setting = clap::AppSettings::DeriveDisplayOrder)]
 #[clap(disable_help_subcommand = true)]
-#[clap(version)]
+#[clap(version, author, about)]
 pub enum Cmd {
     /// List default apps and the associated handlers
     List {
