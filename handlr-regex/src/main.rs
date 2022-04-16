@@ -1,25 +1,20 @@
-use crate::apps::{RegexHandler, REGEX_APPS};
-use config::CONFIG;
-use error::{Error, Result};
+use clap::Parser;
+use handlr_regex::{
+    apps::{self, RegexHandler, APPS, REGEX_APPS},
+    cli::Cmd,
+    common::{self, Handler},
+    config::CONFIG,
+    error::{Error, Result},
+    utils,
+};
 use once_cell::sync::Lazy;
-
-mod apps;
-mod cli;
-mod common;
-mod config;
-mod error;
-mod utils;
+use std::collections::HashMap;
 
 fn main() -> Result<()> {
-    use clap::Parser;
-    use cli::Cmd;
-    use common::Handler;
-    use std::collections::HashMap;
-
     // create config if it doesn't exist
     Lazy::force(&CONFIG);
 
-    let mut apps = (*apps::APPS).clone();
+    let mut apps = (*APPS).clone();
 
     let res = || -> Result<()> {
         match Cmd::parse() {
