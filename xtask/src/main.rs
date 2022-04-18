@@ -20,7 +20,7 @@ fn dist() -> Result<()> {
 fn dist_manpage() -> Result<()> {
     let out_dir = dist_dir();
 
-    let man = clap_mangen::Man::new(Cmd::command());
+    let man = clap_mangen::Man::new(Cmd::command()).title("handlr");
 
     let mut buffer: Vec<u8> = Default::default();
 
