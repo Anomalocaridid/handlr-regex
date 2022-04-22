@@ -84,7 +84,11 @@ fn generate_manpage(cmd: &clap::Command) -> DynResult {
         format!("handlr-{}.1", old_name)
     };
 
-    write(&out_dir.join(file), buffer)?;
+    let file = out_dir.join(file);
+
+    write(&file, buffer)?;
+
+    eprintln!("Created {}", file.to_str().unwrap());
 
     Ok(())
 }
