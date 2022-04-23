@@ -1,8 +1,10 @@
 use clap::{CommandFactory, Parser};
+use devx_cmd::{cmd, run};
 use handlr_regex::Cmd;
 use std::{
+    env,
     error::Error,
-    fs::{create_dir_all, remove_dir_all, write},
+    fs,
     path::{Path, PathBuf},
 };
 
@@ -18,15 +20,40 @@ fn main() -> DynResult {
 
 /// Action for `cargo xtask dist`
 fn dist() -> DynResult {
-    if remove_dir_all(dist_dir()).is_ok() {
+    if fs::remove_dir_all(dist_dir()).is_ok() {
         eprintln!("Deleted {}", dist_dir().to_str().unwrap());
     };
+
+    dist_binary()?;
 
     dist_manpage()
 }
 
+/// Build and strip binary
+fn dist_binary() -> DynResult {
+    eprintln!("Building binary");
+    let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+
+    eprintln!("Running cargo build --release");
+    cmd!(cargo, "build", "--release")
+        .current_dir(project_root())
+        .run()?;
+
+    let out_dir = dist_dir();
+    fs::create_dir_all(&out_dir)?;
+    let dst = project_root().join("target/release/handlr");
+    fs::copy(&dst, &out_dir.join("handlr"))?;
+
+    eprintln!("Stripping binary");
+    run!("strip", &dst)?;
+
+    Ok(())
+}
+
 /// Generate man page for binary and subcommands
 fn dist_manpage() -> DynResult {
+    eprintln!("Generating man pages");
+
     let cmd = Cmd::command();
     generate_manpage(&cmd)?;
 
@@ -76,7 +103,7 @@ fn generate_manpage(cmd: &clap::Command) -> DynResult {
     let out_dir = dist_dir();
 
     // Write man page to file
-    create_dir_all(&out_dir)?;
+    fs::create_dir_all(&out_dir)?;
 
     let file = if is_main_cmd {
         "handlr.1".to_string()
@@ -86,7 +113,7 @@ fn generate_manpage(cmd: &clap::Command) -> DynResult {
 
     let file = out_dir.join(file);
 
-    write(&file, buffer)?;
+    fs::write(&file, buffer)?;
 
     eprintln!("Created {}", file.to_str().unwrap());
 
@@ -99,12 +126,16 @@ enum Task {
     Dist,
 }
 
-/// Output directory for `cargo xtast dist`
-fn dist_dir() -> PathBuf {
+// Project root
+fn project_root() -> PathBuf {
     Path::new(&env!("CARGO_MANIFEST_DIR"))
         .ancestors()
         .nth(1)
         .unwrap()
         .to_path_buf()
-        .join("target/dist")
+}
+
+/// Output directory for `cargo xtast dist`
+fn dist_dir() -> PathBuf {
+    project_root().join("target/dist")
 }
