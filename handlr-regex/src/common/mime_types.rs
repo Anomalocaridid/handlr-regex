@@ -35,17 +35,29 @@ impl TryFrom<&Path> for MimeType {
     type Error = Error;
     fn try_from(path: &Path) -> Result<Self> {
         let db = xdg_mime::SharedMimeInfo::new();
-        let guess = db.guess_mime_type().path(&path).guess();
 
-        let mime = mime_to_option(guess.mime_type().clone())
-            .ok_or_else(|| Error::Ambiguous(path.to_owned()))?;
+        let mut guess = db.guess_mime_type();
+        guess.file_name(path.to_str().unwrap());
+
+        let mime = if let Some(mime) =
+            mime_to_option(&db, guess.guess().mime_type().clone())
+        {
+            mime
+        } else {
+            mime_to_option(&db, guess.path(&path).guess().mime_type().clone())
+                .ok_or_else(|| Error::Ambiguous(path.to_owned()))?
+        };
 
         Ok(Self(mime))
     }
 }
 
-fn mime_to_option(mime: Mime) -> Option<Mime> {
-    if mime == mime::APPLICATION_OCTET_STREAM {
+fn mime_to_option(db: &xdg_mime::SharedMimeInfo, mime: Mime) -> Option<Mime> {
+    let application_zerosize: Mime = "application/x-zerosize".parse().unwrap();
+
+    if mime == mime::APPLICATION_OCTET_STREAM
+        || db.mime_type_equal(&mime, &application_zerosize)
+    {
         None
     } else {
         Some(mime)
