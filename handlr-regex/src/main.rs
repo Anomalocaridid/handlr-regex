@@ -63,7 +63,7 @@ fn main() -> Result<()> {
                     regex_handler.open(paths)?;
                 }
             }
-            Cmd::Mime { paths } => {
+            Cmd::Mime { paths, json } => {
                 let rows = paths
                     .iter()
                     .map(|path| {

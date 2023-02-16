@@ -86,6 +86,21 @@ pub enum Cmd {
     /// If multiple handlers are set and `enable_selector` is set to true,
     /// you will be prompted to select one using `selector` from ~/.config/handlr/handlr.toml.
     /// Otherwise, only the default handler will be printed.
+    ///
+    /// Note that regex handlers are not supported by this subcommand currently.
+    ///
+    /// When using `--json`, output is in the form:
+    ///
+    /// ```json
+    /// {
+    ///   "handler": "helix.desktop",
+    ///   "name": "Helix",
+    ///   "cmd": "helix"
+    /// }
+    /// ```
+    ///
+    /// Note that when handlr is not being directly output to a terminal, and the handler is a terminal program,
+    /// the "cmd" key in the json output will include the command of the `x-scheme-handler/terminal` handler.
     Get {
         #[clap(long)]
         /// Output handler info as json
@@ -108,7 +123,27 @@ pub enum Cmd {
     },
 
     /// Get the mimetype of a given file/URL
+    ///
+    /// By default, output is in the form of a table that matches file paths/URLs to their mimetypes.
+    ///
+    /// When using `--json`, output will be in the form:
+    ///
+    /// ```json
+    /// [
+    ///   {
+    ///     "path": "README.md"
+    ///     "mime": "text/markdown"
+    ///   },
+    ///   {
+    ///     "path": "https://duckduckgo.com/"
+    ///     "mime": "x-scheme-handler/https"
+    ///   }
+    /// ]
+    /// ```
     Mime {
+        #[clap(long)]
+        /// Output mimetype info as json
+        json: bool,
         /// File paths/URLs to get the mimetype of
         paths: Vec<UserPath>,
     },
