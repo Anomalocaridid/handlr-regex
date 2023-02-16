@@ -1,5 +1,4 @@
 use clap::{CommandFactory, Parser};
-use devx_cmd::{cmd, run};
 use handlr_regex::Cmd;
 use std::{
     env,
@@ -12,46 +11,15 @@ type DynResult = Result<(), Box<dyn Error>>;
 
 fn main() -> DynResult {
     match Task::parse() {
-        Task::Dist => dist()?,
+        Task::Mangen => mangen()?,
     }
 
     Ok(())
 }
 
-/// Action for `cargo xtask dist`
-fn dist() -> DynResult {
-    if fs::remove_dir_all(dist_dir()).is_ok() {
-        eprintln!("Deleted {}", dist_dir().to_str().unwrap());
-    };
-
-    dist_binary()?;
-
-    dist_manpage()
-}
-
-/// Build and strip binary
-fn dist_binary() -> DynResult {
-    eprintln!("Building binary");
-    let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
-
-    eprintln!("Running cargo build --release");
-    cmd!(cargo, "build", "--release")
-        .current_dir(project_root())
-        .run()?;
-
-    let out_dir = dist_dir();
-    fs::create_dir_all(&out_dir)?;
-    let dst = project_root().join("target/release/handlr");
-    fs::copy(&dst, &out_dir.join("handlr"))?;
-
-    eprintln!("Stripping binary");
-    run!("strip", &dst)?;
-
-    Ok(())
-}
-
+/// Action for `cargo xtask mangen`
 /// Generate man page for binary and subcommands
-fn dist_manpage() -> DynResult {
+fn mangen() -> DynResult {
     eprintln!("Generating man pages");
 
     let cmd = Cmd::command();
@@ -95,7 +63,7 @@ fn generate_manpage(cmd: &clap::Command) -> DynResult {
         regex::bytes::Regex::new(r"handlr\\-(?P<name>[[:alpha:]]+)\\")?
             .replace(&buffer, r"handlr $name\".as_bytes());
 
-    let out_dir = dist_dir().join("man1");
+    let out_dir = assets_dir().join("manual/man1");
 
     // Write man page to file
     fs::create_dir_all(&out_dir)?;
@@ -117,8 +85,8 @@ fn generate_manpage(cmd: &clap::Command) -> DynResult {
 
 #[derive(Parser, Clone, Copy, Debug)]
 enum Task {
-    /// Build program and generate man page
-    Dist,
+    /// generate man page
+    Mangen,
 }
 
 // Project root
@@ -131,6 +99,6 @@ fn project_root() -> PathBuf {
 }
 
 /// Output directory for `cargo xtast dist`
-fn dist_dir() -> PathBuf {
-    project_root().join("target/dist")
+fn assets_dir() -> PathBuf {
+    project_root().join("assets")
 }

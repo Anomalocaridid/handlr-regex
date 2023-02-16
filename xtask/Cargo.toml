@@ -10,4 +10,3 @@ handlr-regex = { path = "../handlr-regex" }
 clap = { version = "3.1.9", features = ["derive"] }
 clap_mangen = "0.1"
 regex = "1"
-devx-cmd = { version = "0.5" }
