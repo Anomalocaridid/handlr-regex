@@ -1,3 +1,4 @@
+use mime::Mime;
 use url::Url;
 
 use crate::{common::MimeType, Error, ErrorKind, Result};
@@ -14,11 +15,12 @@ pub enum UserPath {
 }
 
 impl UserPath {
-    pub fn get_mime(&self) -> Result<MimeType> {
-        match self {
+    pub fn get_mime(&self) -> Result<Mime> {
+        Ok(match self {
             Self::Url(url) => Ok(url.into()),
             Self::File(f) => MimeType::try_from(f.as_path()),
-        }
+        }?
+        .0)
     }
 }
 

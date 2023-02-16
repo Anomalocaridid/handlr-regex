@@ -1,3 +1,4 @@
+use ascii_table::AsciiTable;
 use clap::Parser;
 use handlr_regex::{
     apps::{self, RegexHandler, APPS, REGEX_APPS},
@@ -49,7 +50,7 @@ fn main() -> Result<()> {
                             .push(path.to_string())
                     } else {
                         handlers
-                            .entry(apps.get_handler(&path.get_mime()?.0)?)
+                            .entry(apps.get_handler(&path.get_mime()?)?)
                             .or_default()
                             .push(path.to_string());
                     }
@@ -63,9 +64,18 @@ fn main() -> Result<()> {
                 }
             }
             Cmd::Mime { paths } => {
-                for path in paths {
-                    println!("{}: {}", path, path.get_mime()?.0.essence_str());
-                }
+                let rows = paths
+                    .iter()
+                    .map(|path| {
+                        Ok(vec![
+                            path.to_string(),
+                            path.get_mime()?.essence_str().to_owned(),
+                        ])
+                    })
+                    .collect::<Result<Vec<Vec<String>>>>()?;
+
+                let table = AsciiTable::default();
+                table.print(rows);
             }
             Cmd::List { all } => {
                 apps.print(all)?;
