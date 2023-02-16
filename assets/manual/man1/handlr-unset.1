@@ -1,0 +1,22 @@
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.TH handlr-unset 1  "handlr-unset " 
+.SH NAME
+handlr-regex\-unset - Unset the default handler for mime/extension
+.SH SYNOPSIS
+\fBhandlr unset\fR [\fB\-h\fR|\fB\-\-help\fR] <\fIMIME\fR> 
+.SH DESCRIPTION
+Unset the default handler for mime/extension
+.PP
+Wildcards cannot be used unless removing handlers that already have wildcards.
+.PP
+If multiple default handlers are set, both will be removed.
+.PP
+Currently does not support regex handlers.
+.SH OPTIONS
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help information
+.TP
+<\fIMIME\fR>
+Mimetype or file extension to unset the default handler of

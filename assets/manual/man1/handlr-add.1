@@ -1,0 +1,23 @@
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.TH handlr-add 1  "handlr-add " 
+.SH NAME
+handlr-regex\-add - Add a handler for given mime/extension
+.SH SYNOPSIS
+\fBhandlr add\fR [\fB\-h\fR|\fB\-\-help\fR] <\fIMIME\fR> <\fIHANDLER\fR> 
+.SH DESCRIPTION
+Add a handler for given mime/extension
+.PP
+Note that the first handler is the default.
+.PP
+This subcommand adds secondary handlers that coexist with the default and does not overwrite existing handlers.
+.SH OPTIONS
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help information
+.TP
+<\fIMIME\fR>
+Mimetype to add handler to
+.TP
+<\fIHANDLER\fR>
+Desktop file of handler program

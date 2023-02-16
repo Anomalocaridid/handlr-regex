@@ -1,0 +1,27 @@
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.TH handlr-set 1  "handlr-set " 
+.SH NAME
+handlr-regex\-set - Set the default handler for mime/extension
+.SH SYNOPSIS
+\fBhandlr set\fR [\fB\-h\fR|\fB\-\-help\fR] <\fIMIME\fR> <\fIHANDLER\fR> 
+.SH DESCRIPTION
+Set the default handler for mime/extension
+.PP
+Overwrites currently set handler(s) for the given mime/extension.
+.PP
+Asterisks can be used as wildcards to set multiple mimetypes.
+.PP
+File extensions are converted into their respective mimetypes in mimeapps.list.
+.PP
+Currently does not support regex handlers.
+.SH OPTIONS
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help information
+.TP
+<\fIMIME\fR>
+Mimetype or file extension to operate on
+.TP
+<\fIHANDLER\fR>
+Desktop file of handler program

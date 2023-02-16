@@ -1,0 +1,23 @@
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.TH handlr-launch 1  "handlr-launch " 
+.SH NAME
+handlr-regex\-launch - Launch the handler for specified extension/mime with optional arguments
+.SH SYNOPSIS
+\fBhandlr launch\fR [\fB\-h\fR|\fB\-\-help\fR] <\fIMIME\fR> [\fIARGS\fR] 
+.SH DESCRIPTION
+Launch the handler for specified extension/mime with optional arguments
+.PP
+Only supports wildcards for mimetypes for handlers that have been set or added with wildcards.
+.PP
+If multiple handlers are set and `enable_selector` is set to true, you will be prompted to select one using `selector` from ~/.config/handlr/handlr.toml. Otherwise, the default handler will be opened.
+.SH OPTIONS
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help information
+.TP
+<\fIMIME\fR>
+Mimetype or file extension to launch the handler of
+.TP
+[\fIARGS\fR]
+Arguments to pass to handler program

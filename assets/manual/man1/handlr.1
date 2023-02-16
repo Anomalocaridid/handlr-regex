@@ -1,0 +1,46 @@
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.TH handlr 1  "handlr 0.7.1" 
+.SH NAME
+handlr-regex - Fork of handlr with regex support
+.SH SYNOPSIS
+\fBhandlr\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] <\fIsubcommands\fR>
+.SH DESCRIPTION
+A better xdg\-utils
+.PP
+Resource opener with support for wildcards, multiple handlers, and regular expressions.
+.PP
+Based on handlr at <https://github.com/chmln/handlr>
+.PP
+Regular expression handlers inspired by mimeo at <https://xyne.dev/projects/mimeo/>
+.SH OPTIONS
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help information
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version information
+.SH SUBCOMMANDS
+.TP
+handlr\-list(1)
+List default apps and the associated handlers
+.TP
+handlr\-open(1)
+Open a path/URL with its default handler
+.TP
+handlr\-set(1)
+Set the default handler for mime/extension
+.TP
+handlr\-unset(1)
+Unset the default handler for mime/extension
+.TP
+handlr\-launch(1)
+Launch the handler for specified extension/mime with optional arguments
+.TP
+handlr\-get(1)
+Get handler for this mime/extension
+.TP
+handlr\-add(1)
+Add a handler for given mime/extension
+.SH VERSION
+v0.7.1
