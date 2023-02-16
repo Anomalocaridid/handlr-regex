@@ -109,8 +109,8 @@ pub enum Cmd {
 
     /// Get the mimetype of a given file/URL
     Mime {
-        /// File path/URL to get the mimetype of
-        path: UserPath,
+        /// File paths/URLs to get the mimetype of
+        paths: Vec<UserPath>,
     },
 
     #[clap(hide = true)]
