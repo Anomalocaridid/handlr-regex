@@ -62,6 +62,9 @@ fn main() -> Result<()> {
                     regex_handler.open(paths)?;
                 }
             }
+            Cmd::Mime { path } => {
+                println!("{:#?}", path.get_mime()?.0.essence_str());
+            }
             Cmd::List { all } => {
                 apps.print(all)?;
             }

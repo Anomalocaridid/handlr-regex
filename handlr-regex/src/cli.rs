@@ -107,6 +107,12 @@ pub enum Cmd {
         handler: Handler,
     },
 
+    /// Get the mimetype of a given file/URL
+    Mime {
+        /// File path/URL to get the mimetype of
+        path: UserPath,
+    },
+
     #[clap(hide = true)]
     /// Helper subcommand for autocompletion scripts; should be hidden
     ///
