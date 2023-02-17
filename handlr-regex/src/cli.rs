@@ -92,11 +92,17 @@ pub enum Cmd {
     /// When using `--json`, output is in the form:
     ///
     /// ```json
+    ///
     /// {
+    ///
     ///   "handler": "helix.desktop",
+    ///
     ///   "name": "Helix",
+    ///
     ///   "cmd": "helix"
+    ///
     /// }
+    ///
     /// ```
     ///
     /// Note that when handlr is not being directly output to a terminal, and the handler is a terminal program,
@@ -129,16 +135,29 @@ pub enum Cmd {
     /// When using `--json`, output will be in the form:
     ///
     /// ```json
+    ///
     /// [
+    ///
     ///   {
+    ///
     ///     "path": "README.md"
+    ///
     ///     "mime": "text/markdown"
+    ///
     ///   },
+    ///
     ///   {
+    ///
     ///     "path": "https://duckduckgo.com/"
+    ///
     ///     "mime": "x-scheme-handler/https"
+    ///
     ///   }
+    ///
+    /// ...
+    ///
     /// ]
+    ///
     /// ```
     Mime {
         #[clap(long)]

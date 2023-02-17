@@ -9,6 +9,26 @@ handlr-regex\-get - Get handler for this mime/extension
 Get handler for this mime/extension
 .PP
 If multiple handlers are set and `enable_selector` is set to true, you will be prompted to select one using `selector` from ~/.config/handlr/handlr.toml. Otherwise, only the default handler will be printed.
+.PP
+Note that regex handlers are not supported by this subcommand currently.
+.PP
+When using `\-\-json`, output is in the form:
+.PP
+```json
+.PP
+{
+.PP
+"handler": "helix.desktop",
+.PP
+"name": "Helix",
+.PP
+"cmd": "helix"
+.PP
+}
+.PP
+```
+.PP
+Note that when handlr is not being directly output to a terminal, and the handler is a terminal program, the "cmd" key in the json output will include the command of the `x\-scheme\-handler/terminal` handler.
 .SH OPTIONS
 .TP
 \fB\-h\fR, \fB\-\-help\fR
