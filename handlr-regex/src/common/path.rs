@@ -1,3 +1,4 @@
+use ascii_table::AsciiTable;
 use mime::Mime;
 use url::Url;
 
@@ -50,4 +51,37 @@ impl Display for UserPath {
             Self::Url(u) => fmt.write_str(u.as_ref()),
         }
     }
+}
+
+pub fn mime_table(
+    paths: &Vec<UserPath>,
+    output_json: bool,
+) -> Result<(), Error> {
+    if output_json {
+        let rows = paths
+            .iter()
+            .map(|path| {
+                Ok(json::object! {
+                    path: path.to_string(),
+                    mime: path.get_mime()?.essence_str().to_owned()
+                })
+            })
+            .collect::<Result<json::Array>>()?;
+        println!("{}", json::stringify(rows));
+    } else {
+        let rows = paths
+            .iter()
+            .map(|path| {
+                Ok(vec![
+                    path.to_string(),
+                    path.get_mime()?.essence_str().to_owned(),
+                ])
+            })
+            .collect::<Result<Vec<Vec<String>>>>()?;
+
+        let table = AsciiTable::default();
+        table.print(rows);
+    }
+
+    Ok(())
 }

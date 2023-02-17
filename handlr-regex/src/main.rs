@@ -1,9 +1,8 @@
-use ascii_table::AsciiTable;
 use clap::Parser;
 use handlr_regex::{
     apps::{self, RegexHandler, APPS, REGEX_APPS},
     cli::Cmd,
-    common::{self, Handler},
+    common::{self, mime_table, Handler},
     config::CONFIG,
     error::{ErrorKind, Result},
     utils,
@@ -64,18 +63,7 @@ fn main() -> Result<()> {
                 }
             }
             Cmd::Mime { paths, json } => {
-                let rows = paths
-                    .iter()
-                    .map(|path| {
-                        Ok(vec![
-                            path.to_string(),
-                            path.get_mime()?.essence_str().to_owned(),
-                        ])
-                    })
-                    .collect::<Result<Vec<Vec<String>>>>()?;
-
-                let table = AsciiTable::default();
-                table.print(rows);
+                mime_table(&paths, json)?;
             }
             Cmd::List { all } => {
                 apps.print(all)?;
