@@ -13,7 +13,7 @@ Fork of the original [handlr](https://github.com/chmln/handlr)
 - Set multiple handlers for mime/extension and use `rofi`/`dmenu` to pick one
 - Wildcard support like `text/*`
 - Automatically removes invalid/wrong `.desktop` entries from `mimeapps.list`
-- Helper commands like `launch`, `get --json` for your scripting needs
+- Helper commands like `launch`, `get --json`, `mime --json` for your scripting needs
 - Unnecessarily fast (written in Rust)
 - Single compiled binary with no dependencies
 
@@ -42,6 +42,9 @@ feh.desktop
 
 # Launch a handler with given path/URL
 handlr launch x-scheme-handler/https -- https://google.ca
+
+# Get the mimetypes of given paths/URLs
+handlr mime https://duckduckgo.com . README.md
 ```
 
 ## Compared to `xdg-utils`
