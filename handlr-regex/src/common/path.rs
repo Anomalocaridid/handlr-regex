@@ -53,10 +53,7 @@ impl Display for UserPath {
     }
 }
 
-pub fn mime_table(
-    paths: &Vec<UserPath>,
-    output_json: bool,
-) -> Result<(), Error> {
+pub fn mime_table(paths: &[UserPath], output_json: bool) -> Result<(), Error> {
     if output_json {
         let rows = paths
             .iter()
