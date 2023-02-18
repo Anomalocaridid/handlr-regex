@@ -1,5 +1,6 @@
 use crate::{
-    apps::SystemApps, common::Handler, Error, ErrorKind, Result, CONFIG,
+    apps::SystemApps, common::Handler, Error, ErrorKind, GenericHandler,
+    Result, UserPath, CONFIG, REGEX_APPS,
 };
 use mime::Mime;
 use once_cell::sync::Lazy;
@@ -248,6 +249,28 @@ impl MimeApps {
             stdout.write_all(e.name.as_bytes()).unwrap();
             stdout.write_all(b"\n").unwrap();
         });
+
+        Ok(())
+    }
+    pub fn open_paths(&self, paths: &[UserPath]) -> Result<()> {
+        let mut handlers: HashMap<GenericHandler, Vec<String>> = HashMap::new();
+
+        for path in paths.iter() {
+            handlers
+                .entry(if let Some(handler) = REGEX_APPS.get_handler(path) {
+                    GenericHandler::RegexHandler(handler)
+                } else {
+                    GenericHandler::Handler(
+                        self.get_handler(&path.get_mime()?)?,
+                    )
+                })
+                .or_default()
+                .push(path.to_string())
+        }
+
+        for (handler, paths) in handlers.into_iter() {
+            handler.open(paths)?;
+        }
 
         Ok(())
     }

@@ -1,14 +1,13 @@
 use clap::Parser;
 use handlr_regex::{
-    apps::{self, APPS, REGEX_APPS},
+    apps::{self, APPS},
     cli::Cmd,
-    common::{self, mime_table, GenericHandler},
+    common::{self, mime_table},
     config::CONFIG,
     error::{ErrorKind, Result},
     utils,
 };
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
 
 fn main() -> Result<()> {
     // create config if it doesn't exist
@@ -34,30 +33,7 @@ fn main() -> Result<()> {
             Cmd::Get { mime, json } => {
                 apps.show_handler(&mime.0, json)?;
             }
-            Cmd::Open { paths } => {
-                let mut handlers: HashMap<GenericHandler, Vec<String>> =
-                    HashMap::new();
-
-                for path in paths.into_iter() {
-                    handlers
-                        .entry(
-                            if let Some(handler) = REGEX_APPS.get_handler(&path)
-                            {
-                                GenericHandler::RegexHandler(handler)
-                            } else {
-                                GenericHandler::Handler(
-                                    apps.get_handler(&path.get_mime()?)?,
-                                )
-                            },
-                        )
-                        .or_default()
-                        .push(path.to_string())
-                }
-
-                for (handler, paths) in handlers.into_iter() {
-                    handler.open(paths)?;
-                }
-            }
+            Cmd::Open { paths } => apps.open_paths(&paths)?,
             Cmd::Mime { paths, json } => {
                 mime_table(&paths, json)?;
             }
