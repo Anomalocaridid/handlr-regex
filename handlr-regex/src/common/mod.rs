@@ -6,6 +6,6 @@ mod path;
 
 pub use self::db::autocomplete as db_autocomplete;
 pub use desktop_entry::{DesktopEntry, Mode as ExecMode};
-pub use handler::Handler;
+pub use handler::{GenericHandler, Handler};
 pub use mime_types::{MimeOrExtension, MimeType};
 pub use path::{mime_table, UserPath};

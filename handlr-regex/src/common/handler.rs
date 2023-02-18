@@ -1,6 +1,6 @@
 use crate::{
     common::{DesktopEntry, ExecMode},
-    Error, ErrorKind, Result,
+    Error, ErrorKind, RegexHandler, Result,
 };
 use std::{
     convert::TryFrom, ffi::OsString, fmt::Display, path::PathBuf, str::FromStr,
@@ -46,5 +46,20 @@ impl Handler {
     }
     pub fn open(&self, args: Vec<String>) -> Result<()> {
         self.get_entry()?.exec(ExecMode::Open, args)
+    }
+}
+
+#[derive(PartialEq, Eq, Hash)]
+pub enum GenericHandler {
+    Handler(Handler),
+    RegexHandler(RegexHandler),
+}
+
+impl GenericHandler {
+    pub fn open(&self, args: Vec<String>) -> Result<()> {
+        match self {
+            GenericHandler::Handler(handler) => handler.open(args),
+            GenericHandler::RegexHandler(handler) => handler.open(args),
+        }
     }
 }

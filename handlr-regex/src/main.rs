@@ -1,8 +1,8 @@
 use clap::Parser;
 use handlr_regex::{
-    apps::{self, RegexHandler, APPS, REGEX_APPS},
+    apps::{self, APPS, REGEX_APPS},
     cli::Cmd,
-    common::{self, mime_table, Handler},
+    common::{self, mime_table, GenericHandler},
     config::CONFIG,
     error::{ErrorKind, Result},
     utils,
@@ -35,31 +35,27 @@ fn main() -> Result<()> {
                 apps.show_handler(&mime.0, json)?;
             }
             Cmd::Open { paths } => {
-                let mut handlers: HashMap<Handler, Vec<String>> =
-                    HashMap::new();
-
-                let mut regex_handlers: HashMap<RegexHandler, Vec<String>> =
+                let mut handlers: HashMap<GenericHandler, Vec<String>> =
                     HashMap::new();
 
                 for path in paths.into_iter() {
-                    if let Some(handler) = REGEX_APPS.get_handler(&path) {
-                        regex_handlers
-                            .entry(handler)
-                            .or_default()
-                            .push(path.to_string())
-                    } else {
-                        handlers
-                            .entry(apps.get_handler(&path.get_mime()?)?)
-                            .or_default()
-                            .push(path.to_string());
-                    }
+                    handlers
+                        .entry(
+                            if let Some(handler) = REGEX_APPS.get_handler(&path)
+                            {
+                                GenericHandler::RegexHandler(handler)
+                            } else {
+                                GenericHandler::Handler(
+                                    apps.get_handler(&path.get_mime()?)?,
+                                )
+                            },
+                        )
+                        .or_default()
+                        .push(path.to_string())
                 }
 
                 for (handler, paths) in handlers.into_iter() {
                     handler.open(paths)?;
-                }
-                for (regex_handler, paths) in regex_handlers.into_iter() {
-                    regex_handler.open(paths)?;
                 }
             }
             Cmd::Mime { paths, json } => {
