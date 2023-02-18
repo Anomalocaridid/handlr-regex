@@ -1,9 +1,8 @@
 use crate::{
     common::{DesktopEntry, ExecMode, UserPath},
-    error::Result,
+    error::{ErrorKind, Result},
     CONFIG,
 };
-use once_cell::sync::Lazy;
 use regex::RegexSet;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -11,8 +10,6 @@ use std::{
     ffi::OsString,
     hash::{Hash, Hasher},
 };
-
-pub static REGEX_APPS: Lazy<RegexApps> = Lazy::new(RegexApps::populate);
 
 // used for deserializing from config file
 #[derive(Debug, Deserialize, Serialize)]
@@ -100,7 +97,7 @@ impl RegexHandler {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 pub struct RegexApps(Vec<RegexHandler>);
 
 impl RegexApps {
@@ -115,13 +112,13 @@ impl RegexApps {
         )
     }
     // get matching handler
-    pub fn get_handler(&self, path: &UserPath) -> Option<RegexHandler> {
-        Some(
-            self.0
-                .iter()
-                .find(|app| app.is_match(&path.to_string()))?
-                .clone(),
-        )
+    pub fn get_handler(&self, path: &UserPath) -> Result<RegexHandler> {
+        Ok(self
+            .0
+            .iter()
+            .find(|app| app.is_match(&path.to_string()))
+            .ok_or_else(|| ErrorKind::NotFound(path.to_string()))?
+            .clone())
     }
 }
 
@@ -162,16 +159,15 @@ mod tests {
                 .get_handler(&UserPath::Url(
                     Url::parse("https://youtu.be/dQw4w9WgXcQ").unwrap()
                 ))
-                .expect("RegexApps::get_handler() returned None"),
+                .expect("RegexApps::get_handler() returned Err"),
             expected_regex_handler
         );
 
-        assert_eq!(
-            regex_apps.get_handler(&UserPath::Url(
+        assert!(regex_apps
+            .get_handler(&UserPath::Url(
                 Url::parse("https://en.wikipedia.org").unwrap()
-            )),
-            None
-        );
+            ))
+            .is_err());
 
         Ok(())
     }

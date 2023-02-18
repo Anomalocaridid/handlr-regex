@@ -1,6 +1,6 @@
 use crate::{
-    apps::SystemApps, common::Handler, Error, ErrorKind, GenericHandler,
-    Result, UserPath, CONFIG, REGEX_APPS,
+    apps::RegexApps, apps::SystemApps, common::Handler, Error, ErrorKind,
+    GenericHandler, RegexHandler, Result, UserPath, CONFIG,
 };
 use mime::Mime;
 use once_cell::sync::Lazy;
@@ -20,6 +20,7 @@ pub struct MimeApps {
     added_associations: HashMap<Mime, VecDeque<Handler>>,
     default_apps: HashMap<Mime, VecDeque<Handler>>,
     system_apps: SystemApps,
+    regex_apps: RegexApps,
 }
 
 impl MimeApps {
@@ -90,6 +91,13 @@ impl MimeApps {
             .ok_or_else(|| Error::from(ErrorKind::NotFound(mime.to_string())))
     }
 
+    fn get_handler_from_regex_handlers(
+        &self,
+        path: &UserPath,
+    ) -> Result<RegexHandler> {
+        self.regex_apps.get_handler(path)
+    }
+
     pub fn show_handler(&self, mime: &Mime, output_json: bool) -> Result<()> {
         let handler = self.get_handler(mime)?;
         let output = if output_json {
@@ -132,6 +140,7 @@ impl MimeApps {
             added_associations: HashMap::default(),
             default_apps: HashMap::default(),
             system_apps: SystemApps::populate()?,
+            regex_apps: RegexApps::populate(),
         };
 
         file.into_inner().for_each(|line| {
@@ -257,13 +266,17 @@ impl MimeApps {
 
         for path in paths.iter() {
             handlers
-                .entry(if let Some(handler) = REGEX_APPS.get_handler(path) {
-                    GenericHandler::RegexHandler(handler)
-                } else {
-                    GenericHandler::Handler(
-                        self.get_handler(&path.get_mime()?)?,
-                    )
-                })
+                .entry(
+                    if let Ok(handler) =
+                        self.get_handler_from_regex_handlers(path)
+                    {
+                        GenericHandler::RegexHandler(handler)
+                    } else {
+                        GenericHandler::Handler(
+                            self.get_handler(&path.get_mime()?)?,
+                        )
+                    },
+                )
                 .or_default()
                 .push(path.to_string())
         }
