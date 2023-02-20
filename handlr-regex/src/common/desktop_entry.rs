@@ -1,4 +1,4 @@
-use crate::{Error, ErrorKind, Result};
+use crate::{Config, Error, ErrorKind, Result};
 use aho_corasick::AhoCorasick;
 use mime::Mime;
 use std::{
@@ -94,10 +94,9 @@ impl DesktopEntry {
         // If the entry expects a terminal (emulator), but this process is not running in one, we
         // launch a new one.
         if self.terminal && !atty::is(atty::Stream::Stdout) {
-            exec = shlex::split(&crate::config::Config::terminal()?)
+            exec = shlex::split(&Config::terminal()?)
                 .unwrap()
                 .into_iter()
-                .chain(vec!["-e".to_owned()])
                 .chain(exec)
                 .collect();
         }

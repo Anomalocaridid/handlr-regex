@@ -17,6 +17,7 @@ pub struct Config {
     pub selector: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub handlers: Vec<ConfigHandler>,
+    term_exec_args: Option<String>,
 }
 
 impl Default for Config {
@@ -24,7 +25,10 @@ impl Default for Config {
         Config {
             enable_selector: false,
             selector: "rofi -dmenu -i -p 'Open With: '".into(),
+            // Required for many xterm-compatible terminal emulators
+            // Unfortunately, messes up emulators that don't accept it
             handlers: Vec::new(),
+            term_exec_args: Some("-e".into()),
         }
     }
 }
@@ -61,7 +65,16 @@ impl Config {
 
                 Some(entry.1)
             })
-            .map(|e| e.exec)
+            .map(|e| {
+                let mut exec = e.exec;
+
+                if let Some(opts) = &CONFIG.term_exec_args {
+                    exec.push_str(" ");
+                    exec.push_str(opts)
+                }
+
+                exec
+            })
             .ok_or(Error::from(ErrorKind::NoTerminal))
     }
     pub fn load() -> Self {
