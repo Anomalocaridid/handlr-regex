@@ -71,6 +71,24 @@ Otherwise, `handlr` will:
 
 On the upside, `Terminal=true` entries will now work outside of interactive terminals, unlike `xdg-utils`.
 
+### Terminal emulator compatibility
+`handlr` should work with pretty much any terminal emulator.
+
+However, some slight configuration may be necessary depending on what command line arguments your terminal emulator supports or required to directly run a command in it.
+
+If it uses/supports `-e` (i.e. `xterm`, `xfce4-terminal`, `foot`, etc.) then you do not need to do anything.
+
+If it requires something else, then set `term_exec_args` in `~/.config/handlr/handlr.toml` to the necessary arguments like so:
+
+```
+// Replace 'run' with whatever arguments you need 
+term_exec_args = 'run'
+```
+
+If it does not require any arguments or if its arguments are already included in its .desktop file, but it does not use `-e`, (i.e. `wezterm`, `kitty`, etc.) set `term_exec_args` to `''`.
+
+Feel free to open an issue or pull request if there's a better way to handle this.
+
 ## Setting multiple handlers
 
 1) Open `~/.config/handlr/handlr.toml` and set `enable_selector = true`. Optionally, you can also tweak the `selector` to your selector command (using e.g. rofi or dmenu).
