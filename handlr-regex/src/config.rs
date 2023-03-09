@@ -25,9 +25,9 @@ impl Default for Config {
         Config {
             enable_selector: false,
             selector: "rofi -dmenu -i -p 'Open With: '".into(),
+            handlers: Vec::new(),
             // Required for many xterm-compatible terminal emulators
             // Unfortunately, messes up emulators that don't accept it
-            handlers: Vec::new(),
             term_exec_args: Some("-e".into()),
         }
     }
@@ -69,7 +69,7 @@ impl Config {
                 let mut exec = e.exec;
 
                 if let Some(opts) = &CONFIG.term_exec_args {
-                    exec.push_str(" ");
+                    exec.push(' ');
                     exec.push_str(opts)
                 }
 
