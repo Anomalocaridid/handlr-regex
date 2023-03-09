@@ -45,13 +45,16 @@ impl MimeApps {
     }
 
     pub fn get_handler(&self, mime: &Mime) -> Result<Handler> {
-        self.get_handler_from_user(mime)
-            .or_else(|_| {
-                let wildcard =
-                    Mime::from_str(&format!("{}/*", mime.type_())).unwrap();
-                self.get_handler_from_user(&wildcard)
-            })
-            .or_else(|_| self.get_handler_from_added_associations(mime))
+        match self.get_handler_from_user(mime) {
+            Err(e) if matches!(*e.kind, ErrorKind::Cancelled) => Err(e),
+            h => h
+                .or_else(|_| {
+                    let wildcard =
+                        Mime::from_str(&format!("{}/*", mime.type_())).unwrap();
+                    self.get_handler_from_user(&wildcard)
+                })
+                .or_else(|_| self.get_handler_from_added_associations(mime)),
+        }
     }
 
     fn get_handler_from_user(&self, mime: &Mime) -> Result<Handler> {
