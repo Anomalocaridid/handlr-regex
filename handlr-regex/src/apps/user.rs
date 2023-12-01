@@ -90,8 +90,10 @@ impl MimeApps {
     ) -> Result<Handler> {
         self.added_associations
             .get(mime)
-            .map(|h| h.get(0).unwrap().clone())
-            .or_else(|| self.system_apps.get_handler(mime))
+            .map_or_else(
+                || self.system_apps.get_handler(mime),
+                |h| h.get(0).cloned(),
+            )
             .ok_or_else(|| Error::from(ErrorKind::NotFound(mime.to_string())))
     }
 
