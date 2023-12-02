@@ -42,7 +42,10 @@ fn main() -> Result<()> {
                 apps.print(all)?;
             }
             Cmd::Unset { mime } => {
-                apps.remove_handler(&mime.0)?;
+                apps.unset_handler(&mime.0)?;
+            }
+            Cmd::Remove { mime, handler } => {
+                apps.remove_handler(mime.0, handler)?;
             }
             Cmd::Autocomplete {
                 desktop_files,

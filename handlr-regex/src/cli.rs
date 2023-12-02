@@ -128,6 +128,19 @@ pub enum Cmd {
         handler: Handler,
     },
 
+    /// Remove a given handler from a given mime/extension
+    ///
+    /// Note that if a handler is not supplied,
+    ///
+    /// Wildcards cannot be used unless removing handlers from mimetypes
+    /// that already have wildcards.
+    Remove {
+        /// Mimetype to remove handler from
+        mime: MimeOrExtension,
+        /// Desktop file of handler program to remove
+        handler: Handler,
+    },
+
     /// Get the mimetype of a given file/URL
     ///
     /// By default, output is in the form of a table that matches file paths/URLs to their mimetypes.
@@ -171,7 +184,7 @@ pub enum Cmd {
     /// Helper subcommand for autocompletion scripts; should be hidden
     ///
     /// This should not be visible in `handlr --help` output, autocompletion, or man pages.
-    /// If you see this there, please open an issue on Github.
+    /// If you see this there, please open an issue on GitHub.
     ///
     /// However it is fine if this shows up in the output of `handlr autocomplete --help`.
     Autocomplete {
