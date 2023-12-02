@@ -1,0 +1,23 @@
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.TH handlr-remove 1  "handlr-remove " 
+.SH NAME
+handlr-regex\-remove - Remove a given handler from a given mime/extension
+.SH SYNOPSIS
+\fBhandlr remove\fR [\fB\-h\fR|\fB\-\-help\fR] <\fIMIME\fR> <\fIHANDLER\fR> 
+.SH DESCRIPTION
+Remove a given handler from a given mime/extension
+.PP
+Note that if a handler is not supplied,
+.PP
+Wildcards cannot be used unless removing handlers from mimetypes that already have wildcards.
+.SH OPTIONS
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help information
+.TP
+<\fIMIME\fR>
+Mimetype to remove handler from
+.TP
+<\fIHANDLER\fR>
+Desktop file of handler program to remove
