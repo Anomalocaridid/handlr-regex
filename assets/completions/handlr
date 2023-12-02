@@ -7,7 +7,7 @@ _handlr()
         COMPREPLY=($(compgen -W 'get help launch list open set unset mime' -- "$cur"))
     else
         case ${words[1]} in
-            set | add)
+            set | add | remove)
                 if ((cword == 2)); then
                     COMPREPLY=($(compgen -W '$(handlr autocomplete -m)' -- "$cur"))
                 elif ((cword == 3)); then

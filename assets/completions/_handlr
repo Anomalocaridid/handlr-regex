@@ -22,6 +22,7 @@ _handlr_commands() {
       'launch:Launch the handler for specified extension/mime with optional arguments'
       'get:Get handler for this mime/extension'
       'add:Add a handler for given mime/extension; note that the first handler is the default'
+      'remove:Remove a given handler from a given mime/extension'
       'mime:Get the mimetype of a path/URL'
   )
   _describe -t handlr-commands "command" subcommands
@@ -42,7 +43,7 @@ _handlr_subcommand () {
           '1:types:_handlr_types' \
           '2:filename/path:_files'
       ;;
-    (set|add)
+    (set|add|remove)
       _arguments \
           '1:type:_handlr_types' \
           '2:desktop:_handlr_desktops'

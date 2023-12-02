@@ -1,10 +1,12 @@
 function __handlr_autocomplete
   function subcommands
-    set -l handlr_commands 'get help launch list open set unset mime'
+    set -l handlr_commands 'add get help launch list open set unset mime'
+    complete -f -c handlr -n "not __fish_seen_subcommand_from $handlr_commands" -a "add" -d "Add a handler for given mime/extension"
     complete -f -c handlr -n "not __fish_seen_subcommand_from $handlr_commands" -a "get" -d "Show handler for mime"
     complete -f -c handlr -n "not __fish_seen_subcommand_from $handlr_commands" -a "launch" -d "Launch given handler with path/args"
     complete -f -c handlr -n "not __fish_seen_subcommand_from $handlr_commands" -a "list" -d "Show handlers (default applications)"
     complete -f -c handlr -n "not __fish_seen_subcommand_from $handlr_commands" -a "open" -d "Open path/URL with default handler (like xdg-open)"
+    complete -f -c handlr -n "not __fish_seen_subcommand_from $handlr_commands" -a "remove" -d "Remove a given handler from a given mime/extension"
     complete -f -c handlr -n "not __fish_seen_subcommand_from $handlr_commands" -a "set" -d "Set handler for extension (e.g. pdf) or mime type"
     complete -f -c handlr -n "not __fish_seen_subcommand_from $handlr_commands" -a "unset" -d "Unset handler"
     complete -f -c handlr -n "not __fish_seen_subcommand_from $handlr_commands" -a "mime" -d "Get mimetype of path/URL"
