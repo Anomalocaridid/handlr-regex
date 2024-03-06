@@ -1,11 +1,16 @@
-use ascii_table::AsciiTable;
 use mime::Mime;
+use serde::Serialize;
+use tabled::{
+    settings::{Alignment, Padding, Style},
+    Table, Tabled,
+};
 use url::Url;
 
 use crate::{common::MimeType, Error, ErrorKind, Result};
 use std::{
     convert::TryFrom,
     fmt::{Display, Formatter},
+    io::IsTerminal,
     path::PathBuf,
     str::FromStr,
 };
@@ -53,32 +58,44 @@ impl Display for UserPath {
     }
 }
 
-pub fn mime_table(paths: &[UserPath], output_json: bool) -> Result<(), Error> {
-    if output_json {
-        let rows = paths
-            .iter()
-            .map(|path| {
-                Ok(json::object! {
-                    path: path.to_string(),
-                    mime: path.get_mime()?.essence_str().to_owned()
-                })
-            })
-            .collect::<Result<json::Array>>()?;
-        println!("{}", json::stringify(rows));
-    } else {
-        let rows = paths
-            .iter()
-            .map(|path| {
-                Ok(vec![
-                    path.to_string(),
-                    path.get_mime()?.essence_str().to_owned(),
-                ])
-            })
-            .collect::<Result<Vec<Vec<String>>>>()?;
+/// Internal helper struct for turning a UserPath into tabular data
+#[derive(Tabled, Serialize)]
+struct UserPathTable {
+    path: String,
+    mime: String,
+}
 
-        let table = AsciiTable::default();
-        table.print(rows);
+impl UserPathTable {
+    fn new(path: &UserPath) -> Result<Self> {
+        Ok(Self {
+            path: path.to_string(),
+            mime: path.get_mime()?.essence_str().to_owned(),
+        })
     }
+}
+
+pub fn mime_table(paths: &[UserPath], output_json: bool) -> Result<()> {
+    let rows = paths
+        .iter()
+        .map(UserPathTable::new)
+        .collect::<Result<Vec<UserPathTable>>>()?;
+
+    let table = if output_json {
+        serde_json::to_string(&rows)?
+    } else if std::io::stdout().is_terminal() {
+        // If output is going to a terminal, print as a table
+        Table::new(&rows).with(Style::sharp()).to_string()
+    } else {
+        // If output is being piped, print as tab-delimited text
+        let mut table = Table::new(&rows);
+        table
+            .with(Style::empty().vertical('\t'))
+            .with(Alignment::left())
+            .with(Padding::zero());
+        table.to_string()
+    };
+
+    println!("{table}");
 
     Ok(())
 }

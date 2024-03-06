@@ -45,6 +45,8 @@ pub enum ErrorKind {
     NoTerminal,
     #[error("Bad path: {0}")]
     BadPath(String),
+    #[error(transparent)]
+    SerdeJson(#[from] serde_json::Error),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
