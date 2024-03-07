@@ -6,6 +6,7 @@ use crate::{
 use mime::Mime;
 use once_cell::sync::Lazy;
 use pest::Parser;
+
 use std::{
     collections::{HashMap, VecDeque},
     io::Read,
@@ -126,11 +127,11 @@ impl MimeApps {
             let entry = handler.get_entry()?;
             let cmd = entry.get_cmd(vec![])?;
 
-            (json::object! {
-                handler: handler.to_string(),
-                name: entry.name.as_str(),
-                cmd: cmd.0 + " " + &cmd.1.join(" "),
-            })
+            (serde_json::json!( {
+                "handler": handler.to_string(),
+                "name": entry.name.as_str(),
+                "cmd": cmd.0 + " " + &cmd.1.join(" "),
+            }))
             .to_string()
         } else {
             handler.to_string()
