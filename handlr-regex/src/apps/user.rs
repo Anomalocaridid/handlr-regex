@@ -6,10 +6,16 @@ use crate::{
 use mime::Mime;
 use once_cell::sync::Lazy;
 use pest::Parser;
+use serde::Serialize;
+use tabled::{
+    settings::{panel::Header, Alignment, Padding, Style},
+    Table, Tabled,
+};
 
 use std::{
     collections::{HashMap, VecDeque},
-    io::Read,
+    io::{IsTerminal, Read},
+    iter::FromIterator,
     path::PathBuf,
     str::FromStr,
 };
@@ -243,29 +249,60 @@ impl MimeApps {
         Ok(())
     }
     pub fn print(&self, detailed: bool) -> Result<()> {
-        use itertools::Itertools;
-
-        let to_rows = |map: &HashMap<Mime, VecDeque<Handler>>| {
+        fn to_table(
+            map: &HashMap<Mime, VecDeque<Handler>>,
+        ) -> Vec<MimeAppsEntry> {
             map.iter()
-                .sorted()
-                .map(|(k, v)| vec![k.to_string(), v.iter().join(", ")])
-                .collect::<Vec<_>>()
+                .map(|(mime, handlers)| MimeAppsEntry::new(mime, handlers))
+                .collect()
+        }
+
+        let table = if detailed {
+            let data = vec![
+                (&self.default_apps, "Default Apps"),
+                (&self.added_associations, "Added Associations"),
+                (&self.system_apps.0, "System Apps"),
+            ]
+            .iter()
+            .filter(|(map, _)| !map.is_empty())
+            .map(|(map, header)| {
+                let mut table = Table::new(to_table(map));
+
+                let table = if std::io::stdout().is_terminal() {
+                    // If output is going to a terminal, print as a table
+                    table.with(Style::modern())
+                } else {
+                    // If output is being piped, print as tab-delimited text
+                    table
+                        .with(Style::empty().vertical('\t'))
+                        .with(Alignment::left())
+                        .with(Padding::zero())
+                };
+
+                vec![table.with(Header::new(header)).to_string()]
+            })
+            .collect::<Vec<Vec<String>>>();
+
+            tabled::builder::Builder::from_iter(data)
+                .build()
+                .with(Style::empty())
+                .with(Padding::zero())
+                .to_string()
+        } else if std::io::stdout().is_terminal() {
+            // If output is going to a terminal, print as a table
+            Table::new(to_table(&self.default_apps))
+                .with(Style::sharp())
+                .to_string()
+        } else {
+            // If output is being piped, print as tab-delimited text
+            Table::new(to_table(&self.default_apps))
+                .with(Style::empty().vertical('\t'))
+                .with(Alignment::left())
+                .with(Padding::zero())
+                .to_string()
         };
 
-        let table = ascii_table::AsciiTable::default();
-
-        if detailed {
-            println!("Default Apps");
-            table.print(to_rows(&self.default_apps));
-            if !self.added_associations.is_empty() {
-                println!("Added Associations");
-                table.print(to_rows(&self.added_associations));
-            }
-            println!("System Apps");
-            table.print(to_rows(&self.system_apps.0));
-        } else {
-            table.print(to_rows(&self.default_apps));
-        }
+        println!("{table}");
 
         Ok(())
     }
@@ -309,6 +346,46 @@ impl MimeApps {
         }
 
         Ok(())
+    }
+}
+
+/// Internal helper struct for turning MimeApps into tabular data
+#[derive(Tabled, Serialize)]
+struct MimeAppsEntry {
+    mime: String,
+    #[tabled(display_with("Self::display_handlers", self))]
+    handlers: Vec<String>,
+}
+
+// /// Internal helper struct for turning MimeApps into tabular data
+// #[derive(Tabled, Serialize)]
+// struct MimeAppsTable {
+//     added_associations: MimeAppsEntries,
+//     default_apps: MimeAppsEntries,
+//     system_apps: MimeAppsEntries,
+// }
+
+impl MimeAppsEntry {
+    fn new(mime: &Mime, handlers: &VecDeque<Handler>) -> Self {
+        Self {
+            mime: mime.to_string(),
+            handlers: handlers
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>(),
+        }
+    }
+
+    fn display_handlers(&self) -> String {
+        // If output is a terminal, optimize for readability
+        // Otherwise, if piped, optimize for parseability
+        let separator = if std::io::stdout().is_terminal() {
+            ",\n"
+        } else {
+            ", "
+        };
+
+        self.handlers.join(separator)
     }
 }
 
