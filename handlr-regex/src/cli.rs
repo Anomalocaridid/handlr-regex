@@ -20,7 +20,64 @@ pub enum Cmd {
     /// The left column shows mimetypes and the right column shows the handlers
     ///
     /// Currently does not support regex handlers.
+    ///
+    /// When using `--json`, output will be in the form:
+    ///
+    /// ```json
+    ///
+    /// [
+    ///
+    ///   {
+    ///
+    ///     "mime": "text/*",
+    ///
+    ///     "handlers": [
+    ///
+    ///       "Helix.desktop"
+    ///
+    ///      ]
+    ///
+    ///   },
+    ///
+    ///   {
+    ///
+    ///     "mime": "x-scheme-handler/https",
+    ///
+    ///     "handlers": [
+    ///
+    ///       "firefox.desktop",
+    ///
+    ///       "nyxt.desktop"
+    ///
+    ///     ]
+    ///
+    ///   },
+    ///
+    /// ]
+    ///
+    /// ```
+    ///
+    /// When using `--json` with `--all`, output will be in the form
+    ///
+    /// ```json
+    ///
+    /// {
+    ///
+    ///   "added_associations": [ ... ],   
+    ///
+    ///   "default_apps": [ ... ],
+    ///
+    ///   "system_apps": [ ... ],
+    ///
+    /// }
+    ///
+    /// ```
+    ///
+    /// Where each top-level key has an array with the same scheme as the normal `--json` output
     List {
+        #[clap(long)]
+        /// Output handler info as json
+        json: bool,
         #[clap(long, short)]
         /// Expand wildcards in mimetypes and show global defaults
         all: bool,
@@ -95,11 +152,11 @@ pub enum Cmd {
     ///
     /// {
     ///
+    ///   "cmd": "helix"
+    ///
     ///   "handler": "helix.desktop",
     ///
     ///   "name": "Helix",
-    ///
-    ///   "cmd": "helix"
     ///
     /// }
     ///

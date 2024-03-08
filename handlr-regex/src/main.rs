@@ -38,8 +38,8 @@ fn main() -> Result<()> {
             Cmd::Mime { paths, json } => {
                 mime_table(&paths, json)?;
             }
-            Cmd::List { all } => {
-                apps.print(all)?;
+            Cmd::List { all, json } => {
+                apps.print(all, json)?;
             }
             Cmd::Unset { mime } => {
                 apps.unset_handler(&mime.0)?;
