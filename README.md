@@ -118,6 +118,10 @@ For more information:
 * [desktop entry field codes](https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables)
 * [regex reference](https://docs.rs/regex/latest/regex/#syntax)
 
+## Smart table output
+
+Starting with v0.10.0, commands with table output (i.e. `handlr list` and `handlr mime`) switch to outputting tab-separated values when piped for use with commands like `cut`.
+
 ## Screenshots
 
 <table><tr><td>
