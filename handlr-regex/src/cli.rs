@@ -13,6 +13,7 @@ use clap::Parser;
 #[clap(disable_help_subcommand = true)]
 #[clap(version, about)]
 pub enum Cmd {
+    #[clap(verbatim_doc_comment)]
     /// List default apps and the associated handlers
     ///
     /// Output is formatted as a table with two columns.
@@ -22,55 +23,30 @@ pub enum Cmd {
     ///
     /// When using `--json`, output will be in the form:
     ///
-    /// ```json
-    ///
     /// [
-    ///
     ///   {
-    ///
     ///     "mime": "text/*",
-    ///
     ///     "handlers": [
-    ///
     ///       "Helix.desktop"
-    ///
     ///      ]
-    ///
     ///   },
-    ///
     ///   {
-    ///
     ///     "mime": "x-scheme-handler/https",
-    ///
     ///     "handlers": [
-    ///
     ///       "firefox.desktop",
-    ///
     ///       "nyxt.desktop"
-    ///
     ///     ]
-    ///
     ///   },
-    ///
+    ///   ...
     /// ]
-    ///
-    /// ```
     ///
     /// When using `--json` with `--all`, output will be in the form
     ///
-    /// ```json
-    ///
     /// {
-    ///
     ///   "added_associations": [ ... ],   
-    ///
     ///   "default_apps": [ ... ],
-    ///
-    ///   "system_apps": [ ... ],
-    ///
+    ///   "system_apps": [ ... ]
     /// }
-    ///
-    /// ```
     ///
     /// Where each top-level key has an array with the same scheme as the normal `--json` output
     List {
@@ -137,6 +113,7 @@ pub enum Cmd {
         args: Vec<UserPath>,
     },
 
+    #[clap(verbatim_doc_comment)]
     /// Get handler for this mime/extension
     ///
     /// If multiple handlers are set and `enable_selector` is set to true,
@@ -147,19 +124,11 @@ pub enum Cmd {
     ///
     /// When using `--json`, output is in the form:
     ///
-    /// ```json
-    ///
     /// {
-    ///
-    ///   "cmd": "helix"
-    ///
+    ///   "cmd": "helix",
     ///   "handler": "helix.desktop",
-    ///
-    ///   "name": "Helix",
-    ///
+    ///   "name": "Helix"
     /// }
-    ///
-    /// ```
     ///
     /// Note that when handlr is not being directly output to a terminal, and the handler is a terminal program,
     /// the "cmd" key in the json output will include the command of the `x-scheme-handler/terminal` handler.
@@ -197,43 +166,31 @@ pub enum Cmd {
         handler: Handler,
     },
 
+    #[clap(verbatim_doc_comment)]
     /// Get the mimetype of a given file/URL
     ///
     /// By default, output is in the form of a table that matches file paths/URLs to their mimetypes.
     ///
     /// When using `--json`, output will be in the form:
     ///
-    /// ```json
-    ///
     /// [
-    ///
     ///   {
-    ///
     ///     "path": "README.md"
-    ///
     ///     "mime": "text/markdown"
-    ///
     ///   },
-    ///
     ///   {
-    ///
     ///     "path": "https://duckduckgo.com/"
-    ///
     ///     "mime": "x-scheme-handler/https"
-    ///
-    ///   }
-    ///
+    ///   },
     /// ...
-    ///
     /// ]
-    ///
-    /// ```
     Mime {
+        #[clap(required = true)]
+        /// File paths/URLs to get the mimetype of
+        paths: Vec<UserPath>,
         #[clap(long)]
         /// Output mimetype info as json
         json: bool,
-        /// File paths/URLs to get the mimetype of
-        paths: Vec<UserPath>,
     },
 
     #[clap(hide = true)]
