@@ -1,10 +1,10 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH handlr-mime 1  "handlr-mime " 
+.TH handlr-mime 1  "mime " 
 .SH NAME
-handlr-regex\-mime - Get the mimetype of a given file/URL
+handlr\-mime \- Get the mimetype of a given file/URL
 .SH SYNOPSIS
-\fBhandlr mime\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-\-json\fR] [\fIPATHS\fR] 
+\fBhandlr mime\fR [\fB\-\-json\fR] [\fB\-h\fR|\fB\-\-help\fR] <\fIPATHS\fR> 
 .SH DESCRIPTION
 Get the mimetype of a given file/URL
 .PP
@@ -12,38 +12,24 @@ By default, output is in the form of a table that matches file paths/URLs to the
 .PP
 When using `\-\-json`, output will be in the form:
 .PP
-```json
-.PP
 [
-.PP
-{
-.PP
-"path": "README.md"
-.PP
-"mime": "text/markdown"
-.PP
-},
-.PP
-{
-.PP
-"path": "https://duckduckgo.com/"
-.PP
-"mime": "x\-scheme\-handler/https"
-.PP
-}
-.PP
+  {
+    "path": "README.md"
+    "mime": "text/markdown"
+  },
+  {
+    "path": "https://duckduckgo.com/"
+    "mime": "x\-scheme\-handler/https"
+  },
 \&...
-.PP
 ]
-.PP
-```
 .SH OPTIONS
-.TP
-\fB\-h\fR, \fB\-\-help\fR
-Print help information
 .TP
 \fB\-\-json\fR
 Output mimetype info as json
 .TP
-[\fIPATHS\fR]
+\fB\-h\fR, \fB\-\-help\fR
+Print help (see a summary with \*(Aq\-h\*(Aq)
+.TP
+<\fIPATHS\fR>
 File paths/URLs to get the mimetype of

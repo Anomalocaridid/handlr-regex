@@ -1,77 +1,53 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH handlr-list 1  "handlr-list " 
+.TH handlr-list 1  "list " 
 .SH NAME
-handlr-regex\-list - List default apps and the associated handlers
+handlr\-list \- List default apps and the associated handlers
 .SH SYNOPSIS
-\fBhandlr list\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-j\fR|\fB\-\-json\fR] [\fB\-a\fR|\fB\-\-all\fR] 
+\fBhandlr list\fR [\fB\-\-json\fR] [\fB\-a\fR|\fB\-\-all\fR] [\fB\-h\fR|\fB\-\-help\fR] 
 .SH DESCRIPTION
 List default apps and the associated handlers
 .PP
-Output is formatted as a table with two columns. The left column shows mimetypes and the right column shows the handlers
+Output is formatted as a table with two columns.
+The left column shows mimetypes and the right column shows the handlers
 .PP
 Currently does not support regex handlers.
 .PP
 When using `\-\-json`, output will be in the form:
 .PP
-```json
-.PP
 [
-.PP
-{
-.PP
-"mime": "text/*",
-.PP
-"handlers": [
-.PP
-"Helix.desktop"
-.PP
+  {
+    "mime": "text/*",
+    "handlers": [
+      "Helix.desktop"
+     ]
+  },
+  {
+    "mime": "x\-scheme\-handler/https",
+    "handlers": [
+      "firefox.desktop",
+      "nyxt.desktop"
+    ]
+  },
+  ...
 ]
-.PP
-},
-.PP
-{
-.PP
-"mime": "x\-scheme\-handler/https",
-.PP
-"handlers": [
-.PP
-"firefox.desktop",
-.PP
-"nyxt.desktop"
-.PP
-]
-.PP
-},
-.PP
-]
-.PP
-```
 .PP
 When using `\-\-json` with `\-\-all`, output will be in the form
 .PP
-```json
-.PP
 {
-.PP
-"added_associations": [ ... ],
-.PP
-"default_apps": [ ... ],
-.PP
-"system_apps": [ ... ],
-.PP
+  "added_associations": [ ... ],   
+  "default_apps": [ ... ],
+  "system_apps": [ ... ]
 }
-.PP
-```
 .PP
 Where each top\-level key has an array with the same scheme as the normal `\-\-json` output
 .SH OPTIONS
 .TP
-\fB\-h\fR, \fB\-\-help\fR
-Print help information
-.TP
-\fB\-j\fR, \fB\-\-json\fR
+\fB\-\-json\fR
 Output handler info as json
 .TP
 \fB\-a\fR, \fB\-\-all\fR
 Expand wildcards in mimetypes and show global defaults
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help (see a summary with \*(Aq\-h\*(Aq)

@@ -1,41 +1,36 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH handlr-get 1  "handlr-get " 
+.TH handlr-get 1  "get " 
 .SH NAME
-handlr-regex\-get - Get handler for this mime/extension
+handlr\-get \- Get handler for this mime/extension
 .SH SYNOPSIS
-\fBhandlr get\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-\-json\fR] <\fIMIME\fR> 
+\fBhandlr get\fR [\fB\-\-json\fR] [\fB\-h\fR|\fB\-\-help\fR] <\fIMIME\fR> 
 .SH DESCRIPTION
 Get handler for this mime/extension
 .PP
-If multiple handlers are set and `enable_selector` is set to true, you will be prompted to select one using `selector` from ~/.config/handlr/handlr.toml. Otherwise, only the default handler will be printed.
+If multiple handlers are set and `enable_selector` is set to true,
+you will be prompted to select one using `selector` from ~/.config/handlr/handlr.toml.
+Otherwise, only the default handler will be printed.
 .PP
 Note that regex handlers are not supported by this subcommand currently.
 .PP
 When using `\-\-json`, output is in the form:
 .PP
-```json
-.PP
 {
-.PP
-"cmd": "helix"
-.PP
-"handler": "helix.desktop",
-.PP
-"name": "Helix",
-.PP
+  "cmd": "helix",
+  "handler": "helix.desktop",
+  "name": "Helix"
 }
 .PP
-```
-.PP
-Note that when handlr is not being directly output to a terminal, and the handler is a terminal program, the "cmd" key in the json output will include the command of the `x\-scheme\-handler/terminal` handler.
+Note that when handlr is not being directly output to a terminal, and the handler is a terminal program,
+the "cmd" key in the json output will include the command of the `x\-scheme\-handler/terminal` handler.
 .SH OPTIONS
-.TP
-\fB\-h\fR, \fB\-\-help\fR
-Print help information
 .TP
 \fB\-\-json\fR
 Output handler info as json
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help (see a summary with \*(Aq\-h\*(Aq)
 .TP
 <\fIMIME\fR>
 Mimetype to get the handler of
