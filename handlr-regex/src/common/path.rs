@@ -1,16 +1,12 @@
 use mime::Mime;
 use serde::Serialize;
-use tabled::{
-    settings::{Alignment, Padding, Style},
-    Table, Tabled,
-};
+use tabled::Tabled;
 use url::Url;
 
-use crate::{common::MimeType, Error, ErrorKind, Result};
+use crate::{common::MimeType, render_table, Error, ErrorKind, Result};
 use std::{
     convert::TryFrom,
     fmt::{Display, Formatter},
-    io::IsTerminal,
     path::PathBuf,
     str::FromStr,
 };
@@ -82,17 +78,8 @@ pub fn mime_table(paths: &[UserPath], output_json: bool) -> Result<()> {
 
     let table = if output_json {
         serde_json::to_string(&rows)?
-    } else if std::io::stdout().is_terminal() {
-        // If output is going to a terminal, print as a table
-        Table::new(&rows).with(Style::sharp()).to_string()
     } else {
-        // If output is being piped, print as tab-delimited text
-        let mut table = Table::new(&rows);
-        table
-            .with(Style::empty().vertical('\t'))
-            .with(Alignment::left())
-            .with(Padding::zero());
-        table.to_string()
+        render_table(&rows)
     };
 
     println!("{table}");

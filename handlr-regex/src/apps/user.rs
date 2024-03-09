@@ -1,21 +1,17 @@
 use crate::{
     apps::{RegexApps, RegexHandler, SystemApps},
     common::Handler,
-    Error, ErrorKind, GenericHandler, Result, UserPath, CONFIG,
+    render_table, Error, ErrorKind, GenericHandler, Result, UserPath, CONFIG,
 };
 use mime::Mime;
 use once_cell::sync::Lazy;
 use pest::Parser;
 use serde::Serialize;
-use tabled::{
-    settings::{panel::Header, Alignment, Padding, Style},
-    Table, Tabled,
-};
+use tabled::Tabled;
 
 use std::{
     collections::{HashMap, VecDeque},
     io::{IsTerminal, Read},
-    iter::FromIterator,
     path::PathBuf,
     str::FromStr,
 };
@@ -249,68 +245,33 @@ impl MimeApps {
         Ok(())
     }
     pub fn print(&self, detailed: bool, output_json: bool) -> Result<()> {
-        fn to_table(
-            map: &HashMap<Mime, VecDeque<Handler>>,
-        ) -> Vec<MimeAppsEntry> {
-            map.iter()
-                .map(|(mime, handlers)| MimeAppsEntry::new(mime, handlers))
-                .collect()
-        }
+        let mimeapps_table = MimeAppsTable::new(&self);
 
-        // let default = to_table(&self.default_apps);
-
-        let table = if detailed {
+        if detailed {
             if output_json {
-                serde_json::to_string(&MimeAppsTable::new(&self))?
+                println!(
+                    "{}",
+                    serde_json::to_string(&MimeAppsTable::new(&self))?
+                )
             } else {
-                let data = vec![
-                    (&self.default_apps, "Default Apps"),
-                    (&self.added_associations, "Added Associations"),
-                    (&self.system_apps.0, "System Apps"),
-                ]
-                .iter()
-                .filter(|(map, _)| !map.is_empty())
-                .map(|(map, header)| {
-                    let mut table = Table::new(to_table(map));
-
-                    let table = if std::io::stdout().is_terminal() {
-                        // If output is going to a terminal, print as a table
-                        table.with(Style::modern())
-                    } else {
-                        // If output is being piped, print as tab-delimited text
-                        table
-                            .with(Style::empty().vertical('\t'))
-                            .with(Alignment::left())
-                            .with(Padding::zero())
-                    };
-
-                    vec![table.with(Header::new(header)).to_string()]
-                })
-                .collect::<Vec<Vec<String>>>();
-
-                tabled::builder::Builder::from_iter(data)
-                    .build()
-                    .with(Style::empty())
-                    .with(Padding::zero())
-                    .to_string()
+                println!("Default Apps");
+                println!("{}", render_table(&mimeapps_table.default_apps));
+                if !self.added_associations.is_empty() {
+                    println!("Added associations");
+                    println!(
+                        "{}",
+                        render_table(&mimeapps_table.added_associations)
+                    );
+                }
+                println!("System Apps");
+                println!("{}", render_table(&mimeapps_table.system_apps))
             }
         } else if output_json {
-            serde_json::to_string(&to_table(&self.default_apps))?
-        } else if std::io::stdout().is_terminal() {
-            // If output is going to a terminal, print as a table
-            Table::new(to_table(&self.default_apps))
-                .with(Style::sharp())
-                .to_string()
+            println!("{}", serde_json::to_string(&mimeapps_table.default_apps)?)
         } else {
-            // If output is being piped, print as tab-delimited text
-            Table::new(to_table(&self.default_apps))
-                .with(Style::empty().vertical('\t'))
-                .with(Alignment::left())
-                .with(Padding::zero())
-                .to_string()
-        };
+            println!("{}", render_table(&mimeapps_table.default_apps))
+        }
 
-        println!("{table}");
         Ok(())
     }
     pub fn list_handlers() -> Result<()> {
@@ -357,7 +318,7 @@ impl MimeApps {
 }
 
 /// Internal helper struct for turning MimeApps into tabular data
-#[derive(Tabled, Serialize)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Tabled, Serialize)]
 struct MimeAppsEntry {
     mime: String,
     #[tabled(display_with("Self::display_handlers", self))]
@@ -398,23 +359,20 @@ struct MimeAppsTable {
 
 impl MimeAppsTable {
     fn new(mimeapps: &MimeApps) -> Self {
+        fn to_entries(
+            map: &HashMap<Mime, VecDeque<Handler>>,
+        ) -> Vec<MimeAppsEntry> {
+            let mut rows = map
+                .iter()
+                .map(|(mime, handlers)| MimeAppsEntry::new(mime, handlers))
+                .collect::<Vec<_>>();
+            rows.sort_unstable();
+            rows
+        }
         Self {
-            added_associations: mimeapps
-                .added_associations
-                .iter()
-                .map(|(mime, handler)| MimeAppsEntry::new(mime, handler))
-                .collect::<Vec<_>>(),
-            default_apps: mimeapps
-                .default_apps
-                .iter()
-                .map(|(mime, handler)| MimeAppsEntry::new(mime, handler))
-                .collect::<Vec<_>>(),
-            system_apps: mimeapps
-                .system_apps
-                .0
-                .iter()
-                .map(|(mime, handler)| MimeAppsEntry::new(mime, handler))
-                .collect::<Vec<_>>(),
+            added_associations: to_entries(&mimeapps.added_associations),
+            default_apps: to_entries(&mimeapps.default_apps),
+            system_apps: to_entries(&mimeapps.system_apps.0),
         }
     }
 }
