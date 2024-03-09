@@ -10,7 +10,6 @@ use clap::Parser;
 /// Regular expression handlers inspired by mimeo at <https://xyne.dev/projects/mimeo/>
 #[deny(missing_docs)]
 #[derive(Parser)]
-#[clap(global_setting = clap::AppSettings::DeriveDisplayOrder)]
 #[clap(disable_help_subcommand = true)]
 #[clap(version, about)]
 pub enum Cmd {
