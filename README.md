@@ -135,10 +135,10 @@ Starting with v0.10.0, commands with table output (i.e. `handlr list` and `handl
 ### Arch Linux
 
 ```sh
-paru -S handlr-regex-bin
+sudo pacman -S handlr-regex
 ```
 
-Optionally you can also install `xdg-utils-handlr` to replace `xdg-open`:
+Optionally you can also install `xdg-utils-handlr` from the AUR to replace `xdg-open`:
 
 ```sh
 paru -S xdg-utils-handlr
