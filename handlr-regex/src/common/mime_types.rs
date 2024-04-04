@@ -129,6 +129,14 @@ mod tests {
             MimeType::try_from(Path::new("./tests/empty.txt"))?.0,
             "text/plain"
         );
+        assert_eq!(
+            MimeType::try_from(Path::new("./tests/p.html"))?.0,
+            "text/html"
+        );
+        assert_eq!(
+            MimeType::try_from(Path::new("./tests/no_html_tags.html"))?.0,
+            "text/html"
+        );
 
         Ok(())
     }
