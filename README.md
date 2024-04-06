@@ -141,11 +141,9 @@ sudo pacman -S handlr-regex
 Optionally, you can also use `handlr-regex` as a replacement for `xdg-open` by shadowing it with a script in `$HOME/.local/bin/` (or any other user-scoped `$PATH` directory). Use the following script as an example:
 
 ```sh
-echo "#!/bin/sh
+#!/bin/sh
 
 handlr open \"\$@\"
-" > $HOME/.local/bin/xdg-open
-chmod +x $HOME/.local/bin/xdg-open
 ```
 
 ### Rust/Cargo
