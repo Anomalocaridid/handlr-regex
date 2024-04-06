@@ -138,7 +138,7 @@ Starting with v0.10.0, commands with table output (i.e. `handlr list` and `handl
 sudo pacman -S handlr-regex
 ```
 
-Optionally you can also use `handlr-regex` as a replacement for `xdg-open` by putting a shadowing script into `$HOME/.local/bin` directtory (or any other `$PATH` directory). Use the following shell snippet as an example:
+Optionally, you can also use `handlr-regex` as a replacement for `xdg-open` by shadowing it with a script in `$HOME/.local/bin/` (or any other user-scoped `$PATH` directory). Use the following script as an example:
 
 ```sh
 echo "#!/bin/sh
