@@ -143,7 +143,7 @@ Optionally, you can also use `handlr-regex` as a replacement for `xdg-open` by s
 ```sh
 #!/bin/sh
 
-handlr open \"\$@\"
+handlr open "$@"
 ```
 
 ### Rust/Cargo
