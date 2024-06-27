@@ -1,5 +1,5 @@
 use crate::{
-    apps::{ConfigHandler, SystemApps},
+    apps::{RegexHandler, SystemApps},
     common::Handler,
     Error, ErrorKind, Result,
 };
@@ -10,13 +10,19 @@ use std::str::FromStr;
 
 pub static CONFIG: Lazy<Config> = Lazy::new(Config::load);
 
+/// The config file
 #[derive(Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
+    /// Whether to enable the selector when multiple handlers are set
     pub enable_selector: bool,
+    /// The selector command to run
     pub selector: String,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub handlers: Vec<ConfigHandler>,
+    /// Regex handlers
+    // NOTE: Serializing is only necessary for generating a default config file
+    #[serde(skip_serializing)]
+    pub handlers: Vec<RegexHandler>,
+    /// Extra arguments to pass to terminal application
     term_exec_args: Option<String>,
 }
 

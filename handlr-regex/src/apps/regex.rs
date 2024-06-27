@@ -4,79 +4,27 @@ use crate::{
     CONFIG,
 };
 use regex::RegexSet;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::{
     collections::HashMap,
     ffi::OsString,
     hash::{Hash, Hasher},
+    ops::Deref,
 };
 
-// used for deserializing from config file
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ConfigHandler {
-    exec: String,
-    #[serde(default)]
-    terminal: bool,
-    regexes: Vec<String>,
-}
-
-impl ConfigHandler {
-    // convert to RegexHandler
-    fn compile_regex(&self) -> Result<RegexHandler> {
-        Ok(RegexHandler {
-            exec: self.exec.clone(),
-            terminal: self.terminal,
-            regexes: HandlerRegexSet::new(self.regexes.clone())?,
-        })
-    }
-}
-
-// wrapping RegexSet in a struct and implementing Eq and Hash for it
-// saves us from having to implement them for RegexHandler as a whole
-// although it complicates method calls a bit
-#[derive(Debug, Clone)]
-struct HandlerRegexSet(RegexSet);
-
-impl HandlerRegexSet {
-    fn new<I, S>(exprs: I) -> Result<HandlerRegexSet>
-    where
-        S: AsRef<str>,
-        I: IntoIterator<Item = S>,
-    {
-        Ok(HandlerRegexSet(RegexSet::new(exprs)?))
-    }
-
-    fn is_match(&self, text: &str) -> bool {
-        self.0.is_match(text)
-    }
-}
-
-impl PartialEq for HandlerRegexSet {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.patterns() == other.0.patterns()
-    }
-}
-
-impl Eq for HandlerRegexSet {}
-
-impl Hash for HandlerRegexSet {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.patterns().hash(state);
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// Represents a regex handler from the config
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 pub struct RegexHandler {
     exec: String,
+    #[serde(default)]
     terminal: bool,
     regexes: HandlerRegexSet,
 }
 
 impl RegexHandler {
-    // kludge together a fake DesktopEntry
-    // there's probably a better way to avoid reinventing the wheel with the program execution code
+    /// Get the desktop entry associated with the handler
     fn get_entry(&self) -> DesktopEntry {
-        //
+        // Make a fake DesktopEntry
         DesktopEntry {
             name: String::from(""),
             exec: self.exec.clone(),
@@ -87,13 +35,42 @@ impl RegexHandler {
         }
     }
 
-    // open the given paths with handler
+    /// Open the given paths with the handler
     pub fn open(&self, args: Vec<String>) -> Result<()> {
         self.get_entry().exec(ExecMode::Open, args)
     }
 
+    /// Test if a given path matches the handler's regex
     fn is_match(&self, path: &str) -> bool {
         self.regexes.is_match(path)
+    }
+}
+
+// Wrapping RegexSet in a struct and implementing Eq and Hash for it
+// saves us from having to implement them for RegexHandler as a whole.
+#[derive(Debug, Clone, Deserialize)]
+struct HandlerRegexSet(#[serde(with = "serde_regex")] RegexSet);
+
+impl PartialEq for HandlerRegexSet {
+    fn eq(&self, other: &Self) -> bool {
+        self.patterns() == other.patterns()
+    }
+}
+
+impl Eq for HandlerRegexSet {}
+
+impl Hash for HandlerRegexSet {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.patterns().hash(state);
+    }
+}
+
+// Makes it more convenient to call the underlying RegexSet's methods
+impl Deref for HandlerRegexSet {
+    type Target = RegexSet;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -101,17 +78,12 @@ impl RegexHandler {
 pub struct RegexApps(Vec<RegexHandler>);
 
 impl RegexApps {
-    // convert Config's ConfigHandlers
+    /// Create a RegexApps from the config's regex handlers
     pub fn populate() -> Self {
-        RegexApps(
-            CONFIG
-                .handlers
-                .iter()
-                .filter_map(|handler| handler.compile_regex().ok())
-                .collect(),
-        )
+        RegexApps(CONFIG.handlers.clone())
     }
-    // get matching handler
+
+    /// Get a handler matching a given path
     pub fn get_handler(&self, path: &UserPath) -> Result<RegexHandler> {
         Ok(self
             .0
@@ -133,26 +105,15 @@ mod tests {
         let regexes: &[String] =
             &[String::from(r"(https://)?(www\.)?youtu(be\.com|\.be)/*")];
 
-        let config_handler = ConfigHandler {
+        let regex_handler = RegexHandler {
             exec: String::from(exec),
             terminal: false,
-            regexes: regexes.to_owned(),
+            regexes: HandlerRegexSet(
+                RegexSet::new(regexes).expect("Test regex is invalid"),
+            ),
         };
 
-        let regex_handler = config_handler
-            .compile_regex()
-            .expect("ConfigHandler::compile_regex() returned Err");
-
-        let expected_regex_handler = RegexHandler {
-            exec: String::from(exec),
-            terminal: false,
-            regexes: HandlerRegexSet::new(regexes)
-                .expect("Test regex is invalid"),
-        };
-
-        assert_eq!(regex_handler, expected_regex_handler);
-
-        let regex_apps = RegexApps(vec![regex_handler]);
+        let regex_apps = RegexApps(vec![regex_handler.clone()]);
 
         assert_eq!(
             regex_apps
@@ -160,7 +121,7 @@ mod tests {
                     Url::parse("https://youtu.be/dQw4w9WgXcQ").unwrap()
                 ))
                 .expect("RegexApps::get_handler() returned Err"),
-            expected_regex_handler
+            regex_handler
         );
 
         assert!(regex_apps
