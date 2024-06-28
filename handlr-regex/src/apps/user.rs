@@ -1,7 +1,6 @@
 use crate::{
-    apps::{RegexApps, RegexHandler, SystemApps},
-    common::DesktopHandler,
-    render_table, Error, ErrorKind, Handler, Result, UserPath, CONFIG,
+    apps::SystemApps, common::DesktopHandler, render_table, Error, ErrorKind,
+    Handleable, Handler, RegexApps, RegexHandler, Result, UserPath, CONFIG,
 };
 use mime::Mime;
 use once_cell::sync::Lazy;
@@ -63,6 +62,7 @@ impl MimeApps {
         Ok(())
     }
 
+    /// Get the handler associated with a given mime
     pub fn get_handler(&self, mime: &Mime) -> Result<DesktopHandler> {
         match self.get_handler_from_user(mime) {
             Err(e) if matches!(*e.kind, ErrorKind::Cancelled) => Err(e),
@@ -76,6 +76,18 @@ impl MimeApps {
         }
     }
 
+    /// Get the handler associated with a given path
+    fn get_handler_from_path(&self, path: &UserPath) -> Result<Handler> {
+        Ok(
+            if let Ok(handler) = self.get_handler_from_regex_handlers(path) {
+                handler.into()
+            } else {
+                self.get_handler(&path.get_mime()?)?.into()
+            },
+        )
+    }
+
+    /// Get the handler associated with a given mime from mimeapps.list's default apps
     fn get_handler_from_user(&self, mime: &Mime) -> Result<DesktopHandler> {
         match self.default_apps.get(mime) {
             Some(handlers) if CONFIG.enable_selector && handlers.len() > 1 => {
@@ -103,6 +115,7 @@ impl MimeApps {
         }
     }
 
+    /// Get the handler associated with a given mime from mimeapps.list's added associations
     fn get_handler_from_added_associations(
         &self,
         mime: &Mime,
@@ -116,6 +129,7 @@ impl MimeApps {
             .ok_or_else(|| Error::from(ErrorKind::NotFound(mime.to_string())))
     }
 
+    /// Get the handler associated with a given mime from the config file's regex handlers
     fn get_handler_from_regex_handlers(
         &self,
         path: &UserPath,
@@ -289,22 +303,13 @@ impl MimeApps {
 
         Ok(())
     }
+    /// Open the given paths with their respective handlers
     pub fn open_paths(&self, paths: &[UserPath]) -> Result<()> {
         let mut handlers: HashMap<Handler, Vec<String>> = HashMap::new();
 
         for path in paths.iter() {
             handlers
-                .entry(
-                    if let Ok(handler) =
-                        self.get_handler_from_regex_handlers(path)
-                    {
-                        Handler::RegexHandler(handler)
-                    } else {
-                        Handler::DesktopHandler(
-                            self.get_handler(&path.get_mime()?)?,
-                        )
-                    },
-                )
+                .entry(self.get_handler_from_path(path)?)
                 .or_default()
                 .push(path.to_string())
         }

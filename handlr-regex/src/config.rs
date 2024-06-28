@@ -1,7 +1,6 @@
 use crate::{
-    apps::{RegexHandler, SystemApps},
-    common::DesktopHandler,
-    Error, ErrorKind, Result,
+    apps::SystemApps, common::DesktopHandler, Error, ErrorKind, Handleable,
+    RegexHandler, Result,
 };
 use mime::Mime;
 use once_cell::sync::Lazy;
