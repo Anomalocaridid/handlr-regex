@@ -1,5 +1,5 @@
 use crate::{
-    common::{DesktopEntry, Handler},
+    common::{DesktopEntry, DesktopHandler},
     Result,
 };
 use mime::Mime;
@@ -10,13 +10,16 @@ use std::{
 };
 
 #[derive(Debug, Default, Clone)]
-pub struct SystemApps(pub HashMap<Mime, VecDeque<Handler>>);
+pub struct SystemApps(pub HashMap<Mime, VecDeque<DesktopHandler>>);
 
 impl SystemApps {
-    pub fn get_handlers(&self, mime: &Mime) -> Option<VecDeque<Handler>> {
+    pub fn get_handlers(
+        &self,
+        mime: &Mime,
+    ) -> Option<VecDeque<DesktopHandler>> {
         Some(self.0.get(mime)?.clone())
     }
-    pub fn get_handler(&self, mime: &Mime) -> Option<Handler> {
+    pub fn get_handler(&self, mime: &Mime) -> Option<DesktopHandler> {
         Some(self.get_handlers(mime)?.get(0).unwrap().clone())
     }
 
@@ -37,14 +40,15 @@ impl SystemApps {
     }
 
     pub fn populate() -> Result<Self> {
-        let mut map = HashMap::<Mime, VecDeque<Handler>>::with_capacity(50);
+        let mut map =
+            HashMap::<Mime, VecDeque<DesktopHandler>>::with_capacity(50);
 
         Self::get_entries()?.for_each(|(_, entry)| {
             let (file_name, mimes) = (entry.file_name, entry.mimes);
             mimes.into_iter().for_each(|mime| {
                 map.entry(mime)
                     .or_default()
-                    .push_back(Handler::assume_valid(file_name.clone()));
+                    .push_back(DesktopHandler::assume_valid(file_name.clone()));
             });
         });
 

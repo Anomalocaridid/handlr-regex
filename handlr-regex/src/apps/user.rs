@@ -1,7 +1,7 @@
 use crate::{
     apps::{RegexApps, RegexHandler, SystemApps},
-    common::Handler,
-    render_table, Error, ErrorKind, GenericHandler, Result, UserPath, CONFIG,
+    common::DesktopHandler,
+    render_table, Error, ErrorKind, Handler, Result, UserPath, CONFIG,
 };
 use mime::Mime;
 use once_cell::sync::Lazy;
@@ -21,21 +21,21 @@ pub static APPS: Lazy<MimeApps> = Lazy::new(|| MimeApps::read().unwrap());
 #[derive(Debug, Default, Clone, pest_derive::Parser)]
 #[grammar = "common/ini.pest"]
 pub struct MimeApps {
-    added_associations: HashMap<Mime, VecDeque<Handler>>,
-    default_apps: HashMap<Mime, VecDeque<Handler>>,
+    added_associations: HashMap<Mime, VecDeque<DesktopHandler>>,
+    default_apps: HashMap<Mime, VecDeque<DesktopHandler>>,
     system_apps: SystemApps,
     regex_apps: RegexApps,
 }
 
 impl MimeApps {
-    pub fn add_handler(&mut self, mime: Mime, handler: Handler) {
+    pub fn add_handler(&mut self, mime: Mime, handler: DesktopHandler) {
         self.default_apps
             .entry(mime)
             .or_default()
             .push_back(handler);
     }
 
-    pub fn set_handler(&mut self, mime: Mime, handler: Handler) {
+    pub fn set_handler(&mut self, mime: Mime, handler: DesktopHandler) {
         self.default_apps.insert(mime, vec![handler].into());
     }
 
@@ -50,7 +50,7 @@ impl MimeApps {
     pub fn remove_handler(
         &mut self,
         mime: Mime,
-        handler: Handler,
+        handler: DesktopHandler,
     ) -> Result<()> {
         let handler_list = self.default_apps.entry(mime).or_default();
 
@@ -63,7 +63,7 @@ impl MimeApps {
         Ok(())
     }
 
-    pub fn get_handler(&self, mime: &Mime) -> Result<Handler> {
+    pub fn get_handler(&self, mime: &Mime) -> Result<DesktopHandler> {
         match self.get_handler_from_user(mime) {
             Err(e) if matches!(*e.kind, ErrorKind::Cancelled) => Err(e),
             h => h
@@ -76,7 +76,7 @@ impl MimeApps {
         }
     }
 
-    fn get_handler_from_user(&self, mime: &Mime) -> Result<Handler> {
+    fn get_handler_from_user(&self, mime: &Mime) -> Result<DesktopHandler> {
         match self.default_apps.get(mime) {
             Some(handlers) if CONFIG.enable_selector && handlers.len() > 1 => {
                 let handlers = handlers
@@ -106,7 +106,7 @@ impl MimeApps {
     fn get_handler_from_added_associations(
         &self,
         mime: &Mime,
-    ) -> Result<Handler> {
+    ) -> Result<DesktopHandler> {
         self.added_associations
             .get(mime)
             .map_or_else(
@@ -187,7 +187,7 @@ impl MimeApps {
                             .split(';')
                             .filter(|s| !s.is_empty())
                             .unique()
-                            .filter_map(|s| Handler::from_str(s).ok())
+                            .filter_map(|s| DesktopHandler::from_str(s).ok())
                             .collect::<VecDeque<_>>()
                     };
 
@@ -290,7 +290,7 @@ impl MimeApps {
         Ok(())
     }
     pub fn open_paths(&self, paths: &[UserPath]) -> Result<()> {
-        let mut handlers: HashMap<GenericHandler, Vec<String>> = HashMap::new();
+        let mut handlers: HashMap<Handler, Vec<String>> = HashMap::new();
 
         for path in paths.iter() {
             handlers
@@ -298,9 +298,9 @@ impl MimeApps {
                     if let Ok(handler) =
                         self.get_handler_from_regex_handlers(path)
                     {
-                        GenericHandler::RegexHandler(handler)
+                        Handler::RegexHandler(handler)
                     } else {
-                        GenericHandler::Handler(
+                        Handler::DesktopHandler(
                             self.get_handler(&path.get_mime()?)?,
                         )
                     },
@@ -326,7 +326,7 @@ struct MimeAppsEntry {
 }
 
 impl MimeAppsEntry {
-    fn new(mime: &Mime, handlers: &VecDeque<Handler>) -> Self {
+    fn new(mime: &Mime, handlers: &VecDeque<DesktopHandler>) -> Self {
         Self {
             mime: mime.to_string(),
             handlers: handlers
@@ -360,7 +360,7 @@ struct MimeAppsTable {
 impl MimeAppsTable {
     fn new(mimeapps: &MimeApps) -> Self {
         fn to_entries(
-            map: &HashMap<Mime, VecDeque<Handler>>,
+            map: &HashMap<Mime, VecDeque<DesktopHandler>>,
         ) -> Vec<MimeAppsEntry> {
             let mut rows = map
                 .iter()
@@ -386,11 +386,11 @@ mod tests {
         let mut user_apps = MimeApps::default();
         user_apps.add_handler(
             Mime::from_str("video/*").unwrap(),
-            Handler::assume_valid("mpv.desktop".into()),
+            DesktopHandler::assume_valid("mpv.desktop".into()),
         );
         user_apps.add_handler(
             Mime::from_str("video/webm").unwrap(),
-            Handler::assume_valid("brave.desktop".into()),
+            DesktopHandler::assume_valid("brave.desktop".into()),
         );
 
         assert_eq!(

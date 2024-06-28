@@ -1,6 +1,6 @@
 use crate::{
     apps::{RegexHandler, SystemApps},
-    common::Handler,
+    common::DesktopHandler,
     Error, ErrorKind, Result,
 };
 use mime::Mime;
@@ -65,7 +65,7 @@ impl Config {
                 let mut apps = (*crate::apps::APPS).clone();
                 apps.set_handler(
                     Mime::from_str("x-scheme-handler/terminal").unwrap(),
-                    Handler::assume_valid(entry.0),
+                    DesktopHandler::assume_valid(entry.0),
                 );
                 apps.save().ok()?;
 

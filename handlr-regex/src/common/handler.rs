@@ -6,23 +6,24 @@ use std::{
     convert::TryFrom, ffi::OsString, fmt::Display, path::PathBuf, str::FromStr,
 };
 
+/// Represents a handler defined in a desktop file
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Handler(OsString);
+pub struct DesktopHandler(OsString);
 
-impl Display for Handler {
+impl Display for DesktopHandler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.0.to_string_lossy())
     }
 }
 
-impl FromStr for Handler {
+impl FromStr for DesktopHandler {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::resolve(s.into())
     }
 }
 
-impl Handler {
+impl DesktopHandler {
     pub fn assume_valid(name: OsString) -> Self {
         Self(name)
     }
@@ -49,17 +50,18 @@ impl Handler {
     }
 }
 
+/// Represents a program or command that is used to open a file
 #[derive(PartialEq, Eq, Hash)]
-pub enum GenericHandler {
-    Handler(Handler),
+pub enum Handler {
+    DesktopHandler(DesktopHandler),
     RegexHandler(RegexHandler),
 }
 
-impl GenericHandler {
+impl Handler {
     pub fn open(&self, args: Vec<String>) -> Result<()> {
         match self {
-            GenericHandler::Handler(handler) => handler.open(args),
-            GenericHandler::RegexHandler(handler) => handler.open(args),
+            Handler::DesktopHandler(handler) => handler.open(args),
+            Handler::RegexHandler(handler) => handler.open(args),
         }
     }
 }

@@ -1,4 +1,4 @@
-use crate::common::{Handler, MimeOrExtension, UserPath};
+use crate::common::{DesktopHandler, MimeOrExtension, UserPath};
 use clap::Parser;
 
 /// A better xdg-utils
@@ -84,7 +84,7 @@ pub enum Cmd {
         /// Mimetype or file extension to operate on.
         mime: MimeOrExtension,
         /// Desktop file of handler program
-        handler: Handler,
+        handler: DesktopHandler,
     },
 
     /// Unset the default handler for mime/extension
@@ -150,7 +150,7 @@ pub enum Cmd {
         /// Mimetype to add handler to
         mime: MimeOrExtension,
         /// Desktop file of handler program
-        handler: Handler,
+        handler: DesktopHandler,
     },
 
     /// Remove a given handler from a given mime/extension
@@ -163,7 +163,7 @@ pub enum Cmd {
         /// Mimetype to remove handler from
         mime: MimeOrExtension,
         /// Desktop file of handler program to remove
-        handler: Handler,
+        handler: DesktopHandler,
     },
 
     #[clap(verbatim_doc_comment)]
