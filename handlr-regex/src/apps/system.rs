@@ -3,14 +3,20 @@ use crate::{
     Result,
 };
 use mime::Mime;
+use once_cell::sync::Lazy;
 use std::{
     collections::{HashMap, VecDeque},
     convert::TryFrom,
     ffi::OsString,
+    ops::Deref,
 };
 
+/// Global instance of the desktop entries for installed programs
+pub static SYSTEM_APPS: Lazy<SystemApps> =
+    Lazy::new(|| SystemApps::populate().unwrap_or_default());
+
 #[derive(Debug, Default, Clone)]
-pub struct SystemApps(pub HashMap<Mime, VecDeque<DesktopHandler>>);
+pub struct SystemApps(HashMap<Mime, VecDeque<DesktopHandler>>);
 
 impl SystemApps {
     pub fn get_handlers(
@@ -53,5 +59,13 @@ impl SystemApps {
         });
 
         Ok(Self(map))
+    }
+}
+
+impl Deref for SystemApps {
+    type Target = HashMap<Mime, VecDeque<DesktopHandler>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }

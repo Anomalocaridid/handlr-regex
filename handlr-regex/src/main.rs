@@ -1,6 +1,6 @@
 use clap::Parser;
 use handlr_regex::{
-    apps::{self, APPS},
+    apps::{self, MIME_APPS},
     cli::Cmd,
     common::{self, mime_table},
     config::CONFIG,
@@ -14,7 +14,7 @@ fn main() -> Result<()> {
     // create config if it doesn't exist
     Lazy::force(&CONFIG);
 
-    let mut apps = (*APPS).clone();
+    let mut apps = (*MIME_APPS).clone();
 
     let res = || -> Result<()> {
         match Cmd::parse() {

@@ -1,6 +1,6 @@
 use crate::{
     apps::SystemApps, common::DesktopHandler, render_table, Error, ErrorKind,
-    Handleable, Handler, RegexApps, RegexHandler, Result, UserPath, CONFIG,
+    Handleable, Handler, Result, UserPath, CONFIG, SYSTEM_APPS,
 };
 use mime::Mime;
 use once_cell::sync::Lazy;
@@ -15,15 +15,16 @@ use std::{
     str::FromStr,
 };
 
-pub static APPS: Lazy<MimeApps> = Lazy::new(|| MimeApps::read().unwrap());
+/// Global instance of user-configured associations
+pub static MIME_APPS: Lazy<MimeApps> =
+    Lazy::new(|| MimeApps::read().unwrap_or_default());
 
+/// Represents user-configured mimeapps.list file
 #[derive(Debug, Default, Clone, pest_derive::Parser)]
 #[grammar = "common/ini.pest"]
 pub struct MimeApps {
     added_associations: HashMap<Mime, VecDeque<DesktopHandler>>,
     default_apps: HashMap<Mime, VecDeque<DesktopHandler>>,
-    system_apps: SystemApps,
-    regex_apps: RegexApps,
 }
 
 impl MimeApps {
@@ -78,13 +79,11 @@ impl MimeApps {
 
     /// Get the handler associated with a given path
     fn get_handler_from_path(&self, path: &UserPath) -> Result<Handler> {
-        Ok(
-            if let Ok(handler) = self.get_handler_from_regex_handlers(path) {
-                handler.into()
-            } else {
-                self.get_handler(&path.get_mime()?)?.into()
-            },
-        )
+        Ok(if let Ok(handler) = CONFIG.get_regex_handler(path) {
+            handler.into()
+        } else {
+            self.get_handler(&path.get_mime()?)?.into()
+        })
     }
 
     /// Get the handler associated with a given mime from mimeapps.list's default apps
@@ -123,18 +122,10 @@ impl MimeApps {
         self.added_associations
             .get(mime)
             .map_or_else(
-                || self.system_apps.get_handler(mime),
+                || SYSTEM_APPS.get_handler(mime),
                 |h| h.front().cloned(),
             )
             .ok_or_else(|| Error::from(ErrorKind::NotFound(mime.to_string())))
-    }
-
-    /// Get the handler associated with a given mime from the config file's regex handlers
-    fn get_handler_from_regex_handlers(
-        &self,
-        path: &UserPath,
-    ) -> Result<RegexHandler> {
-        self.regex_apps.get_handler(path)
     }
 
     pub fn show_handler(&self, mime: &Mime, output_json: bool) -> Result<()> {
@@ -178,8 +169,6 @@ impl MimeApps {
         let mut conf = Self {
             added_associations: HashMap::default(),
             default_apps: HashMap::default(),
-            system_apps: SystemApps::populate()?,
-            regex_apps: RegexApps::populate(),
         };
 
         file.into_inner().for_each(|line| {
@@ -259,14 +248,11 @@ impl MimeApps {
         Ok(())
     }
     pub fn print(&self, detailed: bool, output_json: bool) -> Result<()> {
-        let mimeapps_table = MimeAppsTable::new(self);
+        let mimeapps_table = MimeAppsTable::new(self, &SYSTEM_APPS);
 
         if detailed {
             if output_json {
-                println!(
-                    "{}",
-                    serde_json::to_string(&MimeAppsTable::new(self))?
-                )
+                println!("{}", serde_json::to_string(&mimeapps_table)?)
             } else {
                 println!("Default Apps");
                 println!("{}", render_table(&mimeapps_table.default_apps));
@@ -363,7 +349,7 @@ struct MimeAppsTable {
 }
 
 impl MimeAppsTable {
-    fn new(mimeapps: &MimeApps) -> Self {
+    fn new(mimeapps: &MimeApps, system_apps: &SystemApps) -> Self {
         fn to_entries(
             map: &HashMap<Mime, VecDeque<DesktopHandler>>,
         ) -> Vec<MimeAppsEntry> {
@@ -377,7 +363,7 @@ impl MimeAppsTable {
         Self {
             added_associations: to_entries(&mimeapps.added_associations),
             default_apps: to_entries(&mimeapps.default_apps),
-            system_apps: to_entries(&mimeapps.system_apps.0),
+            system_apps: to_entries(system_apps),
         }
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     common::{DesktopEntry, ExecMode},
-    Error, ErrorKind, Result, UserPath, CONFIG,
+    Error, ErrorKind, Result, UserPath,
 };
 use enum_dispatch::enum_dispatch;
 use regex::RegexSet;
@@ -129,15 +129,10 @@ impl Deref for HandlerRegexSet {
 }
 
 /// A collection of all of the defined RegexHandlers
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct RegexApps(Vec<RegexHandler>);
 
 impl RegexApps {
-    /// Create a RegexApps from the config's regex handlers
-    pub fn populate() -> Self {
-        RegexApps(CONFIG.handlers.clone())
-    }
-
     /// Get a handler matching a given path
     pub fn get_handler(&self, path: &UserPath) -> Result<RegexHandler> {
         Ok(self

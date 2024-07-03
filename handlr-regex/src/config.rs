@@ -1,12 +1,13 @@
 use crate::{
     apps::SystemApps, common::DesktopHandler, Error, ErrorKind, Handleable,
-    RegexHandler, Result,
+    RegexApps, RegexHandler, Result, UserPath,
 };
 use mime::Mime;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
+/// Global instance of parsed config
 pub static CONFIG: Lazy<Config> = Lazy::new(Config::load);
 
 /// The config file
@@ -20,7 +21,7 @@ pub struct Config {
     /// Regex handlers
     // NOTE: Serializing is only necessary for generating a default config file
     #[serde(skip_serializing)]
-    pub handlers: Vec<RegexHandler>,
+    pub handlers: RegexApps,
     /// Extra arguments to pass to terminal application
     term_exec_args: Option<String>,
 }
@@ -30,7 +31,7 @@ impl Default for Config {
         Config {
             enable_selector: false,
             selector: "rofi -dmenu -i -p 'Open With: '".into(),
-            handlers: Vec::new(),
+            handlers: Default::default(),
             // Required for many xterm-compatible terminal emulators
             // Unfortunately, messes up emulators that don't accept it
             term_exec_args: Some("-e".into()),
@@ -39,8 +40,13 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Get the handler associated with a given mime from the config file's regex handlers
+    pub fn get_regex_handler(&self, path: &UserPath) -> Result<RegexHandler> {
+        self.handlers.get_handler(path)
+    }
+
     pub fn terminal() -> Result<String> {
-        let terminal_entry = crate::apps::APPS
+        let terminal_entry = crate::apps::MIME_APPS
             .get_handler(&Mime::from_str("x-scheme-handler/terminal").unwrap())
             .ok()
             .and_then(|h| h.get_entry().ok());
@@ -61,7 +67,7 @@ impl Config {
                     )
                 ).ok()?;
 
-                let mut apps = (*crate::apps::APPS).clone();
+                let mut apps = (*crate::apps::MIME_APPS).clone();
                 apps.set_handler(
                     Mime::from_str("x-scheme-handler/terminal").unwrap(),
                     DesktopHandler::assume_valid(entry.0),
