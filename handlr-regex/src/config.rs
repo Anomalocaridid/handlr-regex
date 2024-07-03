@@ -50,7 +50,7 @@ impl Config {
                 let entry = SystemApps::get_entries()
                     .ok()?
                     .find(|(_handler, entry)| {
-                        entry.categories.contains_key("TerminalEmulator")
+                        entry.is_terminal_emulator()
                     })?;
 
                 crate::utils::notify(
@@ -71,7 +71,7 @@ impl Config {
                 Some(entry.1)
             })
             .map(|e| {
-                let mut exec = e.exec;
+                let mut exec = e.exec.to_owned();
 
                 if let Some(opts) = &CONFIG.term_exec_args {
                     exec.push(' ');

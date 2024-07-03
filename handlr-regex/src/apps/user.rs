@@ -145,7 +145,7 @@ impl MimeApps {
 
             (serde_json::json!( {
                 "handler": handler.to_string(),
-                "name": entry.name.as_str(),
+                "name": entry.name,
                 "cmd": cmd.0 + " " + &cmd.1.join(" "),
             }))
             .to_string()

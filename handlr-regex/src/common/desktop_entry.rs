@@ -1,8 +1,12 @@
 use crate::{Config, Error, ErrorKind, Result};
 use aho_corasick::AhoCorasick;
+use freedesktop_desktop_entry::{
+    get_languages_from_env, DesktopEntry as FreeDesktopEntry,
+};
+use itertools::Itertools;
 use mime::Mime;
+use once_cell::sync::Lazy;
 use std::{
-    collections::HashMap,
     convert::TryFrom,
     ffi::OsString,
     io::IsTerminal,
@@ -11,23 +15,34 @@ use std::{
     str::FromStr,
 };
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+/// Represents a desktop entry file for an application
+#[derive(Debug, Clone, Default)]
 pub struct DesktopEntry {
+    /// Name of the application
     pub(crate) name: String,
+    /// Command to execute
     pub(crate) exec: String,
+    /// Name of the desktop entry file
     pub(crate) file_name: OsString,
+    /// Whether the program runs in a terminal window
     pub(crate) terminal: bool,
-    pub(crate) mimes: Vec<Mime>,
-    pub(crate) categories: HashMap<String, ()>,
+    /// The MIME type(s) supported by this application
+    pub(crate) mime_type: Vec<Mime>,
+    /// Categories in which the entry should be shown in a menu
+    pub(crate) categories: Vec<String>,
 }
 
+/// Modes for running a DesktopFile's `exec` command
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum Mode {
+    /// Launch the command directly, passing arguments given to `handlr`
     Launch,
+    /// Open files/urls passed to `handler` with the command
     Open,
 }
 
 impl DesktopEntry {
+    /// Execute the command in `exec` in the given mode and with the given arguments
     pub fn exec(&self, mode: Mode, arguments: Vec<String>) -> Result<()> {
         let supports_multiple =
             self.exec.contains("%F") || self.exec.contains("%U");
@@ -43,6 +58,8 @@ impl DesktopEntry {
 
         Ok(())
     }
+
+    /// Internal helper function for `exec`
     fn exec_inner(&self, args: Vec<String>) -> Result<()> {
         let mut cmd = {
             let (cmd, args) = self.get_cmd(args)?;
@@ -59,6 +76,8 @@ impl DesktopEntry {
 
         Ok(())
     }
+
+    /// Get the `exec` command, formatted with given arguments
     pub fn get_cmd(&self, args: Vec<String>) -> Result<(String, Vec<String>)> {
         let special =
             AhoCorasick::new_auto_configured(&["%f", "%F", "%u", "%U"]);
@@ -104,56 +123,61 @@ impl DesktopEntry {
 
         Ok((exec.remove(0), exec))
     }
-}
 
-fn parse_file(path: &Path) -> Option<DesktopEntry> {
-    let raw_entry = freedesktop_entry_parser::parse_entry(path).ok()?;
-    let section = raw_entry.section("Desktop Entry");
+    /// Parse a desktop entry file, given a path
+    fn parse_file(path: &Path) -> Option<DesktopEntry> {
+        static LOCALES: Lazy<Vec<String>> = Lazy::new(get_languages_from_env);
 
-    let mut entry = DesktopEntry {
-        file_name: path.file_name()?.to_owned(),
-        ..Default::default()
-    };
+        let fd_entry =
+            FreeDesktopEntry::from_path(path.to_path_buf(), &LOCALES).ok()?;
 
-    for attr in section.attrs().into_iter().filter(|a| a.has_value()) {
-        match attr.name {
-            "Name" if entry.name.is_empty() => {
-                entry.name = attr.value.unwrap().into();
-            }
-            "Exec" => entry.exec = attr.value.unwrap().into(),
-            "MimeType" => {
-                entry.mimes = attr
-                    .value
-                    .unwrap()
-                    .split(';')
+        let entry = DesktopEntry {
+            name: fd_entry.name(&LOCALES)?.into_owned(),
+            exec: fd_entry.exec()?.to_owned(),
+            file_name: path.file_name()?.to_owned(),
+            terminal: fd_entry.terminal(),
+            mime_type: match fd_entry.mime_type() {
+                Some(mime_type) => mime_type
+                    .iter()
                     .filter_map(|m| Mime::from_str(m).ok())
-                    .collect::<Vec<_>>();
-            }
-            "Terminal" => entry.terminal = attr.value.unwrap() == "true",
-            "Categories" => {
-                entry.categories = attr
-                    .value
-                    .unwrap()
-                    .split(';')
-                    .filter(|s| !s.is_empty())
-                    .map(|cat| (cat.to_owned(), ()))
-                    .collect();
-            }
-            _ => {}
+                    .collect_vec(),
+                None => Vec::new(),
+            },
+            categories: match fd_entry.categories() {
+                Some(categories) => {
+                    categories.iter().map(|&c| c.to_owned()).collect_vec()
+                }
+                None => Vec::new(),
+            },
+        };
+
+        if !entry.name.is_empty() && !entry.exec.is_empty() {
+            Some(entry)
+        } else {
+            None
         }
     }
 
-    if !entry.name.is_empty() && !entry.exec.is_empty() {
-        Some(entry)
-    } else {
-        None
+    /// Make a fake DesktopEntry given only a value for exec and terminal.
+    /// All other keys will have default values.
+    pub(crate) fn fake_entry(exec: &str, terminal: bool) -> DesktopEntry {
+        DesktopEntry {
+            exec: exec.to_owned(),
+            terminal,
+            ..Default::default()
+        }
+    }
+
+    /// Check if the given desktop entry represents a terminal emulator
+    pub fn is_terminal_emulator(&self) -> bool {
+        self.categories.contains(&"TerminalEmulator".to_string())
     }
 }
 
 impl TryFrom<PathBuf> for DesktopEntry {
     type Error = Error;
-    fn try_from(path: PathBuf) -> Result<DesktopEntry> {
-        parse_file(&path).ok_or(Error::from(ErrorKind::BadEntry(path)))
+    fn try_from(path: PathBuf) -> Result<Self> {
+        Self::parse_file(&path).ok_or(Error::from(ErrorKind::BadEntry(path)))
     }
 }
 
@@ -163,9 +187,20 @@ mod tests {
 
     #[test]
     fn complex_exec() {
-        let entry = parse_file(Path::new("tests/cmus.desktop")).unwrap();
-        assert_eq!(entry.mimes.len(), 2);
-        assert_eq!(entry.mimes[0].essence_str(), "audio/mp3");
-        assert_eq!(entry.mimes[1].essence_str(), "audio/ogg");
+        // Note that this entry also has no category key
+        let entry = DesktopEntry::parse_file(Path::new("tests/cmus.desktop"))
+            .expect("DesktopEntry::parse_file() returned None");
+        assert_eq!(entry.mime_type.len(), 2);
+        assert_eq!(entry.mime_type[0].essence_str(), "audio/mp3");
+        assert_eq!(entry.mime_type[1].essence_str(), "audio/ogg");
+    }
+
+    #[test]
+    fn no_mime_type() {
+        let entry = DesktopEntry::parse_file(Path::new(
+            "tests/org.wezfurlong.wezterm.desktop",
+        ))
+        .expect("DesktopEntry::parse_file() returned None");
+        assert_eq!(entry.mime_type.len(), 0);
     }
 }

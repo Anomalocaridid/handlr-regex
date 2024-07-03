@@ -6,7 +6,6 @@ use enum_dispatch::enum_dispatch;
 use regex::RegexSet;
 use serde::Deserialize;
 use std::{
-    collections::HashMap,
     convert::TryFrom,
     ffi::OsString,
     fmt::Display,
@@ -97,15 +96,7 @@ impl RegexHandler {
 
 impl Handleable for RegexHandler {
     fn get_entry(&self) -> Result<DesktopEntry> {
-        // Make a fake DesktopEntry
-        Ok(DesktopEntry {
-            name: String::from(""),
-            exec: self.exec.clone(),
-            file_name: OsString::from(""),
-            terminal: self.terminal,
-            mimes: Vec::new(),
-            categories: HashMap::new(),
-        })
+        Ok(DesktopEntry::fake_entry(&self.exec, self.terminal))
     }
 }
 

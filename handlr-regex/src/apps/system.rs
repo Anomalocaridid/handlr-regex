@@ -44,11 +44,11 @@ impl SystemApps {
             HashMap::<Mime, VecDeque<DesktopHandler>>::with_capacity(50);
 
         Self::get_entries()?.for_each(|(_, entry)| {
-            let (file_name, mimes) = (entry.file_name, entry.mimes);
+            let (file_name, mimes) = (entry.file_name, entry.mime_type);
             mimes.into_iter().for_each(|mime| {
-                map.entry(mime)
-                    .or_default()
-                    .push_back(DesktopHandler::assume_valid(file_name.clone()));
+                map.entry(mime).or_default().push_back(
+                    DesktopHandler::assume_valid(file_name.to_owned()),
+                );
             });
         });
 
