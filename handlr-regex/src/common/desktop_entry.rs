@@ -1,4 +1,4 @@
-use crate::{Config, Error, ErrorKind, Result};
+use crate::{Config, Error, ErrorKind, MimeApps, Result, SystemApps};
 use aho_corasick::AhoCorasick;
 use freedesktop_desktop_entry::{
     get_languages_from_env, DesktopEntry as FreeDesktopEntry,
@@ -43,16 +43,23 @@ pub enum Mode {
 
 impl DesktopEntry {
     /// Execute the command in `exec` in the given mode and with the given arguments
-    pub fn exec(&self, mode: Mode, arguments: Vec<String>) -> Result<()> {
+    pub fn exec(
+        &self,
+        config: &Config,
+        mime_apps: &mut MimeApps,
+        system_apps: &SystemApps,
+        mode: Mode,
+        arguments: Vec<String>,
+    ) -> Result<()> {
         let supports_multiple =
             self.exec.contains("%F") || self.exec.contains("%U");
         if arguments.is_empty() {
-            self.exec_inner(vec![])?
+            self.exec_inner(config, mime_apps, system_apps, vec![])?
         } else if supports_multiple || mode == Mode::Launch {
-            self.exec_inner(arguments)?;
+            self.exec_inner(config, mime_apps, system_apps, arguments)?;
         } else {
             for arg in arguments {
-                self.exec_inner(vec![arg])?;
+                self.exec_inner(config, mime_apps, system_apps, vec![arg])?;
             }
         };
 
@@ -60,9 +67,16 @@ impl DesktopEntry {
     }
 
     /// Internal helper function for `exec`
-    fn exec_inner(&self, args: Vec<String>) -> Result<()> {
+    fn exec_inner(
+        &self,
+        config: &Config,
+        mime_apps: &mut MimeApps,
+        system_apps: &SystemApps,
+        args: Vec<String>,
+    ) -> Result<()> {
         let mut cmd = {
-            let (cmd, args) = self.get_cmd(args)?;
+            let (cmd, args) =
+                self.get_cmd(config, mime_apps, system_apps, args)?;
             let mut cmd = Command::new(cmd);
             cmd.args(args);
             cmd
@@ -78,7 +92,13 @@ impl DesktopEntry {
     }
 
     /// Get the `exec` command, formatted with given arguments
-    pub fn get_cmd(&self, args: Vec<String>) -> Result<(String, Vec<String>)> {
+    pub fn get_cmd(
+        &self,
+        config: &Config,
+        mime_apps: &mut MimeApps,
+        system_apps: &SystemApps,
+        args: Vec<String>,
+    ) -> Result<(String, Vec<String>)> {
         let special =
             AhoCorasick::new_auto_configured(&["%f", "%F", "%u", "%U"]);
 
@@ -114,7 +134,7 @@ impl DesktopEntry {
         // If the entry expects a terminal (emulator), but this process is not running in one, we
         // launch a new one.
         if self.terminal && !std::io::stdout().is_terminal() {
-            exec = shlex::split(&Config::terminal()?)
+            exec = shlex::split(&config.terminal(mime_apps, system_apps)?)
                 .unwrap()
                 .into_iter()
                 .chain(exec)

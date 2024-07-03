@@ -3,17 +3,12 @@ use crate::{
     Result,
 };
 use mime::Mime;
-use once_cell::sync::Lazy;
 use std::{
     collections::{HashMap, VecDeque},
     convert::TryFrom,
     ffi::OsString,
     ops::Deref,
 };
-
-/// Global instance of the desktop entries for installed programs
-pub static SYSTEM_APPS: Lazy<SystemApps> =
-    Lazy::new(|| SystemApps::populate().unwrap_or_default());
 
 #[derive(Debug, Default, Clone)]
 pub struct SystemApps(HashMap<Mime, VecDeque<DesktopHandler>>);

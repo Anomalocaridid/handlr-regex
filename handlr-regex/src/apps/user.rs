@@ -1,9 +1,8 @@
 use crate::{
-    apps::SystemApps, common::DesktopHandler, render_table, Error, ErrorKind,
-    Handleable, Handler, Result, UserPath, CONFIG, SYSTEM_APPS,
+    apps::SystemApps, common::DesktopHandler, render_table, Config, Error,
+    ErrorKind, Handleable, Handler, Result, UserPath,
 };
 use mime::Mime;
-use once_cell::sync::Lazy;
 use pest::Parser;
 use serde::Serialize;
 use tabled::Tabled;
@@ -14,10 +13,6 @@ use std::{
     path::PathBuf,
     str::FromStr,
 };
-
-/// Global instance of user-configured associations
-pub static MIME_APPS: Lazy<MimeApps> =
-    Lazy::new(|| MimeApps::read().unwrap_or_default());
 
 /// Represents user-configured mimeapps.list file
 #[derive(Debug, Default, Clone, pest_derive::Parser)]
@@ -64,32 +59,49 @@ impl MimeApps {
     }
 
     /// Get the handler associated with a given mime
-    pub fn get_handler(&self, mime: &Mime) -> Result<DesktopHandler> {
-        match self.get_handler_from_user(mime) {
+    pub fn get_handler(
+        &self,
+        config: &Config,
+        system_apps: &SystemApps,
+        mime: &Mime,
+    ) -> Result<DesktopHandler> {
+        match self.get_handler_from_user(config, mime) {
             Err(e) if matches!(*e.kind, ErrorKind::Cancelled) => Err(e),
             h => h
                 .or_else(|_| {
                     let wildcard =
                         Mime::from_str(&format!("{}/*", mime.type_())).unwrap();
-                    self.get_handler_from_user(&wildcard)
+                    self.get_handler_from_user(config, &wildcard)
                 })
-                .or_else(|_| self.get_handler_from_added_associations(mime)),
+                .or_else(|_| {
+                    self.get_handler_from_added_associations(system_apps, mime)
+                }),
         }
     }
 
     /// Get the handler associated with a given path
-    fn get_handler_from_path(&self, path: &UserPath) -> Result<Handler> {
-        Ok(if let Ok(handler) = CONFIG.get_regex_handler(path) {
+    fn get_handler_from_path(
+        &self,
+        config: &Config,
+        system_apps: &SystemApps,
+        path: &UserPath,
+    ) -> Result<Handler> {
+        Ok(if let Ok(handler) = config.get_regex_handler(path) {
             handler.into()
         } else {
-            self.get_handler(&path.get_mime()?)?.into()
+            self.get_handler(config, system_apps, &path.get_mime()?)?
+                .into()
         })
     }
 
     /// Get the handler associated with a given mime from mimeapps.list's default apps
-    fn get_handler_from_user(&self, mime: &Mime) -> Result<DesktopHandler> {
+    fn get_handler_from_user(
+        &self,
+        config: &Config,
+        mime: &Mime,
+    ) -> Result<DesktopHandler> {
         match self.default_apps.get(mime) {
-            Some(handlers) if CONFIG.enable_selector && handlers.len() > 1 => {
+            Some(handlers) if config.enable_selector && handlers.len() > 1 => {
                 let handlers = handlers
                     .iter()
                     .map(|h| (h, h.get_entry().unwrap().name))
@@ -97,7 +109,7 @@ impl MimeApps {
 
                 let handler = {
                     let name =
-                        CONFIG.select(handlers.iter().map(|h| h.1.clone()))?;
+                        config.select(handlers.iter().map(|h| h.1.clone()))?;
 
                     handlers
                         .into_iter()
@@ -117,22 +129,29 @@ impl MimeApps {
     /// Get the handler associated with a given mime from mimeapps.list's added associations
     fn get_handler_from_added_associations(
         &self,
+        system_apps: &SystemApps,
         mime: &Mime,
     ) -> Result<DesktopHandler> {
         self.added_associations
             .get(mime)
             .map_or_else(
-                || SYSTEM_APPS.get_handler(mime),
+                || system_apps.get_handler(mime),
                 |h| h.front().cloned(),
             )
             .ok_or_else(|| Error::from(ErrorKind::NotFound(mime.to_string())))
     }
 
-    pub fn show_handler(&self, mime: &Mime, output_json: bool) -> Result<()> {
-        let handler = self.get_handler(mime)?;
+    pub fn show_handler(
+        &mut self,
+        config: &Config,
+        system_apps: &SystemApps,
+        mime: &Mime,
+        output_json: bool,
+    ) -> Result<()> {
+        let handler = self.get_handler(config, system_apps, mime)?;
         let output = if output_json {
             let entry = handler.get_entry()?;
-            let cmd = entry.get_cmd(vec![])?;
+            let cmd = entry.get_cmd(config, self, system_apps, vec![])?;
 
             (serde_json::json!( {
                 "handler": handler.to_string(),
@@ -247,8 +266,13 @@ impl MimeApps {
         writer.flush()?;
         Ok(())
     }
-    pub fn print(&self, detailed: bool, output_json: bool) -> Result<()> {
-        let mimeapps_table = MimeAppsTable::new(self, &SYSTEM_APPS);
+    pub fn print(
+        &self,
+        system_apps: &SystemApps,
+        detailed: bool,
+        output_json: bool,
+    ) -> Result<()> {
+        let mimeapps_table = MimeAppsTable::new(self, system_apps);
 
         if detailed {
             if output_json {
@@ -290,18 +314,23 @@ impl MimeApps {
         Ok(())
     }
     /// Open the given paths with their respective handlers
-    pub fn open_paths(&self, paths: &[UserPath]) -> Result<()> {
+    pub fn open_paths(
+        &mut self,
+        config: &Config,
+        system_apps: &SystemApps,
+        paths: &[UserPath],
+    ) -> Result<()> {
         let mut handlers: HashMap<Handler, Vec<String>> = HashMap::new();
 
         for path in paths.iter() {
             handlers
-                .entry(self.get_handler_from_path(path)?)
+                .entry(self.get_handler_from_path(config, system_apps, path)?)
                 .or_default()
                 .push(path.to_string())
         }
 
         for (handler, paths) in handlers.into_iter() {
-            handler.open(paths)?;
+            handler.open(config, self, system_apps, paths)?;
         }
 
         Ok(())
@@ -384,22 +413,37 @@ mod tests {
             DesktopHandler::assume_valid("brave.desktop".into()),
         );
 
+        let config = Config::default();
+        let system_apps = SystemApps::default();
+
         assert_eq!(
             user_apps
-                .get_handler(&Mime::from_str("video/mp4")?)?
+                .get_handler(
+                    &config,
+                    &system_apps,
+                    &Mime::from_str("video/mp4")?
+                )?
                 .to_string(),
             "mpv.desktop"
         );
         assert_eq!(
             user_apps
-                .get_handler(&Mime::from_str("video/asdf")?)?
+                .get_handler(
+                    &config,
+                    &system_apps,
+                    &Mime::from_str("video/asdf")?
+                )?
                 .to_string(),
             "mpv.desktop"
         );
 
         assert_eq!(
             user_apps
-                .get_handler(&Mime::from_str("video/webm")?)?
+                .get_handler(
+                    &config,
+                    &system_apps,
+                    &Mime::from_str("video/webm")?
+                )?
                 .to_string(),
             "brave.desktop"
         );

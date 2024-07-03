@@ -1,6 +1,6 @@
 use crate::{
     common::{DesktopEntry, ExecMode},
-    Error, ErrorKind, Result, UserPath,
+    Config, Error, ErrorKind, MimeApps, Result, SystemApps, UserPath,
 };
 use enum_dispatch::enum_dispatch;
 use regex::RegexSet;
@@ -29,8 +29,20 @@ pub trait Handleable {
     /// Get the desktop entry associated with the handler
     fn get_entry(&self) -> Result<DesktopEntry>;
     /// Open the given paths with the handler
-    fn open(&self, args: Vec<String>) -> Result<()> {
-        self.get_entry()?.exec(ExecMode::Open, args)
+    fn open(
+        &self,
+        config: &Config,
+        mime_apps: &mut MimeApps,
+        system_apps: &SystemApps,
+        args: Vec<String>,
+    ) -> Result<()> {
+        self.get_entry()?.exec(
+            config,
+            mime_apps,
+            system_apps,
+            ExecMode::Open,
+            args,
+        )
     }
 }
 
@@ -73,8 +85,20 @@ impl DesktopHandler {
         DesktopEntry::try_from(path)?;
         Ok(Self(name))
     }
-    pub fn launch(&self, args: Vec<String>) -> Result<()> {
-        self.get_entry()?.exec(ExecMode::Launch, args)
+    pub fn launch(
+        &self,
+        config: &Config,
+        mime_apps: &mut MimeApps,
+        system_apps: &SystemApps,
+        args: Vec<String>,
+    ) -> Result<()> {
+        self.get_entry()?.exec(
+            config,
+            mime_apps,
+            system_apps,
+            ExecMode::Launch,
+            args,
+        )
     }
 }
 

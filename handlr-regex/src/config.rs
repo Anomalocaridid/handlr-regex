@@ -1,14 +1,10 @@
 use crate::{
     apps::SystemApps, common::DesktopHandler, Error, ErrorKind, Handleable,
-    RegexApps, RegexHandler, Result, UserPath,
+    MimeApps, RegexApps, RegexHandler, Result, UserPath,
 };
 use mime::Mime;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-
-/// Global instance of parsed config
-pub static CONFIG: Lazy<Config> = Lazy::new(Config::load);
 
 /// The config file
 #[derive(Serialize, Deserialize)]
@@ -45,9 +41,17 @@ impl Config {
         self.handlers.get_handler(path)
     }
 
-    pub fn terminal() -> Result<String> {
-        let terminal_entry = crate::apps::MIME_APPS
-            .get_handler(&Mime::from_str("x-scheme-handler/terminal").unwrap())
+    pub fn terminal(
+        &self,
+        mime_apps: &mut MimeApps,
+        system_apps: &SystemApps,
+    ) -> Result<String> {
+        let terminal_entry = mime_apps
+            .get_handler(
+                self,
+                system_apps,
+                &Mime::from_str("x-scheme-handler/terminal").unwrap(),
+            )
             .ok()
             .and_then(|h| h.get_entry().ok());
 
@@ -67,19 +71,18 @@ impl Config {
                     )
                 ).ok()?;
 
-                let mut apps = (*crate::apps::MIME_APPS).clone();
-                apps.set_handler(
+                mime_apps.set_handler(
                     Mime::from_str("x-scheme-handler/terminal").unwrap(),
                     DesktopHandler::assume_valid(entry.0),
                 );
-                apps.save().ok()?;
+                mime_apps.save().ok()?;
 
                 Some(entry.1)
             })
             .map(|e| {
                 let mut exec = e.exec.to_owned();
 
-                if let Some(opts) = &CONFIG.term_exec_args {
+                if let Some(opts) = &self.term_exec_args {
                     exec.push(' ');
                     exec.push_str(opts)
                 }

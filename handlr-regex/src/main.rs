@@ -1,51 +1,55 @@
 use clap::Parser;
 use handlr_regex::{
-    apps::{self, MIME_APPS},
+    apps,
     cli::Cmd,
     common::{self, mime_table},
-    config::CONFIG,
     error::{ErrorKind, Result},
-    utils,
+    utils, Config, MimeApps, SystemApps,
 };
-use once_cell::sync::Lazy;
 use std::io::IsTerminal;
 
 fn main() -> Result<()> {
-    // create config if it doesn't exist
-    Lazy::force(&CONFIG);
-
-    let mut apps = (*MIME_APPS).clone();
+    let config = Config::load();
+    let mut mime_apps = MimeApps::read().unwrap_or_default();
+    let system_apps = SystemApps::populate().unwrap_or_default();
 
     let res = || -> Result<()> {
         match Cmd::parse() {
             Cmd::Set { mime, handler } => {
-                apps.set_handler(mime.0, handler);
-                apps.save()?;
+                mime_apps.set_handler(mime.0, handler);
+                mime_apps.save()?;
             }
             Cmd::Add { mime, handler } => {
-                apps.add_handler(mime.0, handler);
-                apps.save()?;
+                mime_apps.add_handler(mime.0, handler);
+                mime_apps.save()?;
             }
             Cmd::Launch { mime, args } => {
-                apps.get_handler(&mime.0)?.launch(
-                    args.into_iter().map(|a| a.to_string()).collect(),
-                )?;
+                mime_apps
+                    .get_handler(&config, &system_apps, &mime.0)?
+                    .launch(
+                        &config,
+                        &mut mime_apps,
+                        &system_apps,
+                        args.into_iter().map(|a| a.to_string()).collect(),
+                    )?;
             }
             Cmd::Get { mime, json } => {
-                apps.show_handler(&mime.0, json)?;
+                mime_apps.show_handler(&config, &system_apps, &mime.0, json)?;
             }
-            Cmd::Open { paths } => apps.open_paths(&paths)?,
+            Cmd::Open { paths } => {
+                mime_apps.open_paths(&config, &system_apps, &paths)?
+            }
             Cmd::Mime { paths, json } => {
                 mime_table(&paths, json)?;
             }
             Cmd::List { all, json } => {
-                apps.print(all, json)?;
+                mime_apps.print(&system_apps, all, json)?;
             }
             Cmd::Unset { mime } => {
-                apps.unset_handler(&mime.0)?;
+                mime_apps.unset_handler(&mime.0)?;
             }
             Cmd::Remove { mime, handler } => {
-                apps.remove_handler(mime.0, handler)?;
+                mime_apps.remove_handler(mime.0, handler)?;
             }
             Cmd::Autocomplete {
                 desktop_files,
