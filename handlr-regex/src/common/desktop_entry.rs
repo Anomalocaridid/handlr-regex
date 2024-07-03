@@ -126,6 +126,7 @@ impl DesktopEntry {
 
     /// Parse a desktop entry file, given a path
     fn parse_file(path: &Path) -> Option<DesktopEntry> {
+        // Assume the set locales will not change while handlr is running
         static LOCALES: Lazy<Vec<String>> = Lazy::new(get_languages_from_env);
 
         let fd_entry =
@@ -136,19 +137,18 @@ impl DesktopEntry {
             exec: fd_entry.exec()?.to_owned(),
             file_name: path.file_name()?.to_owned(),
             terminal: fd_entry.terminal(),
-            mime_type: match fd_entry.mime_type() {
-                Some(mime_type) => mime_type
-                    .iter()
-                    .filter_map(|m| Mime::from_str(m).ok())
-                    .collect_vec(),
-                None => Vec::new(),
-            },
-            categories: match fd_entry.categories() {
-                Some(categories) => {
-                    categories.iter().map(|&c| c.to_owned()).collect_vec()
-                }
-                None => Vec::new(),
-            },
+            mime_type: fd_entry
+                .mime_type()
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|m| Mime::from_str(m).ok())
+                .collect_vec(),
+            categories: fd_entry
+                .categories()
+                .unwrap_or_default()
+                .iter()
+                .map(|&c| c.to_owned())
+                .collect_vec(),
         };
 
         if !entry.name.is_empty() && !entry.exec.is_empty() {
