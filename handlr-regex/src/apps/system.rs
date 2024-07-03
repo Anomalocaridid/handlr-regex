@@ -20,7 +20,7 @@ impl SystemApps {
         Some(self.0.get(mime)?.clone())
     }
     pub fn get_handler(&self, mime: &Mime) -> Option<DesktopHandler> {
-        Some(self.get_handlers(mime)?.get(0).unwrap().clone())
+        Some(self.get_handlers(mime)?.front().unwrap().clone())
     }
 
     pub fn get_entries(

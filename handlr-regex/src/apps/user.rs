@@ -110,7 +110,7 @@ impl MimeApps {
 
                 Ok(handler)
             }
-            Some(handlers) => Ok(handlers.get(0).unwrap().clone()),
+            Some(handlers) => Ok(handlers.front().unwrap().clone()),
             None => Err(Error::from(ErrorKind::NotFound(mime.to_string()))),
         }
     }
@@ -124,7 +124,7 @@ impl MimeApps {
             .get(mime)
             .map_or_else(
                 || self.system_apps.get_handler(mime),
-                |h| h.get(0).cloned(),
+                |h| h.front().cloned(),
             )
             .ok_or_else(|| Error::from(ErrorKind::NotFound(mime.to_string())))
     }
@@ -259,13 +259,13 @@ impl MimeApps {
         Ok(())
     }
     pub fn print(&self, detailed: bool, output_json: bool) -> Result<()> {
-        let mimeapps_table = MimeAppsTable::new(&self);
+        let mimeapps_table = MimeAppsTable::new(self);
 
         if detailed {
             if output_json {
                 println!(
                     "{}",
-                    serde_json::to_string(&MimeAppsTable::new(&self))?
+                    serde_json::to_string(&MimeAppsTable::new(self))?
                 )
             } else {
                 println!("Default Apps");
