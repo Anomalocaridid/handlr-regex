@@ -24,14 +24,12 @@ fn main() -> Result<()> {
                 mime_apps.save()?;
             }
             Cmd::Launch { mime, args } => {
-                mime_apps
-                    .get_handler(&config, &system_apps, &mime.0)?
-                    .launch(
-                        &config,
-                        &mut mime_apps,
-                        &system_apps,
-                        args.into_iter().map(|a| a.to_string()).collect(),
-                    )?;
+                mime_apps.launch_handler(
+                    &config,
+                    &system_apps,
+                    &mime.0,
+                    args,
+                )?;
             }
             Cmd::Get { mime, json } => {
                 mime_apps.show_handler(&config, &system_apps, &mime.0, json)?;
@@ -56,7 +54,7 @@ fn main() -> Result<()> {
                 mimes,
             } => {
                 if desktop_files {
-                    apps::MimeApps::list_handlers()?;
+                    apps::SystemApps::list_handlers()?;
                 } else if mimes {
                     common::db_autocomplete()?;
                 }

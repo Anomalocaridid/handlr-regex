@@ -55,6 +55,23 @@ impl SystemApps {
 
         Ok(Self(map))
     }
+
+    /// List the available handlers
+    pub fn list_handlers() -> Result<()> {
+        use std::{io::Write, os::unix::ffi::OsStrExt};
+
+        let stdout = std::io::stdout();
+        let mut stdout = stdout.lock();
+
+        Self::get_entries()?.for_each(|(_, e)| {
+            stdout.write_all(e.file_name.as_bytes()).unwrap();
+            stdout.write_all(b"\t").unwrap();
+            stdout.write_all(e.name.as_bytes()).unwrap();
+            stdout.write_all(b"\n").unwrap();
+        });
+
+        Ok(())
+    }
 }
 
 impl Deref for SystemApps {

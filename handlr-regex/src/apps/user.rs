@@ -298,21 +298,7 @@ impl MimeApps {
 
         Ok(())
     }
-    pub fn list_handlers() -> Result<()> {
-        use std::{io::Write, os::unix::ffi::OsStrExt};
 
-        let stdout = std::io::stdout();
-        let mut stdout = stdout.lock();
-
-        SystemApps::get_entries()?.for_each(|(_, e)| {
-            stdout.write_all(e.file_name.as_bytes()).unwrap();
-            stdout.write_all(b"\t").unwrap();
-            stdout.write_all(e.name.as_bytes()).unwrap();
-            stdout.write_all(b"\n").unwrap();
-        });
-
-        Ok(())
-    }
     /// Open the given paths with their respective handlers
     pub fn open_paths(
         &mut self,
@@ -334,6 +320,22 @@ impl MimeApps {
         }
 
         Ok(())
+    }
+
+    /// Given a mime and arguments, launch the associated handler with the arguments
+    pub fn launch_handler(
+        &mut self,
+        config: &Config,
+        system_apps: &SystemApps,
+        mime: &Mime,
+        args: Vec<UserPath>,
+    ) -> Result<()> {
+        self.get_handler(config, system_apps, mime)?.launch(
+            config,
+            self,
+            system_apps,
+            args.into_iter().map(|a| a.to_string()).collect(),
+        )
     }
 }
 
