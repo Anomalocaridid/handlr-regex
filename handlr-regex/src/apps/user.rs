@@ -23,15 +23,16 @@ pub struct MimeApps {
 }
 
 impl MimeApps {
-    pub fn add_handler(&mut self, mime: Mime, handler: DesktopHandler) {
+    pub fn add_handler(&mut self, mime: &Mime, handler: &DesktopHandler) {
         self.default_apps
-            .entry(mime)
+            .entry(mime.clone())
             .or_default()
-            .push_back(handler);
+            .push_back(handler.clone());
     }
 
-    pub fn set_handler(&mut self, mime: Mime, handler: DesktopHandler) {
-        self.default_apps.insert(mime, vec![handler].into());
+    pub fn set_handler(&mut self, mime: &Mime, handler: &DesktopHandler) {
+        self.default_apps
+            .insert(mime.clone(), vec![handler.clone()].into());
     }
 
     pub fn unset_handler(&mut self, mime: &Mime) -> Result<()> {
@@ -44,12 +45,12 @@ impl MimeApps {
 
     pub fn remove_handler(
         &mut self,
-        mime: Mime,
-        handler: DesktopHandler,
+        mime: &Mime,
+        handler: &DesktopHandler,
     ) -> Result<()> {
-        let handler_list = self.default_apps.entry(mime).or_default();
+        let handler_list = self.default_apps.entry(mime.clone()).or_default();
 
-        if let Some(pos) = handler_list.iter().position(|x| *x == handler) {
+        if let Some(pos) = handler_list.iter().position(|x| *x == *handler) {
             if let Some(_removed) = handler_list.remove(pos) {
                 self.save()?
             }
@@ -407,12 +408,12 @@ mod tests {
     fn wildcard_mimes() -> Result<()> {
         let mut user_apps = MimeApps::default();
         user_apps.add_handler(
-            Mime::from_str("video/*").unwrap(),
-            DesktopHandler::assume_valid("mpv.desktop".into()),
+            &Mime::from_str("video/*").unwrap(),
+            &DesktopHandler::assume_valid("mpv.desktop".into()),
         );
         user_apps.add_handler(
-            Mime::from_str("video/webm").unwrap(),
-            DesktopHandler::assume_valid("brave.desktop".into()),
+            &Mime::from_str("video/webm").unwrap(),
+            &DesktopHandler::assume_valid("brave.desktop".into()),
         );
 
         let config = Config::default();

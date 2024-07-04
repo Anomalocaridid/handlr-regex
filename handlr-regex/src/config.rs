@@ -72,8 +72,8 @@ impl Config {
                 ).ok()?;
 
                 mime_apps.set_handler(
-                    Mime::from_str("x-scheme-handler/terminal").unwrap(),
-                    DesktopHandler::assume_valid(entry.0),
+                    &Mime::from_str("x-scheme-handler/terminal").unwrap(),
+                    &DesktopHandler::assume_valid(entry.0),
                 );
                 mime_apps.save().ok()?;
 

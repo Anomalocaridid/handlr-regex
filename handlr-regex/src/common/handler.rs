@@ -2,6 +2,7 @@ use crate::{
     common::{DesktopEntry, ExecMode},
     Config, Error, ErrorKind, MimeApps, Result, SystemApps, UserPath,
 };
+use derive_more::Deref;
 use enum_dispatch::enum_dispatch;
 use regex::RegexSet;
 use serde::Deserialize;
@@ -10,7 +11,6 @@ use std::{
     ffi::OsString,
     fmt::Display,
     hash::{Hash, Hasher},
-    ops::Deref,
     path::PathBuf,
     str::FromStr,
 };
@@ -126,7 +126,7 @@ impl Handleable for RegexHandler {
 
 // Wrapping RegexSet in a struct and implementing Eq and Hash for it
 // saves us from having to implement them for RegexHandler as a whole.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Deref)]
 struct HandlerRegexSet(#[serde(with = "serde_regex")] RegexSet);
 
 impl PartialEq for HandlerRegexSet {
@@ -140,15 +140,6 @@ impl Eq for HandlerRegexSet {}
 impl Hash for HandlerRegexSet {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.patterns().hash(state);
-    }
-}
-
-// Makes it more convenient to call the underlying RegexSet's methods
-impl Deref for HandlerRegexSet {
-    type Target = RegexSet;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 

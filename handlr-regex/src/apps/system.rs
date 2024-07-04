@@ -2,15 +2,15 @@ use crate::{
     common::{DesktopEntry, DesktopHandler},
     Result,
 };
+use derive_more::Deref;
 use mime::Mime;
 use std::{
     collections::{HashMap, VecDeque},
     convert::TryFrom,
     ffi::OsString,
-    ops::Deref,
 };
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Deref)]
 pub struct SystemApps(HashMap<Mime, VecDeque<DesktopHandler>>);
 
 impl SystemApps {
@@ -71,13 +71,5 @@ impl SystemApps {
         });
 
         Ok(())
-    }
-}
-
-impl Deref for SystemApps {
-    type Target = HashMap<Mime, VecDeque<DesktopHandler>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }

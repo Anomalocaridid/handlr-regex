@@ -1,4 +1,5 @@
 use crate::{Error, ErrorKind, Result};
+use derive_more::Deref;
 use mime::Mime;
 use std::{convert::TryFrom, path::Path, str::FromStr};
 use url::Url;
@@ -65,7 +66,7 @@ fn mime_to_option(db: &xdg_mime::SharedMimeInfo, mime: Mime) -> Option<Mime> {
 }
 
 // Mime derived from user input: extension(.pdf) or type like image/jpg
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deref)]
 pub struct MimeOrExtension(pub Mime);
 
 impl FromStr for MimeOrExtension {

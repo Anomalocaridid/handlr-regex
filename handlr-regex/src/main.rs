@@ -16,11 +16,11 @@ fn main() -> Result<()> {
     let res = || -> Result<()> {
         match Cmd::parse() {
             Cmd::Set { mime, handler } => {
-                mime_apps.set_handler(mime.0, handler);
+                mime_apps.set_handler(&mime, &handler);
                 mime_apps.save()?;
             }
             Cmd::Add { mime, handler } => {
-                mime_apps.add_handler(mime.0, handler);
+                mime_apps.add_handler(&mime, &handler);
                 mime_apps.save()?;
             }
             Cmd::Launch { mime, args } => {
@@ -44,10 +44,10 @@ fn main() -> Result<()> {
                 mime_apps.print(&system_apps, all, json)?;
             }
             Cmd::Unset { mime } => {
-                mime_apps.unset_handler(&mime.0)?;
+                mime_apps.unset_handler(&mime)?;
             }
             Cmd::Remove { mime, handler } => {
-                mime_apps.remove_handler(mime.0, handler)?;
+                mime_apps.remove_handler(&mime, &handler)?;
             }
             Cmd::Autocomplete {
                 desktop_files,
