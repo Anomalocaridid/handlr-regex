@@ -6,6 +6,7 @@ use derive_more::Deref;
 use enum_dispatch::enum_dispatch;
 use regex::RegexSet;
 use serde::{Deserialize, Serialize};
+use serde_regex;
 use std::{
     convert::TryFrom,
     ffi::OsString,
