@@ -9,4 +9,3 @@ edition = "2021"
 handlr-regex = { path = "../handlr-regex" }
 clap = { version = "4.5.2", features = ["derive"] }
 clap_mangen = "0.2.20"
-regex = "1"

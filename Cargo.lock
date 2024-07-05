@@ -2040,5 +2040,4 @@ dependencies = [
  "clap",
  "clap_mangen",
  "handlr-regex",
- "regex",
 ]
