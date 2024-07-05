@@ -24,15 +24,10 @@ fn main() -> Result<()> {
                 mime_apps.save()?;
             }
             Cmd::Launch { mime, args } => {
-                mime_apps.launch_handler(
-                    &config,
-                    &system_apps,
-                    &mime.0,
-                    args,
-                )?;
+                mime_apps.launch_handler(&config, &system_apps, &mime, args)?;
             }
             Cmd::Get { mime, json } => {
-                mime_apps.show_handler(&config, &system_apps, &mime.0, json)?;
+                mime_apps.show_handler(&config, &system_apps, &mime, json)?;
             }
             Cmd::Open { paths } => {
                 mime_apps.open_paths(&config, &system_apps, &paths)?
