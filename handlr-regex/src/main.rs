@@ -23,15 +23,44 @@ fn main() -> Result<()> {
                 mime_apps.add_handler(&mime, &handler);
                 mime_apps.save()?;
             }
-            Cmd::Launch { mime, args } => {
-                mime_apps.launch_handler(&config, &system_apps, &mime, args)?;
+            Cmd::Launch {
+                mime,
+                args,
+                enable_selector,
+                disable_selector,
+            } => {
+                mime_apps.launch_handler(
+                    &config,
+                    &system_apps,
+                    &mime,
+                    args,
+                    config.use_selector(enable_selector, disable_selector),
+                )?;
             }
-            Cmd::Get { mime, json } => {
-                mime_apps.show_handler(&config, &system_apps, &mime, json)?;
+            Cmd::Get {
+                mime,
+                json,
+                enable_selector,
+                disable_selector,
+            } => {
+                mime_apps.show_handler(
+                    &config,
+                    &system_apps,
+                    &mime,
+                    json,
+                    config.use_selector(enable_selector, disable_selector),
+                )?;
             }
-            Cmd::Open { paths } => {
-                mime_apps.open_paths(&config, &system_apps, &paths)?
-            }
+            Cmd::Open {
+                paths,
+                enable_selector,
+                disable_selector,
+            } => mime_apps.open_paths(
+                &config,
+                &system_apps,
+                &paths,
+                config.use_selector(enable_selector, disable_selector),
+            )?,
             Cmd::Mime { paths, json } => {
                 mime_table(&paths, json)?;
             }

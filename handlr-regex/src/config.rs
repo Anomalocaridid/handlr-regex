@@ -45,12 +45,14 @@ impl Config {
         &self,
         mime_apps: &mut MimeApps,
         system_apps: &SystemApps,
+        enable_selector: bool,
     ) -> Result<String> {
         let terminal_entry = mime_apps
             .get_handler(
                 self,
                 system_apps,
                 &Mime::from_str("x-scheme-handler/terminal")?,
+                enable_selector,
             )
             .ok()
             .and_then(|h| h.get_entry().ok());
@@ -138,5 +140,14 @@ impl Config {
         } else {
             Ok(output)
         }
+    }
+
+    /// Determine whether or not the selector should be enabled
+    pub fn use_selector(
+        &self,
+        enable_selector: bool,
+        disable_selector: bool,
+    ) -> bool {
+        (self.enable_selector || enable_selector) && !disable_selector
     }
 }

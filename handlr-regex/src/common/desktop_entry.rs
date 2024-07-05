@@ -50,16 +50,35 @@ impl DesktopEntry {
         system_apps: &SystemApps,
         mode: Mode,
         arguments: Vec<String>,
+        enable_selector: bool,
     ) -> Result<()> {
         let supports_multiple =
             self.exec.contains("%F") || self.exec.contains("%U");
         if arguments.is_empty() {
-            self.exec_inner(config, mime_apps, system_apps, vec![])?
+            self.exec_inner(
+                config,
+                mime_apps,
+                system_apps,
+                vec![],
+                enable_selector,
+            )?
         } else if supports_multiple || mode == Mode::Launch {
-            self.exec_inner(config, mime_apps, system_apps, arguments)?;
+            self.exec_inner(
+                config,
+                mime_apps,
+                system_apps,
+                arguments,
+                enable_selector,
+            )?;
         } else {
             for arg in arguments {
-                self.exec_inner(config, mime_apps, system_apps, vec![arg])?;
+                self.exec_inner(
+                    config,
+                    mime_apps,
+                    system_apps,
+                    vec![arg],
+                    enable_selector,
+                )?;
             }
         };
 
@@ -73,10 +92,16 @@ impl DesktopEntry {
         mime_apps: &mut MimeApps,
         system_apps: &SystemApps,
         args: Vec<String>,
+        enable_selector: bool,
     ) -> Result<()> {
         let mut cmd = {
-            let (cmd, args) =
-                self.get_cmd(config, mime_apps, system_apps, args)?;
+            let (cmd, args) = self.get_cmd(
+                config,
+                mime_apps,
+                system_apps,
+                args,
+                enable_selector,
+            )?;
             let mut cmd = Command::new(cmd);
             cmd.args(args);
             cmd
@@ -98,6 +123,7 @@ impl DesktopEntry {
         mime_apps: &mut MimeApps,
         system_apps: &SystemApps,
         args: Vec<String>,
+        enable_selector: bool,
     ) -> Result<(String, Vec<String>)> {
         let special =
             AhoCorasick::new_auto_configured(&["%f", "%F", "%u", "%U"]);
@@ -139,7 +165,8 @@ impl DesktopEntry {
         // If the entry expects a terminal (emulator), but this process is not running in one, we
         // launch a new one.
         if self.terminal && !std::io::stdout().is_terminal() {
-            let term_cmd = config.terminal(mime_apps, system_apps)?;
+            let term_cmd =
+                config.terminal(mime_apps, system_apps, enable_selector)?;
             exec = shlex::split(&term_cmd)
                 .ok_or_else(|| Error::from(ErrorKind::BadCmd(term_cmd)))?
                 .into_iter()

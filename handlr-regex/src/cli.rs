@@ -69,6 +69,13 @@ pub enum Cmd {
         #[clap(required = true)]
         /// Paths/URLs to open
         paths: Vec<UserPath>,
+        #[clap(long, short)]
+        /// Enable selector, overrides `enable_selector`
+        enable_selector: bool,
+        #[clap(long, short)]
+        #[clap(overrides_with = "enable_selector")]
+        /// Disable selector, overrides `enable_selector`
+        disable_selector: bool,
     },
 
     /// Set the default handler for mime/extension
@@ -111,6 +118,13 @@ pub enum Cmd {
         mime: MimeOrExtension,
         /// Arguments to pass to handler program
         args: Vec<UserPath>,
+        #[clap(long, short)]
+        /// Enable selector, overrides `enable_selector`
+        enable_selector: bool,
+        #[clap(long, short)]
+        #[clap(overrides_with = "enable_selector")]
+        /// Disable selector, overrides `enable_selector`
+        disable_selector: bool,
     },
 
     #[clap(verbatim_doc_comment)]
@@ -138,6 +152,13 @@ pub enum Cmd {
         json: bool,
         /// Mimetype to get the handler of
         mime: MimeOrExtension,
+        #[clap(long, short)]
+        /// Enable selector, overrides `enable_selector`
+        enable_selector: bool,
+        #[clap(long, short)]
+        #[clap(overrides_with = "enable_selector")]
+        /// Disable selector, overrides `enable_selector`
+        disable_selector: bool,
     },
 
     /// Add a handler for given mime/extension
