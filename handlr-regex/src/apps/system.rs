@@ -14,7 +14,7 @@ impl SystemApps {
         Some(self.get(mime)?.clone())
     }
     pub fn get_handler(&self, mime: &Mime) -> Option<DesktopHandler> {
-        Some(self.get_handlers(mime)?.front().unwrap().clone())
+        Some(self.get_handlers(mime)?.front()?.clone())
     }
 
     pub fn get_entries(
@@ -27,7 +27,7 @@ impl SystemApps {
             })
             .filter_map(|p| {
                 Some((
-                    p.file_name().unwrap().to_owned(),
+                    p.file_name()?.to_owned(),
                     DesktopEntry::try_from(p.clone()).ok()?,
                 ))
             }))

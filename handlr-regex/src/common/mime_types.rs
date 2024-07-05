@@ -4,7 +4,7 @@ use mime::Mime;
 use std::{convert::TryFrom, path::Path, str::FromStr};
 use url::Url;
 
-// A mime derived from a path or URL
+/// A mime derived from a path or URL
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MimeType(pub Mime);
 
@@ -22,13 +22,12 @@ impl MimeType {
     }
 }
 
-impl From<&Url> for MimeType {
-    fn from(url: &Url) -> Self {
-        Self(
-            format!("x-scheme-handler/{}", url.scheme())
-                .parse::<Mime>()
-                .unwrap(),
-        )
+impl TryFrom<&Url> for MimeType {
+    type Error = Error;
+    fn try_from(url: &Url) -> Result<Self> {
+        Ok(Self(
+            format!("x-scheme-handler/{}", url.scheme()).parse::<Mime>()?,
+        ))
     }
 }
 
@@ -38,7 +37,7 @@ impl TryFrom<&Path> for MimeType {
         let db = xdg_mime::SharedMimeInfo::new();
 
         let mut guess = db.guess_mime_type();
-        guess.file_name(path.to_str().unwrap());
+        guess.file_name(&path.to_string_lossy());
 
         let mime = if let Some(mime) =
             mime_to_option(&db, guess.guess().mime_type().clone())
@@ -53,8 +52,9 @@ impl TryFrom<&Path> for MimeType {
     }
 }
 
+/// Tests if a given mime is "acceptable" and returns None otherwise
 fn mime_to_option(db: &xdg_mime::SharedMimeInfo, mime: Mime) -> Option<Mime> {
-    let application_zerosize: Mime = "application/x-zerosize".parse().unwrap();
+    let application_zerosize: Mime = "application/x-zerosize".parse().ok()?;
 
     if mime == mime::APPLICATION_OCTET_STREAM
         || db.mime_type_equal(&mime, &application_zerosize)
@@ -65,7 +65,7 @@ fn mime_to_option(db: &xdg_mime::SharedMimeInfo, mime: Mime) -> Option<Mime> {
     }
 }
 
-// Mime derived from user input: extension(.pdf) or type like image/jpg
+/// Mime derived from user input: extension(.pdf) or type like image/jpg
 #[derive(Debug, Clone, Deref)]
 pub struct MimeOrExtension(pub Mime);
 

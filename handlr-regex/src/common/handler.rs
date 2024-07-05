@@ -68,7 +68,7 @@ impl FromStr for DesktopHandler {
 
 impl Handleable for DesktopHandler {
     fn get_entry(&self) -> Result<DesktopEntry> {
-        DesktopEntry::try_from(Self::get_path(&self.0).unwrap())
+        DesktopEntry::try_from(Self::get_path(&self.0)?)
     }
 }
 
@@ -76,15 +76,19 @@ impl DesktopHandler {
     pub fn assume_valid(name: OsString) -> Self {
         Self(name)
     }
-    pub fn get_path(name: &std::ffi::OsStr) -> Option<PathBuf> {
+
+    /// Get the path of a given desktop entry file
+    pub fn get_path(name: &std::ffi::OsStr) -> Result<PathBuf> {
         let mut path = PathBuf::from("applications");
         path.push(name);
-        xdg::BaseDirectories::new().ok()?.find_data_file(path)
+        Ok(xdg::BaseDirectories::new()?
+            .find_data_file(path)
+            .ok_or_else(|| {
+                ErrorKind::NotFound(name.to_string_lossy().into())
+            })?)
     }
     pub fn resolve(name: OsString) -> Result<Self> {
-        let path = Self::get_path(&name).ok_or_else(|| {
-            ErrorKind::NotFound(name.to_string_lossy().into())
-        })?;
+        let path = Self::get_path(&name)?;
         DesktopEntry::try_from(path)?;
         Ok(Self(name))
     }

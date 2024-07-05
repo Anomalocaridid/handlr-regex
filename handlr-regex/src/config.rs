@@ -50,7 +50,7 @@ impl Config {
             .get_handler(
                 self,
                 system_apps,
-                &Mime::from_str("x-scheme-handler/terminal").unwrap(),
+                &Mime::from_str("x-scheme-handler/terminal")?,
             )
             .ok()
             .and_then(|h| h.get_entry().ok());
@@ -72,7 +72,7 @@ impl Config {
                 ).ok()?;
 
                 mime_apps.set_handler(
-                    &Mime::from_str("x-scheme-handler/terminal").unwrap(),
+                    &Mime::from_str("x-scheme-handler/terminal").ok()?,
                     &DesktopHandler::assume_valid(entry.0),
                 );
                 mime_apps.save().ok()?;
@@ -91,8 +91,8 @@ impl Config {
             })
             .ok_or(Error::from(ErrorKind::NoTerminal))
     }
-    pub fn load() -> Self {
-        confy::load("handlr").unwrap()
+    pub fn load() -> Result<Self> {
+        Ok(confy::load("handlr")?)
     }
 
     pub fn select<O: Iterator<Item = String>>(
@@ -106,7 +106,9 @@ impl Config {
         };
 
         let process = {
-            let mut split = shlex::split(&self.selector).unwrap();
+            let mut split = shlex::split(&self.selector).ok_or_else(|| {
+                Error::from(ErrorKind::BadCmd(self.selector.clone()))
+            })?;
             let (cmd, args) = (split.remove(0), split);
             Command::new(cmd)
                 .args(args)

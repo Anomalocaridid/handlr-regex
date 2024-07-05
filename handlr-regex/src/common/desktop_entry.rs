@@ -102,7 +102,12 @@ impl DesktopEntry {
         let special =
             AhoCorasick::new_auto_configured(&["%f", "%F", "%u", "%U"]);
 
-        let mut exec = shlex::split(&self.exec).unwrap();
+        let mut exec = shlex::split(&self.exec).ok_or_else(|| {
+            Error::from(ErrorKind::BadExec(
+                self.exec.clone(),
+                self.file_name.to_string_lossy().to_string(),
+            ))
+        })?;
 
         // The desktop entry doesn't contain arguments - we make best effort and append them at
         // the end
@@ -134,8 +139,9 @@ impl DesktopEntry {
         // If the entry expects a terminal (emulator), but this process is not running in one, we
         // launch a new one.
         if self.terminal && !std::io::stdout().is_terminal() {
-            exec = shlex::split(&config.terminal(mime_apps, system_apps)?)
-                .unwrap()
+            let term_cmd = config.terminal(mime_apps, system_apps)?;
+            exec = shlex::split(&term_cmd)
+                .ok_or_else(|| Error::from(ErrorKind::BadCmd(term_cmd)))?
                 .into_iter()
                 .chain(exec)
                 .collect();

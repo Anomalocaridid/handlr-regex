@@ -9,7 +9,7 @@ use handlr_regex::{
 use std::io::IsTerminal;
 
 fn main() -> Result<()> {
-    let config = Config::load();
+    let config = Config::load().unwrap_or_default();
     let mut mime_apps = MimeApps::read().unwrap_or_default();
     let system_apps = SystemApps::populate().unwrap_or_default();
 

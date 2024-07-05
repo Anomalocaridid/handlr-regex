@@ -5,7 +5,7 @@ use url::Url;
 
 use crate::{common::MimeType, render_table, Error, ErrorKind, Result};
 use std::{
-    convert::TryFrom,
+    convert::{TryFrom, TryInto},
     fmt::{Display, Formatter},
     path::PathBuf,
     str::FromStr,
@@ -20,7 +20,7 @@ pub enum UserPath {
 impl UserPath {
     pub fn get_mime(&self) -> Result<Mime> {
         Ok(match self {
-            Self::Url(url) => Ok(url.into()),
+            Self::Url(url) => Ok(url.try_into()?),
             Self::File(f) => MimeType::try_from(f.as_path()),
         }?
         .0)

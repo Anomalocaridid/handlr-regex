@@ -73,7 +73,7 @@ impl MimeApps {
             .insert(mime.clone(), DesktopList(vec![handler.clone()].into()));
     }
 
-    /// Entirely remove a goven mime's default application association
+    /// Entirely remove a given mime's default application association
     pub fn unset_handler(&mut self, mime: &Mime) -> Result<()> {
         if let Some(_unset) = self.default_apps.remove(mime) {
             self.save()?;
@@ -111,7 +111,7 @@ impl MimeApps {
             h => h
                 .or_else(|_| {
                     let wildcard =
-                        Mime::from_str(&format!("{}/*", mime.type_())).unwrap();
+                        Mime::from_str(&format!("{}/*", mime.type_()))?;
                     self.get_handler_from_user(config, &wildcard)
                 })
                 .or_else(|_| {
@@ -141,12 +141,13 @@ impl MimeApps {
         config: &Config,
         mime: &Mime,
     ) -> Result<DesktopHandler> {
+        let error = Error::from(ErrorKind::NotFound(mime.to_string()));
         match self.default_apps.get(mime) {
             Some(handlers) if config.enable_selector && handlers.len() > 1 => {
                 let handlers = handlers
                     .iter()
-                    .map(|h| (h, h.get_entry().unwrap().name))
-                    .collect::<Vec<_>>();
+                    .map(|h| Ok((h, h.get_entry()?.name)))
+                    .collect::<Result<Vec<_>>>()?;
 
                 let handler = {
                     let name =
@@ -155,15 +156,15 @@ impl MimeApps {
                     handlers
                         .into_iter()
                         .find(|h| h.1 == name)
-                        .unwrap()
+                        .ok_or(error)?
                         .0
                         .clone()
                 };
 
                 Ok(handler)
             }
-            Some(handlers) => Ok(handlers.front().unwrap().clone()),
-            None => Err(Error::from(ErrorKind::NotFound(mime.to_string()))),
+            Some(handlers) => Ok(handlers.front().ok_or(error)?.clone()),
+            None => Err(error),
         }
     }
 
