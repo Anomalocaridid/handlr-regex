@@ -188,19 +188,17 @@ mod tests {
         let regex_apps = RegexApps(vec![regex_handler.clone()]);
 
         assert_eq!(
-            regex_apps
-                .get_handler(&UserPath::Url(
-                    Url::parse("https://youtu.be/dQw4w9WgXcQ").unwrap()
-                ))
-                .expect("RegexApps::get_handler() returned Err"),
+            regex_apps.get_handler(&UserPath::Url(Url::parse(
+                "https://youtu.be/dQw4w9WgXcQ"
+            )?))?,
             regex_handler
         );
 
-        assert!(regex_apps
-            .get_handler(&UserPath::Url(
-                Url::parse("https://en.wikipedia.org").unwrap()
-            ))
-            .is_err());
+        regex_apps
+            .get_handler(&UserPath::Url(Url::parse(
+                "https://en.wikipedia.org",
+            )?))
+            .unwrap_err();
 
         Ok(())
     }

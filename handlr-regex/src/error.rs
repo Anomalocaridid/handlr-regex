@@ -55,6 +55,9 @@ pub enum ErrorKind {
     BadExec(String, String),
     #[error("Could not split command '{0}' into shell words")]
     BadCmd(String),
+    #[cfg(test)]
+    #[error(transparent)]
+    BadUrl(#[from] url::ParseError),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

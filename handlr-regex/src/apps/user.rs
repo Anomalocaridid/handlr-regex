@@ -392,11 +392,11 @@ mod tests {
     fn wildcard_mimes() -> Result<()> {
         let mut user_apps = MimeApps::default();
         user_apps.add_handler(
-            &Mime::from_str("video/*").unwrap(),
+            &Mime::from_str("video/*")?,
             &DesktopHandler::assume_valid("mpv.desktop".into()),
         );
         user_apps.add_handler(
-            &Mime::from_str("video/webm").unwrap(),
+            &Mime::from_str("video/webm")?,
             &DesktopHandler::assume_valid("brave.desktop".into()),
         );
 
