@@ -13,21 +13,17 @@ pub fn autocomplete() -> Result<()> {
     let stdout = std::io::stdout();
     let mut stdout = stdout.lock();
 
-    mime_db::EXTENSIONS.iter().for_each(|(ext, _)| {
-        stdout.write_all(b".").unwrap();
-        stdout.write_all(ext.as_bytes()).unwrap();
-        stdout.write_all(b"\n").unwrap();
-    });
+    mime_db::EXTENSIONS
+        .iter()
+        .try_for_each(|(ext, _)| writeln!(stdout, ".{}", ext))?;
 
-    CUSTOM_MIMES.iter().for_each(|mime| {
-        stdout.write_all(mime.as_bytes()).unwrap();
-        stdout.write_all(b"\n").unwrap();
-    });
+    CUSTOM_MIMES
+        .iter()
+        .try_for_each(|mime| writeln!(stdout, "{}", mime))?;
 
-    mime_db::TYPES.iter().for_each(|(mime, _, _)| {
-        stdout.write_all(mime.as_bytes()).unwrap();
-        stdout.write_all(b"\n").unwrap();
-    });
+    mime_db::TYPES
+        .iter()
+        .try_for_each(|(mime, _, _)| writeln!(stdout, "{}", mime))?;
 
     Ok(())
 }
