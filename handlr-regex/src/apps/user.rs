@@ -2,27 +2,64 @@ use crate::{
     apps::SystemApps, common::DesktopHandler, render_table, Config, Error,
     ErrorKind, Handleable, Handler, Result, UserPath,
 };
+use derive_more::{Deref, DerefMut};
+use itertools::Itertools;
 use mime::Mime;
-use pest::Parser;
-use serde::Serialize;
-use tabled::Tabled;
-
+use serde::{Deserialize, Serialize};
+use serde_with::{
+    serde_as, DeserializeFromStr, DisplayFromStr, SerializeDisplay,
+};
 use std::{
     collections::{HashMap, VecDeque},
-    io::{IsTerminal, Read},
+    fmt::Display,
+    io::IsTerminal,
     path::PathBuf,
     str::FromStr,
 };
+use tabled::Tabled;
+
+/// Helper struct for a list of `DesktopHandler`s
+#[serde_as]
+#[derive(
+    Debug, Default, Clone, Deref, DerefMut, SerializeDisplay, DeserializeFromStr,
+)]
+pub struct DesktopList(VecDeque<DesktopHandler>);
+
+impl FromStr for DesktopList {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(
+            s.split(';')
+                .filter(|s| !s.is_empty()) // Account for ending semicolon
+                .unique()
+                .filter_map(|s| DesktopHandler::from_str(s).ok())
+                .collect::<VecDeque<DesktopHandler>>(),
+        ))
+    }
+}
 
 /// Represents user-configured mimeapps.list file
-#[derive(Debug, Default, Clone, pest_derive::Parser)]
-#[grammar = "common/ini.pest"]
+#[serde_as]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct MimeApps {
-    added_associations: HashMap<Mime, VecDeque<DesktopHandler>>,
-    default_apps: HashMap<Mime, VecDeque<DesktopHandler>>,
+    #[serde(rename = "Added Associations")]
+    #[serde_as(as = "HashMap<DisplayFromStr, _>")]
+    added_associations: HashMap<Mime, DesktopList>,
+    #[serde(rename = "Default Applications")]
+    #[serde_as(as = "HashMap<DisplayFromStr, _>")]
+    default_apps: HashMap<Mime, DesktopList>,
+}
+
+impl Display for DesktopList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Ensure final semicolon is added
+        write!(f, "{};", self.iter().join(";"))
+    }
 }
 
 impl MimeApps {
+    /// Add a handler to an existing default application association
     pub fn add_handler(&mut self, mime: &Mime, handler: &DesktopHandler) {
         self.default_apps
             .entry(mime.clone())
@@ -30,11 +67,13 @@ impl MimeApps {
             .push_back(handler.clone());
     }
 
+    /// Set a default application association, overwriting any existing association for the same mimetype
     pub fn set_handler(&mut self, mime: &Mime, handler: &DesktopHandler) {
         self.default_apps
-            .insert(mime.clone(), vec![handler.clone()].into());
+            .insert(mime.clone(), DesktopList(vec![handler.clone()].into()));
     }
 
+    /// Entirely remove a goven mime's default application association
     pub fn unset_handler(&mut self, mime: &Mime) -> Result<()> {
         if let Some(_unset) = self.default_apps.remove(mime) {
             self.save()?;
@@ -43,6 +82,7 @@ impl MimeApps {
         Ok(())
     }
 
+    /// Remove a given handler from a given mime's default file associaion
     pub fn remove_handler(
         &mut self,
         mime: &Mime,
@@ -142,6 +182,7 @@ impl MimeApps {
             .ok_or_else(|| Error::from(ErrorKind::NotFound(mime.to_string())))
     }
 
+    /// Get the handler associated with a given mime
     pub fn show_handler(
         &mut self,
         config: &Config,
@@ -166,107 +207,48 @@ impl MimeApps {
         println!("{}", output);
         Ok(())
     }
+
+    /// Get the path to the user's mimeapps.list file
     pub fn path() -> Result<PathBuf> {
         let mut config = xdg::BaseDirectories::new()?.get_config_home();
         config.push("mimeapps.list");
         Ok(config)
     }
+
+    /// Read and parse mimeapps.list
     pub fn read() -> Result<Self> {
-        let raw_conf = {
-            let mut buf = String::new();
-            let exists = std::path::Path::new(&Self::path()?).exists();
-            std::fs::OpenOptions::new()
-                .write(!exists)
-                .create(!exists)
-                .read(true)
-                .open(Self::path()?)?
-                .read_to_string(&mut buf)?;
-            buf
-        };
-        let file = Self::parse(Rule::file, &raw_conf)?.next().unwrap();
+        let exists = std::path::Path::new(&Self::path()?).exists();
 
-        let mut current_section_name = "".to_string();
-        let mut conf = Self {
-            added_associations: HashMap::default(),
-            default_apps: HashMap::default(),
-        };
+        let file = std::fs::OpenOptions::new()
+            .write(!exists)
+            .create(!exists)
+            .read(true)
+            .open(Self::path()?)?;
 
-        file.into_inner().for_each(|line| {
-            match line.as_rule() {
-                Rule::section => {
-                    current_section_name = line.into_inner().concat();
-                }
-                Rule::property => {
-                    let mut inner_rules = line.into_inner(); // { name ~ "=" ~ value }
+        let mut mimeapps: Self = serde_ini::de::from_read(file)?;
 
-                    let name = inner_rules.next().unwrap().as_str();
-                    let handlers = {
-                        use itertools::Itertools;
+        // Remove empty default associations
+        // Can happen if all handlers set are invalid (e.g. do not exist)
+        mimeapps.default_apps.retain(|_, h| !h.is_empty());
 
-                        inner_rules
-                            .next()
-                            .unwrap()
-                            .as_str()
-                            .split(';')
-                            .filter(|s| !s.is_empty())
-                            .unique()
-                            .filter_map(|s| DesktopHandler::from_str(s).ok())
-                            .collect::<VecDeque<_>>()
-                    };
-
-                    if !handlers.is_empty() {
-                        match (
-                            Mime::from_str(name),
-                            current_section_name.as_str(),
-                        ) {
-                            (Ok(mime), "Added Associations") => {
-                                conf.added_associations.insert(mime, handlers)
-                            }
-
-                            (Ok(mime), "Default Applications") => {
-                                conf.default_apps.insert(mime, handlers)
-                            }
-                            _ => None,
-                        };
-                    }
-                }
-                _ => {}
-            }
-        });
-
-        Ok(conf)
+        Ok(mimeapps)
     }
-    pub fn save(&self) -> Result<()> {
-        use itertools::Itertools;
-        use std::io::{prelude::*, BufWriter};
 
-        let f = std::fs::OpenOptions::new()
+    /// Save associations to mimeapps.list
+    pub fn save(&self) -> Result<()> {
+        let file = std::fs::OpenOptions::new()
             .read(true)
             .create(true)
             .write(true)
             .truncate(true)
             .open(Self::path()?)?;
-        let mut writer = BufWriter::new(f);
 
-        writer.write_all(b"[Added Associations]\n")?;
-        for (k, v) in self.added_associations.iter().sorted() {
-            writer.write_all(k.essence_str().as_ref())?;
-            writer.write_all(b"=")?;
-            writer.write_all(v.iter().join(";").as_ref())?;
-            writer.write_all(b";\n")?;
-        }
+        serde_ini::ser::to_writer(file, self)?;
 
-        writer.write_all(b"\n[Default Applications]\n")?;
-        for (k, v) in self.default_apps.iter().sorted() {
-            writer.write_all(k.essence_str().as_ref())?;
-            writer.write_all(b"=")?;
-            writer.write_all(v.iter().join(";").as_ref())?;
-            writer.write_all(b";\n")?;
-        }
-
-        writer.flush()?;
         Ok(())
     }
+
+    /// Print the set associations and system-level associations in a table
     pub fn print(
         &self,
         system_apps: &SystemApps,
@@ -349,6 +331,7 @@ struct MimeAppsEntry {
 }
 
 impl MimeAppsEntry {
+    /// Create a new `MimeAppsEntry`
     fn new(mime: &Mime, handlers: &VecDeque<DesktopHandler>) -> Self {
         Self {
             mime: mime.to_string(),
@@ -359,6 +342,7 @@ impl MimeAppsEntry {
         }
     }
 
+    /// Display list of handlers as a string
     fn display_handlers(&self) -> String {
         // If output is a terminal, optimize for readability
         // Otherwise, if piped, optimize for parseability
@@ -381,10 +365,9 @@ struct MimeAppsTable {
 }
 
 impl MimeAppsTable {
+    /// Create a new `MimeAppsTable`
     fn new(mimeapps: &MimeApps, system_apps: &SystemApps) -> Self {
-        fn to_entries(
-            map: &HashMap<Mime, VecDeque<DesktopHandler>>,
-        ) -> Vec<MimeAppsEntry> {
+        fn to_entries(map: &HashMap<Mime, DesktopList>) -> Vec<MimeAppsEntry> {
             let mut rows = map
                 .iter()
                 .map(|(mime, handlers)| MimeAppsEntry::new(mime, handlers))

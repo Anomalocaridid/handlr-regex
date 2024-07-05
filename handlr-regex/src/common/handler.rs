@@ -5,7 +5,7 @@ use crate::{
 use derive_more::Deref;
 use enum_dispatch::enum_dispatch;
 use regex::RegexSet;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
     convert::TryFrom,
     ffi::OsString,
@@ -47,7 +47,9 @@ pub trait Handleable {
 }
 
 /// Represents a handler defined in a desktop file
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
+)]
 pub struct DesktopHandler(OsString);
 
 impl Display for DesktopHandler {
@@ -59,7 +61,7 @@ impl Display for DesktopHandler {
 impl FromStr for DesktopHandler {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::resolve(s.into())
+        DesktopHandler::resolve(s.into())
     }
 }
 

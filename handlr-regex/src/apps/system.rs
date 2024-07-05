@@ -1,24 +1,17 @@
 use crate::{
     common::{DesktopEntry, DesktopHandler},
-    Result,
+    DesktopList, Result,
 };
 use derive_more::Deref;
 use mime::Mime;
-use std::{
-    collections::{HashMap, VecDeque},
-    convert::TryFrom,
-    ffi::OsString,
-};
+use std::{collections::HashMap, convert::TryFrom, ffi::OsString};
 
 #[derive(Debug, Default, Clone, Deref)]
-pub struct SystemApps(HashMap<Mime, VecDeque<DesktopHandler>>);
+pub struct SystemApps(HashMap<Mime, DesktopList>);
 
 impl SystemApps {
-    pub fn get_handlers(
-        &self,
-        mime: &Mime,
-    ) -> Option<VecDeque<DesktopHandler>> {
-        Some(self.0.get(mime)?.clone())
+    pub fn get_handlers(&self, mime: &Mime) -> Option<DesktopList> {
+        Some(self.get(mime)?.clone())
     }
     pub fn get_handler(&self, mime: &Mime) -> Option<DesktopHandler> {
         Some(self.get_handlers(mime)?.front().unwrap().clone())
@@ -41,8 +34,7 @@ impl SystemApps {
     }
 
     pub fn populate() -> Result<Self> {
-        let mut map =
-            HashMap::<Mime, VecDeque<DesktopHandler>>::with_capacity(50);
+        let mut map = HashMap::<Mime, DesktopList>::with_capacity(50);
 
         Self::get_entries()?.for_each(|(_, entry)| {
             let (file_name, mimes) = (entry.file_name, entry.mime_type);

@@ -18,8 +18,6 @@ where
 #[derive(Debug, thiserror::Error)]
 pub enum ErrorKind {
     #[error(transparent)]
-    ParseApps(#[from] pest::error::Error<crate::apps::MimeappsRule>),
-    #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Xdg(#[from] xdg::BaseDirectoriesError),
@@ -47,6 +45,10 @@ pub enum ErrorKind {
     BadPath(String),
     #[error(transparent)]
     SerdeJson(#[from] serde_json::Error),
+    #[error(transparent)]
+    SerdeIniDe(#[from] serde_ini::de::Error),
+    #[error(transparent)]
+    SerdeIniSer(#[from] serde_ini::ser::Error),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
