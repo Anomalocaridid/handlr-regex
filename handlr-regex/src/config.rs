@@ -41,17 +41,20 @@ impl Config {
         self.handlers.get_handler(path)
     }
 
+    /// Get the command for the x-scheme-handler/terminal handler if one is set.
+    /// Otherwise, finds a terminal emulator program, sets it as the handler, and makes a notification.
     pub fn terminal(
         &self,
         mime_apps: &mut MimeApps,
         system_apps: &SystemApps,
+        selector: &str,
         enable_selector: bool,
     ) -> Result<String> {
         let terminal_entry = mime_apps
             .get_handler(
-                self,
                 system_apps,
                 &Mime::from_str("x-scheme-handler/terminal")?,
+                selector,
                 enable_selector,
             )
             .ok()
@@ -93,53 +96,10 @@ impl Config {
             })
             .ok_or(Error::from(ErrorKind::NoTerminal))
     }
+
+    /// Load ~/.config/handlr/handlr.toml
     pub fn load() -> Result<Self> {
         Ok(confy::load("handlr")?)
-    }
-
-    pub fn select<O: Iterator<Item = String>>(
-        &self,
-        mut opts: O,
-    ) -> Result<String> {
-        use itertools::Itertools;
-        use std::{
-            io::prelude::*,
-            process::{Command, Stdio},
-        };
-
-        let process = {
-            let mut split = shlex::split(&self.selector).ok_or_else(|| {
-                Error::from(ErrorKind::BadCmd(self.selector.clone()))
-            })?;
-            let (cmd, args) = (split.remove(0), split);
-            Command::new(cmd)
-                .args(args)
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .spawn()?
-        };
-
-        let output = {
-            process
-                .stdin
-                .ok_or_else(|| ErrorKind::Selector(self.selector.clone()))?
-                .write_all(opts.join("\n").as_bytes())?;
-
-            let mut output = String::with_capacity(24);
-
-            process
-                .stdout
-                .ok_or_else(|| ErrorKind::Selector(self.selector.clone()))?
-                .read_to_string(&mut output)?;
-
-            output.trim_end().to_owned()
-        };
-
-        if output.is_empty() {
-            Err(Error::from(ErrorKind::Cancelled))
-        } else {
-            Ok(output)
-        }
     }
 
     /// Determine whether or not the selector should be enabled

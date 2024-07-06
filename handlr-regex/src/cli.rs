@@ -70,6 +70,9 @@ pub enum Cmd {
         /// Paths/URLs to open
         paths: Vec<UserPath>,
         #[clap(long, short)]
+        /// Override the configured selector command
+        selector: Option<String>,
+        #[clap(long, short)]
         /// Enable selector, overrides `enable_selector`
         enable_selector: bool,
         #[clap(long, short)]
@@ -119,6 +122,9 @@ pub enum Cmd {
         /// Arguments to pass to handler program
         args: Vec<UserPath>,
         #[clap(long, short)]
+        /// Override the configured selector command
+        selector: Option<String>,
+        #[clap(long, short)]
         /// Enable selector, overrides `enable_selector`
         enable_selector: bool,
         #[clap(long, short)]
@@ -152,6 +158,9 @@ pub enum Cmd {
         json: bool,
         /// Mimetype to get the handler of
         mime: MimeOrExtension,
+        #[clap(long, short)]
+        /// Override the configured selector command
+        selector: Option<String>,
         #[clap(long, short)]
         /// Enable selector, overrides `enable_selector`
         enable_selector: bool,

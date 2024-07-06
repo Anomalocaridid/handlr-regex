@@ -50,6 +50,7 @@ impl DesktopEntry {
         system_apps: &SystemApps,
         mode: Mode,
         arguments: Vec<String>,
+        selector: &str,
         enable_selector: bool,
     ) -> Result<()> {
         let supports_multiple =
@@ -60,6 +61,7 @@ impl DesktopEntry {
                 mime_apps,
                 system_apps,
                 vec![],
+                selector,
                 enable_selector,
             )?
         } else if supports_multiple || mode == Mode::Launch {
@@ -68,6 +70,7 @@ impl DesktopEntry {
                 mime_apps,
                 system_apps,
                 arguments,
+                selector,
                 enable_selector,
             )?;
         } else {
@@ -77,6 +80,7 @@ impl DesktopEntry {
                     mime_apps,
                     system_apps,
                     vec![arg],
+                    selector,
                     enable_selector,
                 )?;
             }
@@ -92,6 +96,7 @@ impl DesktopEntry {
         mime_apps: &mut MimeApps,
         system_apps: &SystemApps,
         args: Vec<String>,
+        selector: &str,
         enable_selector: bool,
     ) -> Result<()> {
         let mut cmd = {
@@ -100,6 +105,7 @@ impl DesktopEntry {
                 mime_apps,
                 system_apps,
                 args,
+                selector,
                 enable_selector,
             )?;
             let mut cmd = Command::new(cmd);
@@ -123,6 +129,7 @@ impl DesktopEntry {
         mime_apps: &mut MimeApps,
         system_apps: &SystemApps,
         args: Vec<String>,
+        selector: &str,
         enable_selector: bool,
     ) -> Result<(String, Vec<String>)> {
         let special =
@@ -165,8 +172,12 @@ impl DesktopEntry {
         // If the entry expects a terminal (emulator), but this process is not running in one, we
         // launch a new one.
         if self.terminal && !std::io::stdout().is_terminal() {
-            let term_cmd =
-                config.terminal(mime_apps, system_apps, enable_selector)?;
+            let term_cmd = config.terminal(
+                mime_apps,
+                system_apps,
+                selector,
+                enable_selector,
+            )?;
             exec = shlex::split(&term_cmd)
                 .ok_or_else(|| Error::from(ErrorKind::BadCmd(term_cmd)))?
                 .into_iter()

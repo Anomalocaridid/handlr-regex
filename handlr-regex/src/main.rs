@@ -26,6 +26,7 @@ fn main() -> Result<()> {
             Cmd::Launch {
                 mime,
                 args,
+                selector,
                 enable_selector,
                 disable_selector,
             } => {
@@ -34,12 +35,14 @@ fn main() -> Result<()> {
                     &system_apps,
                     &mime,
                     args,
+                    &selector.unwrap_or(config.selector.clone()),
                     config.use_selector(enable_selector, disable_selector),
                 )?;
             }
             Cmd::Get {
                 mime,
                 json,
+                selector,
                 enable_selector,
                 disable_selector,
             } => {
@@ -48,17 +51,20 @@ fn main() -> Result<()> {
                     &system_apps,
                     &mime,
                     json,
+                    &selector.unwrap_or(config.selector.clone()),
                     config.use_selector(enable_selector, disable_selector),
                 )?;
             }
             Cmd::Open {
                 paths,
+                selector,
                 enable_selector,
                 disable_selector,
             } => mime_apps.open_paths(
                 &config,
                 &system_apps,
                 &paths,
+                &selector.unwrap_or(config.selector.clone()),
                 config.use_selector(enable_selector, disable_selector),
             )?,
             Cmd::Mime { paths, json } => {
