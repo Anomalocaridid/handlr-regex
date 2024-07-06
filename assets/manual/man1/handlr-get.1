@@ -4,7 +4,7 @@
 .SH NAME
 handlr\-get \- Get handler for this mime/extension
 .SH SYNOPSIS
-\fBhandlr get\fR [\fB\-\-json\fR] [\fB\-h\fR|\fB\-\-help\fR] <\fIMIME\fR> 
+\fBhandlr get\fR [\fB\-\-json\fR] [\fB\-s\fR|\fB\-\-selector\fR] [\fB\-e\fR|\fB\-\-enable\-selector\fR] [\fB\-d\fR|\fB\-\-disable\-selector\fR] [\fB\-h\fR|\fB\-\-help\fR] <\fIMIME\fR> 
 .SH DESCRIPTION
 Get handler for this mime/extension
 .PP
@@ -28,6 +28,15 @@ the "cmd" key in the json output will include the command of the `x\-scheme\-han
 .TP
 \fB\-\-json\fR
 Output handler info as json
+.TP
+\fB\-s\fR, \fB\-\-selector\fR=\fISELECTOR\fR
+Override the configured selector command
+.TP
+\fB\-e\fR, \fB\-\-enable\-selector\fR
+Enable selector, overrides `enable_selector`
+.TP
+\fB\-d\fR, \fB\-\-disable\-selector\fR
+Disable selector, overrides `enable_selector`
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 Print help (see a summary with \*(Aq\-h\*(Aq)
