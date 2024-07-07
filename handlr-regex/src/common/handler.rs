@@ -1,6 +1,8 @@
 use crate::{
-    common::{DesktopEntry, ExecMode},
-    Config, Error, ErrorKind, MimeApps, Result, SystemApps, UserPath,
+    apps::{MimeApps, SystemApps},
+    common::{DesktopEntry, ExecMode, UserPath},
+    config::Config,
+    error::{Error, ErrorKind, Result},
 };
 use derive_more::Deref;
 use enum_dispatch::enum_dispatch;

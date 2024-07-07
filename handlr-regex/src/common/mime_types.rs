@@ -1,4 +1,4 @@
-use crate::{Error, ErrorKind, Result};
+use crate::error::{Error, ErrorKind, Result};
 use derive_more::Deref;
 use mime::Mime;
 use std::{convert::TryFrom, path::Path, str::FromStr};

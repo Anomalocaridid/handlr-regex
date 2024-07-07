@@ -1,6 +1,7 @@
 use crate::{
-    apps::SystemApps, common::DesktopHandler, Error, ErrorKind, Handleable,
-    MimeApps, RegexApps, RegexHandler, Result, UserPath,
+    apps::{MimeApps, SystemApps},
+    common::{DesktopHandler, Handleable, RegexApps, RegexHandler, UserPath},
+    error::{Error, ErrorKind, Result},
 };
 use mime::Mime;
 use serde::{Deserialize, Serialize};

@@ -1,15 +1,17 @@
+use crate::{
+    common::{render_table, MimeType},
+    error::{Error, ErrorKind, Result},
+};
 use mime::Mime;
 use serde::Serialize;
-use tabled::Tabled;
-use url::Url;
-
-use crate::{common::MimeType, render_table, Error, ErrorKind, Result};
 use std::{
     convert::{TryFrom, TryInto},
     fmt::{Display, Formatter},
     path::PathBuf,
     str::FromStr,
 };
+use tabled::Tabled;
+use url::Url;
 
 #[derive(Clone)]
 pub enum UserPath {

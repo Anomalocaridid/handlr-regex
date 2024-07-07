@@ -1,6 +1,7 @@
 use crate::{
+    apps::DesktopList,
     common::{DesktopEntry, DesktopHandler},
-    DesktopList, Result,
+    error::Result,
 };
 use derive_more::Deref;
 use mime::Mime;

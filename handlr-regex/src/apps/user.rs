@@ -1,6 +1,8 @@
 use crate::{
-    apps::SystemApps, common::DesktopHandler, render_table, Config, Error,
-    ErrorKind, Handleable, Handler, Result, UserPath,
+    apps::SystemApps,
+    common::{render_table, DesktopHandler, Handleable, Handler, UserPath},
+    config::Config,
+    error::{Error, ErrorKind, Result},
 };
 use derive_more::{Deref, DerefMut};
 use itertools::Itertools;

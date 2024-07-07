@@ -1,10 +1,11 @@
 use clap::Parser;
 use handlr_regex::{
-    apps,
+    apps::{MimeApps, SystemApps},
     cli::Cmd,
     common::{self, mime_table},
+    config::Config,
     error::{ErrorKind, Result},
-    utils, Config, MimeApps, SystemApps,
+    utils,
 };
 use std::io::IsTerminal;
 
@@ -84,7 +85,7 @@ fn main() -> Result<()> {
                 mimes,
             } => {
                 if desktop_files {
-                    apps::SystemApps::list_handlers()?;
+                    SystemApps::list_handlers()?;
                 } else if mimes {
                     common::db_autocomplete()?;
                 }

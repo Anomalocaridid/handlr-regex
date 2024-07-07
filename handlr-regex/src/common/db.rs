@@ -1,4 +1,4 @@
-use crate::Result;
+use crate::error::Result;
 
 static CUSTOM_MIMES: &[&str] = &[
     "inode/directory",

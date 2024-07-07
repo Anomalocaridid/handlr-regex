@@ -1,4 +1,8 @@
-use crate::{Config, Error, ErrorKind, MimeApps, Result, SystemApps};
+use crate::{
+    apps::{MimeApps, SystemApps},
+    config::Config,
+    error::{Error, ErrorKind, Result},
+};
 use aho_corasick::AhoCorasick;
 use freedesktop_desktop_entry::{
     get_languages_from_env, DesktopEntry as FreeDesktopEntry,
