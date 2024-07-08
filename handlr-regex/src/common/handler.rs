@@ -1,6 +1,6 @@
 use crate::{
     common::{DesktopEntry, ExecMode, UserPath},
-    config::AppsConfig,
+    config::Config,
     error::{Error, ErrorKind, Result},
 };
 use derive_more::Deref;
@@ -33,13 +33,13 @@ pub trait Handleable {
     /// Open the given paths with the handler
     fn open(
         &self,
-        apps_config: &mut AppsConfig,
+        config: &mut Config,
         args: Vec<String>,
         selector: &str,
         enable_selector: bool,
     ) -> Result<()> {
         self.get_entry()?.exec(
-            apps_config,
+            config,
             ExecMode::Open,
             args,
             selector,
@@ -99,13 +99,13 @@ impl DesktopHandler {
     /// Launch a DesktopHandler's desktop entry
     pub fn launch(
         &self,
-        apps_config: &mut AppsConfig,
+        config: &mut Config,
         args: Vec<String>,
         selector: &str,
         enable_selector: bool,
     ) -> Result<()> {
         self.get_entry()?.exec(
-            apps_config,
+            config,
             ExecMode::Launch,
             args,
             selector,

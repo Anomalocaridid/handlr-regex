@@ -7,17 +7,17 @@ use serde::{Deserialize, Serialize};
 /// The config file
 #[derive(Serialize, Deserialize)]
 #[serde(default)]
-pub struct ConfigFile {
+pub(super) struct ConfigFile {
     /// Whether to enable the selector when multiple handlers are set
-    pub enable_selector: bool,
+    pub(super) enable_selector: bool,
     /// The selector command to run
-    pub selector: String,
+    pub(super) selector: String,
     /// Regex handlers
     // NOTE: Serializing is only necessary for generating a default config file
     #[serde(skip_serializing)]
-    pub handlers: RegexApps,
+    pub(super) handlers: RegexApps,
     /// Extra arguments to pass to terminal application
-    pub term_exec_args: Option<String>,
+    pub(super) term_exec_args: Option<String>,
 }
 
 impl Default for ConfigFile {
@@ -35,17 +35,20 @@ impl Default for ConfigFile {
 
 impl ConfigFile {
     /// Get the handler associated with a given mime from the config file's regex handlers
-    pub fn get_regex_handler(&self, path: &UserPath) -> Result<RegexHandler> {
+    pub(super) fn get_regex_handler(
+        &self,
+        path: &UserPath,
+    ) -> Result<RegexHandler> {
         self.handlers.get_handler(path)
     }
 
     /// Load ~/.config/handlr/handlr.toml
-    pub fn load() -> Result<Self> {
+    pub(super) fn load() -> Result<Self> {
         Ok(confy::load("handlr")?)
     }
 
     /// Determine whether or not the selector should be enabled
-    pub fn use_selector(
+    pub(super) fn use_selector(
         &self,
         enable_selector: bool,
         disable_selector: bool,

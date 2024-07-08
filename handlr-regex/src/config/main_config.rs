@@ -17,13 +17,13 @@ use crate::{
 /// A single struct that holds all apps and config.
 /// Used to streamline explicitly passing state.
 #[derive(Default)]
-pub struct AppsConfig {
-    pub mime_apps: MimeApps,
-    pub system_apps: SystemApps,
-    pub config: ConfigFile,
+pub struct Config {
+    mime_apps: MimeApps,
+    system_apps: SystemApps,
+    config: ConfigFile,
 }
 
-impl AppsConfig {
+impl Config {
     /// Create a new instance of AppsConfig
     pub fn new() -> Result<Self> {
         Ok(Self {
@@ -363,31 +363,31 @@ mod tests {
 
     #[test]
     fn wildcard_mimes() -> Result<()> {
-        let mut apps_config = AppsConfig::default();
-        apps_config.mime_apps.add_handler(
+        let mut config = Config::default();
+        config.mime_apps.add_handler(
             &Mime::from_str("video/*")?,
             &DesktopHandler::assume_valid("mpv.desktop".into()),
         );
-        apps_config.mime_apps.add_handler(
+        config.mime_apps.add_handler(
             &Mime::from_str("video/webm")?,
             &DesktopHandler::assume_valid("brave.desktop".into()),
         );
 
         assert_eq!(
-            apps_config
+            config
                 .get_handler(&Mime::from_str("video/mp4")?, "", false)?
                 .to_string(),
             "mpv.desktop"
         );
         assert_eq!(
-            apps_config
+            config
                 .get_handler(&Mime::from_str("video/asdf")?, "", false)?
                 .to_string(),
             "mpv.desktop"
         );
 
         assert_eq!(
-            apps_config
+            config
                 .get_handler(&Mime::from_str("video/webm")?, "", false)?
                 .to_string(),
             "brave.desktop"

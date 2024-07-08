@@ -1,5 +1,5 @@
 use crate::{
-    config::AppsConfig,
+    config::Config,
     error::{Error, ErrorKind, Result},
 };
 use aho_corasick::AhoCorasick;
@@ -48,7 +48,7 @@ impl DesktopEntry {
     /// Execute the command in `exec` in the given mode and with the given arguments
     pub fn exec(
         &self,
-        apps_config: &mut AppsConfig,
+        config: &mut Config,
         mode: Mode,
         arguments: Vec<String>,
         selector: &str,
@@ -57,17 +57,12 @@ impl DesktopEntry {
         let supports_multiple =
             self.exec.contains("%F") || self.exec.contains("%U");
         if arguments.is_empty() {
-            self.exec_inner(apps_config, vec![], selector, enable_selector)?
+            self.exec_inner(config, vec![], selector, enable_selector)?
         } else if supports_multiple || mode == Mode::Launch {
-            self.exec_inner(apps_config, arguments, selector, enable_selector)?;
+            self.exec_inner(config, arguments, selector, enable_selector)?;
         } else {
             for arg in arguments {
-                self.exec_inner(
-                    apps_config,
-                    vec![arg],
-                    selector,
-                    enable_selector,
-                )?;
+                self.exec_inner(config, vec![arg], selector, enable_selector)?;
             }
         };
 
@@ -77,14 +72,14 @@ impl DesktopEntry {
     /// Internal helper function for `exec`
     fn exec_inner(
         &self,
-        apps_config: &mut AppsConfig,
+        config: &mut Config,
         args: Vec<String>,
         selector: &str,
         enable_selector: bool,
     ) -> Result<()> {
         let mut cmd = {
             let (cmd, args) =
-                self.get_cmd(apps_config, args, selector, enable_selector)?;
+                self.get_cmd(config, args, selector, enable_selector)?;
             let mut cmd = Command::new(cmd);
             cmd.args(args);
             cmd
@@ -102,7 +97,7 @@ impl DesktopEntry {
     /// Get the `exec` command, formatted with given arguments
     pub fn get_cmd(
         &self,
-        apps_config: &mut AppsConfig,
+        config: &mut Config,
         args: Vec<String>,
         selector: &str,
         enable_selector: bool,
@@ -147,7 +142,7 @@ impl DesktopEntry {
         // If the entry expects a terminal (emulator), but this process is not running in one, we
         // launch a new one.
         if self.terminal && !std::io::stdout().is_terminal() {
-            let term_cmd = apps_config.terminal(selector, enable_selector)?;
+            let term_cmd = config.terminal(selector, enable_selector)?;
             exec = shlex::split(&term_cmd)
                 .ok_or_else(|| Error::from(ErrorKind::BadCmd(term_cmd)))?
                 .into_iter()

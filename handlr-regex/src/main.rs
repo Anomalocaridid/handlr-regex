@@ -3,22 +3,22 @@ use handlr_regex::{
     apps::SystemApps,
     cli::Cmd,
     common::{self, mime_table},
-    config::AppsConfig,
+    config::Config,
     error::{ErrorKind, Result},
     utils,
 };
 use std::io::IsTerminal;
 
 fn main() -> Result<()> {
-    let mut apps_config = AppsConfig::new().unwrap_or_default();
+    let mut config = Config::new().unwrap_or_default();
 
     let res = || -> Result<()> {
         match Cmd::parse() {
             Cmd::Set { mime, handler } => {
-                apps_config.set_handler(&mime, &handler)?
+                config.set_handler(&mime, &handler)?
             }
             Cmd::Add { mime, handler } => {
-                apps_config.add_handler(&mime, &handler)?
+                config.add_handler(&mime, &handler)?
             }
             Cmd::Launch {
                 mime,
@@ -27,7 +27,7 @@ fn main() -> Result<()> {
                 enable_selector,
                 disable_selector,
             } => {
-                apps_config.launch_handler(
+                config.launch_handler(
                     &mime,
                     args,
                     selector,
@@ -42,7 +42,7 @@ fn main() -> Result<()> {
                 enable_selector,
                 disable_selector,
             } => {
-                apps_config.show_handler(
+                config.show_handler(
                     &mime,
                     json,
                     selector,
@@ -55,7 +55,7 @@ fn main() -> Result<()> {
                 selector,
                 enable_selector,
                 disable_selector,
-            } => apps_config.open_paths(
+            } => config.open_paths(
                 &paths,
                 selector,
                 enable_selector,
@@ -65,13 +65,13 @@ fn main() -> Result<()> {
                 mime_table(&paths, json)?;
             }
             Cmd::List { all, json } => {
-                apps_config.print(all, json)?;
+                config.print(all, json)?;
             }
             Cmd::Unset { mime } => {
-                apps_config.unset_handler(&mime)?;
+                config.unset_handler(&mime)?;
             }
             Cmd::Remove { mime, handler } => {
-                apps_config.remove_handler(&mime, &handler)?;
+                config.remove_handler(&mime, &handler)?;
             }
             Cmd::Autocomplete {
                 desktop_files,

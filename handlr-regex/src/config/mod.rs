@@ -1,4 +1,4 @@
-mod apps_config;
 mod config_file;
+mod main_config;
 
-pub use apps_config::AppsConfig;
+pub use main_config::Config;
