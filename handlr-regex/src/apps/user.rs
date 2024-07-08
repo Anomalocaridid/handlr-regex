@@ -106,11 +106,11 @@ impl MimeApps {
         &self,
         mime: &Mime,
         selector: &str,
-        enable_selector: bool,
+        use_selector: bool,
     ) -> Result<DesktopHandler> {
         let error = Error::from(ErrorKind::NotFound(mime.to_string()));
         match self.default_apps.get(mime) {
-            Some(handlers) if enable_selector && handlers.len() > 1 => {
+            Some(handlers) if use_selector && handlers.len() > 1 => {
                 let handlers = handlers
                     .iter()
                     .map(|h| Ok((h, h.get_entry()?.name)))

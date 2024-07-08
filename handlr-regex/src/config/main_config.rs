@@ -38,13 +38,12 @@ impl Config {
         &self,
         mime: &Mime,
         selector: &str,
-        enable_selector: bool,
+        use_selector: bool,
     ) -> Result<DesktopHandler> {
-        match self.mime_apps.get_handler_from_user(
-            mime,
-            selector,
-            enable_selector,
-        ) {
+        match self
+            .mime_apps
+            .get_handler_from_user(mime, selector, use_selector)
+        {
             Err(e) if matches!(*e.kind, ErrorKind::Cancelled) => Err(e),
             h => h
                 .or_else(|_| {
@@ -53,7 +52,7 @@ impl Config {
                     self.mime_apps.get_handler_from_user(
                         &wildcard,
                         selector,
-                        enable_selector,
+                        use_selector,
                     )
                 })
                 .or_else(|_| self.get_handler_from_added_associations(mime)),
@@ -188,12 +187,12 @@ impl Config {
         &self,
         path: &UserPath,
         selector: &str,
-        enable_selector: bool,
+        use_selector: bool,
     ) -> Result<Handler> {
         Ok(if let Ok(handler) = self.config.get_regex_handler(path) {
             handler.into()
         } else {
-            self.get_handler(&path.get_mime()?, selector, enable_selector)?
+            self.get_handler(&path.get_mime()?, selector, use_selector)?
                 .into()
         })
     }
@@ -203,13 +202,13 @@ impl Config {
     pub fn terminal(
         &mut self,
         selector: &str,
-        enable_selector: bool,
+        use_selector: bool,
     ) -> Result<String> {
         let terminal_entry = self
             .get_handler(
                 &Mime::from_str("x-scheme-handler/terminal")?,
                 selector,
-                enable_selector,
+                use_selector,
             )
             .ok()
             .and_then(|h| h.get_entry().ok());
