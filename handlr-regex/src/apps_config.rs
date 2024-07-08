@@ -81,14 +81,19 @@ impl AppsConfig {
         &mut self,
         mime: &Mime,
         args: Vec<UserPath>,
-        selector: &str,
+        selector: Option<String>,
         enable_selector: bool,
+        disable_selector: bool,
     ) -> Result<()> {
-        self.get_handler(mime, selector, enable_selector)?.launch(
+        let selector = selector.unwrap_or(self.config.selector.clone());
+        let use_selector =
+            self.config.use_selector(enable_selector, disable_selector);
+
+        self.get_handler(mime, &selector, use_selector)?.launch(
             self,
             args.into_iter().map(|a| a.to_string()).collect(),
-            selector,
-            enable_selector,
+            &selector,
+            use_selector,
         )
     }
 
@@ -97,14 +102,19 @@ impl AppsConfig {
         &mut self,
         mime: &Mime,
         output_json: bool,
-        selector: &str,
+        selector: Option<String>,
         enable_selector: bool,
+        disable_selector: bool,
     ) -> Result<()> {
-        let handler = self.get_handler(mime, selector, enable_selector)?;
+        let selector = selector.unwrap_or(self.config.selector.clone());
+        let use_selector =
+            self.config.use_selector(enable_selector, disable_selector);
+
+        let handler = self.get_handler(mime, &selector, use_selector)?;
 
         let output = if output_json {
             let entry = handler.get_entry()?;
-            let cmd = entry.get_cmd(self, vec![], selector, enable_selector)?;
+            let cmd = entry.get_cmd(self, vec![], &selector, use_selector)?;
 
             (serde_json::json!( {
                 "handler": handler.to_string(),
@@ -119,28 +129,55 @@ impl AppsConfig {
         Ok(())
     }
 
+    /// Set a default application association, overwriting any existing association for the same mimetype
+    /// and writes it to mimeapps.list
+    pub fn set_handler(
+        &mut self,
+        mime: &Mime,
+        handler: &DesktopHandler,
+    ) -> Result<()> {
+        self.mime_apps.set_handler(mime, handler);
+        self.mime_apps.save()
+    }
+
+    /// Add a handler to an existing default application association
+    /// and writes it to mimeapps.list
+    pub fn add_handler(
+        &mut self,
+        mime: &Mime,
+        handler: &DesktopHandler,
+    ) -> Result<()> {
+        self.mime_apps.add_handler(mime, handler);
+        self.mime_apps.save()
+    }
+
     /// Open the given paths with their respective handlers
     pub fn open_paths(
         &mut self,
         paths: &[UserPath],
-        selector: &str,
+        selector: Option<String>,
         enable_selector: bool,
+        disable_selector: bool,
     ) -> Result<()> {
+        let selector = selector.unwrap_or(self.config.selector.clone());
+        let use_selector =
+            self.config.use_selector(enable_selector, disable_selector);
+
         let mut handlers: HashMap<Handler, Vec<String>> = HashMap::new();
 
         for path in paths.iter() {
             handlers
                 .entry(self.get_handler_from_path(
                     path,
-                    selector,
-                    enable_selector,
+                    &selector,
+                    use_selector,
                 )?)
                 .or_default()
                 .push(path.to_string())
         }
 
         for (handler, paths) in handlers.into_iter() {
-            handler.open(self, paths, selector, enable_selector)?;
+            handler.open(self, paths, &selector, use_selector)?;
         }
 
         Ok(())
@@ -242,6 +279,20 @@ impl AppsConfig {
         }
 
         Ok(())
+    }
+
+    /// Entirely remove a given mime's default application association
+    pub fn unset_handler(&mut self, mime: &Mime) -> Result<()> {
+        self.mime_apps.unset_handler(mime)
+    }
+
+    /// Remove a given handler from a given mime's default file associaion
+    pub fn remove_handler(
+        &mut self,
+        mime: &Mime,
+        handler: &DesktopHandler,
+    ) -> Result<()> {
+        self.mime_apps.remove_handler(mime, handler)
     }
 }
 

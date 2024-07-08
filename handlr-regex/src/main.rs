@@ -15,12 +15,10 @@ fn main() -> Result<()> {
     let res = || -> Result<()> {
         match Cmd::parse() {
             Cmd::Set { mime, handler } => {
-                apps_config.mime_apps.set_handler(&mime, &handler);
-                apps_config.mime_apps.save()?;
+                apps_config.set_handler(&mime, &handler)?
             }
             Cmd::Add { mime, handler } => {
-                apps_config.mime_apps.add_handler(&mime, &handler);
-                apps_config.mime_apps.save()?;
+                apps_config.add_handler(&mime, &handler)?
             }
             Cmd::Launch {
                 mime,
@@ -32,10 +30,9 @@ fn main() -> Result<()> {
                 apps_config.launch_handler(
                     &mime,
                     args,
-                    &selector.unwrap_or(apps_config.config.selector.clone()),
-                    apps_config
-                        .config
-                        .use_selector(enable_selector, disable_selector),
+                    selector,
+                    enable_selector,
+                    disable_selector,
                 )?;
             }
             Cmd::Get {
@@ -48,10 +45,9 @@ fn main() -> Result<()> {
                 apps_config.show_handler(
                     &mime,
                     json,
-                    &selector.unwrap_or(apps_config.config.selector.clone()),
-                    apps_config
-                        .config
-                        .use_selector(enable_selector, disable_selector),
+                    selector,
+                    enable_selector,
+                    disable_selector,
                 )?;
             }
             Cmd::Open {
@@ -61,10 +57,9 @@ fn main() -> Result<()> {
                 disable_selector,
             } => apps_config.open_paths(
                 &paths,
-                &selector.unwrap_or(apps_config.config.selector.clone()),
-                apps_config
-                    .config
-                    .use_selector(enable_selector, disable_selector),
+                selector,
+                enable_selector,
+                disable_selector,
             )?,
             Cmd::Mime { paths, json } => {
                 mime_table(&paths, json)?;
@@ -73,10 +68,10 @@ fn main() -> Result<()> {
                 apps_config.print(all, json)?;
             }
             Cmd::Unset { mime } => {
-                apps_config.mime_apps.unset_handler(&mime)?;
+                apps_config.unset_handler(&mime)?;
             }
             Cmd::Remove { mime, handler } => {
-                apps_config.mime_apps.remove_handler(&mime, &handler)?;
+                apps_config.remove_handler(&mime, &handler)?;
             }
             Cmd::Autocomplete {
                 desktop_files,

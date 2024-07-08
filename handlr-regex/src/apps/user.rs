@@ -66,7 +66,11 @@ impl MimeApps {
     }
 
     /// Set a default application association, overwriting any existing association for the same mimetype
-    pub fn set_handler(&mut self, mime: &Mime, handler: &DesktopHandler) {
+    pub(crate) fn set_handler(
+        &mut self,
+        mime: &Mime,
+        handler: &DesktopHandler,
+    ) {
         self.default_apps
             .insert(mime.clone(), DesktopList(vec![handler.clone()].into()));
     }
