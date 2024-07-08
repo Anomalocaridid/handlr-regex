@@ -1,5 +1,5 @@
 use crate::{
-    apps_config::AppsConfig,
+    config::AppsConfig,
     error::{Error, ErrorKind, Result},
 };
 use aho_corasick::AhoCorasick;

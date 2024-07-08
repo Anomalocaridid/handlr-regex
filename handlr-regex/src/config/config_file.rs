@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 /// The config file
 #[derive(Serialize, Deserialize)]
 #[serde(default)]
-pub struct Config {
+pub struct ConfigFile {
     /// Whether to enable the selector when multiple handlers are set
     pub enable_selector: bool,
     /// The selector command to run
@@ -20,9 +20,9 @@ pub struct Config {
     pub term_exec_args: Option<String>,
 }
 
-impl Default for Config {
+impl Default for ConfigFile {
     fn default() -> Self {
-        Config {
+        ConfigFile {
             enable_selector: false,
             selector: "rofi -dmenu -i -p 'Open With: '".into(),
             handlers: Default::default(),
@@ -33,7 +33,7 @@ impl Default for Config {
     }
 }
 
-impl Config {
+impl ConfigFile {
     /// Get the handler associated with a given mime from the config file's regex handlers
     pub fn get_regex_handler(&self, path: &UserPath) -> Result<RegexHandler> {
         self.handlers.get_handler(path)

@@ -10,7 +10,7 @@ use tabled::Tabled;
 use crate::{
     apps::{DesktopList, MimeApps, SystemApps},
     common::{render_table, DesktopHandler, Handleable, Handler, UserPath},
-    config::Config,
+    config::config_file::ConfigFile,
     error::{Error, ErrorKind, Result},
 };
 
@@ -20,7 +20,7 @@ use crate::{
 pub struct AppsConfig {
     pub mime_apps: MimeApps,
     pub system_apps: SystemApps,
-    pub config: Config,
+    pub config: ConfigFile,
 }
 
 impl AppsConfig {
@@ -29,7 +29,7 @@ impl AppsConfig {
         Ok(Self {
             mime_apps: MimeApps::read()?,
             system_apps: SystemApps::populate()?,
-            config: Config::load()?,
+            config: ConfigFile::load()?,
         })
     }
 

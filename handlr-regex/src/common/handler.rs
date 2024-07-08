@@ -1,6 +1,6 @@
 use crate::{
-    apps_config::AppsConfig,
     common::{DesktopEntry, ExecMode, UserPath},
+    config::AppsConfig,
     error::{Error, ErrorKind, Result},
 };
 use derive_more::Deref;

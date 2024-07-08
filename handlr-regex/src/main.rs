@@ -1,9 +1,9 @@
 use clap::Parser;
 use handlr_regex::{
     apps::SystemApps,
-    apps_config::AppsConfig,
     cli::Cmd,
     common::{self, mime_table},
+    config::AppsConfig,
     error::{ErrorKind, Result},
     utils,
 };
