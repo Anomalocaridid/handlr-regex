@@ -11,13 +11,17 @@ use std::{collections::HashMap, convert::TryFrom, ffi::OsString};
 pub struct SystemApps(HashMap<Mime, DesktopList>);
 
 impl SystemApps {
+    /// Get the list of handlers associated with a given mime
     pub fn get_handlers(&self, mime: &Mime) -> Option<DesktopList> {
         Some(self.get(mime)?.clone())
     }
+
+    /// Get the primary of handler associated with a given mime
     pub fn get_handler(&self, mime: &Mime) -> Option<DesktopHandler> {
         Some(self.get_handlers(mime)?.front()?.clone())
     }
 
+    /// Get all system-level desktop entries on the system
     pub fn get_entries(
     ) -> Result<impl Iterator<Item = (OsString, DesktopEntry)>> {
         Ok(xdg::BaseDirectories::new()?
@@ -34,6 +38,7 @@ impl SystemApps {
             }))
     }
 
+    /// Create a new instance of `SystemApps`
     pub fn populate() -> Result<Self> {
         let mut map = HashMap::<Mime, DesktopList>::with_capacity(50);
 
