@@ -29,9 +29,7 @@ fn main() -> Result<()> {
                 enable_selector,
                 disable_selector,
             } => {
-                apps_config.mime_apps.launch_handler(
-                    &apps_config.config,
-                    &apps_config.system_apps,
+                apps_config.launch_handler(
                     &mime,
                     args,
                     &selector.unwrap_or(apps_config.config.selector.clone()),
@@ -47,9 +45,7 @@ fn main() -> Result<()> {
                 enable_selector,
                 disable_selector,
             } => {
-                apps_config.mime_apps.show_handler(
-                    &apps_config.config,
-                    &apps_config.system_apps,
+                apps_config.show_handler(
                     &mime,
                     json,
                     &selector.unwrap_or(apps_config.config.selector.clone()),
@@ -63,9 +59,7 @@ fn main() -> Result<()> {
                 selector,
                 enable_selector,
                 disable_selector,
-            } => apps_config.mime_apps.open_paths(
-                &apps_config.config,
-                &apps_config.system_apps,
+            } => apps_config.open_paths(
                 &paths,
                 &selector.unwrap_or(apps_config.config.selector.clone()),
                 apps_config
@@ -76,11 +70,7 @@ fn main() -> Result<()> {
                 mime_table(&paths, json)?;
             }
             Cmd::List { all, json } => {
-                apps_config.mime_apps.print(
-                    &apps_config.system_apps,
-                    all,
-                    json,
-                )?;
+                apps_config.print(all, json)?;
             }
             Cmd::Unset { mime } => {
                 apps_config.mime_apps.unset_handler(&mime)?;

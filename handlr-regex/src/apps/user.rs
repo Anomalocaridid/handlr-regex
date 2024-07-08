@@ -1,7 +1,5 @@
 use crate::{
-    apps::SystemApps,
-    common::{render_table, DesktopHandler, Handleable, Handler, UserPath},
-    config::Config,
+    common::{DesktopHandler, Handleable},
     error::{Error, ErrorKind, Result},
 };
 use derive_more::{Deref, DerefMut};
@@ -14,11 +12,9 @@ use serde_with::{
 use std::{
     collections::{HashMap, VecDeque},
     fmt::Display,
-    io::IsTerminal,
     path::PathBuf,
     str::FromStr,
 };
-use tabled::Tabled;
 
 /// Helper struct for a list of `DesktopHandler`s
 #[serde_as]
@@ -47,10 +43,10 @@ impl FromStr for DesktopList {
 pub struct MimeApps {
     #[serde(rename = "Added Associations")]
     #[serde_as(as = "HashMap<DisplayFromStr, _>")]
-    added_associations: HashMap<Mime, DesktopList>,
+    pub(crate) added_associations: HashMap<Mime, DesktopList>,
     #[serde(rename = "Default Applications")]
     #[serde_as(as = "HashMap<DisplayFromStr, _>")]
-    default_apps: HashMap<Mime, DesktopList>,
+    pub(crate) default_apps: HashMap<Mime, DesktopList>,
 }
 
 impl Display for DesktopList {
@@ -101,56 +97,8 @@ impl MimeApps {
         Ok(())
     }
 
-    /// Get the handler associated with a given mime
-    pub fn get_handler(
-        &self,
-        system_apps: &SystemApps,
-        mime: &Mime,
-        selector: &str,
-        enable_selector: bool,
-    ) -> Result<DesktopHandler> {
-        match self.get_handler_from_user(mime, selector, enable_selector) {
-            Err(e) if matches!(*e.kind, ErrorKind::Cancelled) => Err(e),
-            h => h
-                .or_else(|_| {
-                    let wildcard =
-                        Mime::from_str(&format!("{}/*", mime.type_()))?;
-                    self.get_handler_from_user(
-                        &wildcard,
-                        selector,
-                        enable_selector,
-                    )
-                })
-                .or_else(|_| {
-                    self.get_handler_from_added_associations(system_apps, mime)
-                }),
-        }
-    }
-
-    /// Get the handler associated with a given path
-    fn get_handler_from_path(
-        &self,
-        config: &Config,
-        system_apps: &SystemApps,
-        path: &UserPath,
-        selector: &str,
-        enable_selector: bool,
-    ) -> Result<Handler> {
-        Ok(if let Ok(handler) = config.get_regex_handler(path) {
-            handler.into()
-        } else {
-            self.get_handler(
-                system_apps,
-                &path.get_mime()?,
-                selector,
-                enable_selector,
-            )?
-            .into()
-        })
-    }
-
     /// Get the handler associated with a given mime from mimeapps.list's default apps
-    fn get_handler_from_user(
+    pub(crate) fn get_handler_from_user(
         &self,
         mime: &Mime,
         selector: &str,
@@ -183,59 +131,8 @@ impl MimeApps {
         }
     }
 
-    /// Get the handler associated with a given mime from mimeapps.list's added associations
-    fn get_handler_from_added_associations(
-        &self,
-        system_apps: &SystemApps,
-        mime: &Mime,
-    ) -> Result<DesktopHandler> {
-        self.added_associations
-            .get(mime)
-            .map_or_else(
-                || system_apps.get_handler(mime),
-                |h| h.front().cloned(),
-            )
-            .ok_or_else(|| Error::from(ErrorKind::NotFound(mime.to_string())))
-    }
-
-    /// Get the handler associated with a given mime
-    pub fn show_handler(
-        &mut self,
-        config: &Config,
-        system_apps: &SystemApps,
-        mime: &Mime,
-        output_json: bool,
-        selector: &str,
-        enable_selector: bool,
-    ) -> Result<()> {
-        let handler =
-            self.get_handler(system_apps, mime, selector, enable_selector)?;
-        let output = if output_json {
-            let entry = handler.get_entry()?;
-            let cmd = entry.get_cmd(
-                config,
-                self,
-                system_apps,
-                vec![],
-                selector,
-                enable_selector,
-            )?;
-
-            (serde_json::json!( {
-                "handler": handler.to_string(),
-                "name": entry.name,
-                "cmd": cmd.0 + " " + &cmd.1.join(" "),
-            }))
-            .to_string()
-        } else {
-            handler.to_string()
-        };
-        println!("{}", output);
-        Ok(())
-    }
-
     /// Get the path to the user's mimeapps.list file
-    pub fn path() -> Result<PathBuf> {
+    fn path() -> Result<PathBuf> {
         let mut config = xdg::BaseDirectories::new()?.get_config_home();
         config.push("mimeapps.list");
         Ok(config)
@@ -272,160 +169,6 @@ impl MimeApps {
         serde_ini::ser::to_writer(file, self)?;
 
         Ok(())
-    }
-
-    /// Print the set associations and system-level associations in a table
-    pub fn print(
-        &self,
-        system_apps: &SystemApps,
-        detailed: bool,
-        output_json: bool,
-    ) -> Result<()> {
-        let mimeapps_table = MimeAppsTable::new(self, system_apps);
-
-        if detailed {
-            if output_json {
-                println!("{}", serde_json::to_string(&mimeapps_table)?)
-            } else {
-                println!("Default Apps");
-                println!("{}", render_table(&mimeapps_table.default_apps));
-                if !self.added_associations.is_empty() {
-                    println!("Added associations");
-                    println!(
-                        "{}",
-                        render_table(&mimeapps_table.added_associations)
-                    );
-                }
-                println!("System Apps");
-                println!("{}", render_table(&mimeapps_table.system_apps))
-            }
-        } else if output_json {
-            println!("{}", serde_json::to_string(&mimeapps_table.default_apps)?)
-        } else {
-            println!("{}", render_table(&mimeapps_table.default_apps))
-        }
-
-        Ok(())
-    }
-
-    /// Open the given paths with their respective handlers
-    pub fn open_paths(
-        &mut self,
-        config: &Config,
-        system_apps: &SystemApps,
-        paths: &[UserPath],
-        selector: &str,
-        enable_selector: bool,
-    ) -> Result<()> {
-        let mut handlers: HashMap<Handler, Vec<String>> = HashMap::new();
-
-        for path in paths.iter() {
-            handlers
-                .entry(self.get_handler_from_path(
-                    config,
-                    system_apps,
-                    path,
-                    selector,
-                    enable_selector,
-                )?)
-                .or_default()
-                .push(path.to_string())
-        }
-
-        for (handler, paths) in handlers.into_iter() {
-            handler.open(
-                config,
-                self,
-                system_apps,
-                paths,
-                selector,
-                enable_selector,
-            )?;
-        }
-
-        Ok(())
-    }
-
-    /// Given a mime and arguments, launch the associated handler with the arguments
-    pub fn launch_handler(
-        &mut self,
-        config: &Config,
-        system_apps: &SystemApps,
-        mime: &Mime,
-        args: Vec<UserPath>,
-        selector: &str,
-        enable_selector: bool,
-    ) -> Result<()> {
-        self.get_handler(system_apps, mime, selector, enable_selector)?
-            .launch(
-                config,
-                self,
-                system_apps,
-                args.into_iter().map(|a| a.to_string()).collect(),
-                selector,
-                enable_selector,
-            )
-    }
-}
-
-/// Internal helper struct for turning MimeApps into tabular data
-#[derive(PartialEq, Eq, PartialOrd, Ord, Tabled, Serialize)]
-struct MimeAppsEntry {
-    mime: String,
-    #[tabled(display_with("Self::display_handlers", self))]
-    handlers: Vec<String>,
-}
-
-impl MimeAppsEntry {
-    /// Create a new `MimeAppsEntry`
-    fn new(mime: &Mime, handlers: &VecDeque<DesktopHandler>) -> Self {
-        Self {
-            mime: mime.to_string(),
-            handlers: handlers
-                .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<String>>(),
-        }
-    }
-
-    /// Display list of handlers as a string
-    fn display_handlers(&self) -> String {
-        // If output is a terminal, optimize for readability
-        // Otherwise, if piped, optimize for parseability
-        let separator = if std::io::stdout().is_terminal() {
-            ",\n"
-        } else {
-            ", "
-        };
-
-        self.handlers.join(separator)
-    }
-}
-
-/// Internal helper struct for turning MimeApps into tabular data
-#[derive(Serialize)]
-struct MimeAppsTable {
-    added_associations: Vec<MimeAppsEntry>,
-    default_apps: Vec<MimeAppsEntry>,
-    system_apps: Vec<MimeAppsEntry>,
-}
-
-impl MimeAppsTable {
-    /// Create a new `MimeAppsTable`
-    fn new(mimeapps: &MimeApps, system_apps: &SystemApps) -> Self {
-        fn to_entries(map: &HashMap<Mime, DesktopList>) -> Vec<MimeAppsEntry> {
-            let mut rows = map
-                .iter()
-                .map(|(mime, handlers)| MimeAppsEntry::new(mime, handlers))
-                .collect::<Vec<_>>();
-            rows.sort_unstable();
-            rows
-        }
-        Self {
-            added_associations: to_entries(&mimeapps.added_associations),
-            default_apps: to_entries(&mimeapps.default_apps),
-            system_apps: to_entries(system_apps),
-        }
     }
 }
 
@@ -471,62 +214,5 @@ fn select<O: Iterator<Item = String>>(
         Err(Error::from(ErrorKind::Cancelled))
     } else {
         Ok(output)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn wildcard_mimes() -> Result<()> {
-        let mut user_apps = MimeApps::default();
-        user_apps.add_handler(
-            &Mime::from_str("video/*")?,
-            &DesktopHandler::assume_valid("mpv.desktop".into()),
-        );
-        user_apps.add_handler(
-            &Mime::from_str("video/webm")?,
-            &DesktopHandler::assume_valid("brave.desktop".into()),
-        );
-
-        let system_apps = SystemApps::default();
-
-        assert_eq!(
-            user_apps
-                .get_handler(
-                    &system_apps,
-                    &Mime::from_str("video/mp4")?,
-                    "",
-                    false
-                )?
-                .to_string(),
-            "mpv.desktop"
-        );
-        assert_eq!(
-            user_apps
-                .get_handler(
-                    &system_apps,
-                    &Mime::from_str("video/asdf")?,
-                    "",
-                    false
-                )?
-                .to_string(),
-            "mpv.desktop"
-        );
-
-        assert_eq!(
-            user_apps
-                .get_handler(
-                    &system_apps,
-                    &Mime::from_str("video/webm")?,
-                    "",
-                    false
-                )?
-                .to_string(),
-            "brave.desktop"
-        );
-
-        Ok(())
     }
 }
