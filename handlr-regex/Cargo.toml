@@ -31,6 +31,7 @@ freedesktop-desktop-entry = "0.6.1"
 derive_more = { version = "0.99.18", default-features = false, features = ["deref", "deref_mut"] }
 serde_ini = "0.2.0"
 serde_with = "3.8.3"
+wildmatch = "2.3.4"
 
 [[bin]]
 name = "handlr"
