@@ -29,6 +29,9 @@ handlr set .png feh.desktop
 
 # Set wildcard handler for all text files
 handlr set 'text/*' nvim.desktop
+# Set wildcard handler for all OpenDocument formats
+# NOTE: startcenter.desktop is usually LibreOffice's main desktop entry
+handlr set 'application/vnd.oasis.opendocument.*' startcenter.desktop
 
 # Set default handler based on mime
 handlr set application/pdf evince.desktop
