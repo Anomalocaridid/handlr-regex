@@ -72,12 +72,8 @@ impl MimeApps {
     }
 
     /// Entirely remove a given mime's default application association
-    pub fn unset_handler(&mut self, mime: &Mime) -> Result<()> {
-        if let Some(_unset) = self.default_apps.remove(mime) {
-            self.save()?;
-        }
-
-        Ok(())
+    pub fn unset_handler(&mut self, mime: &Mime) -> Option<DesktopList> {
+        self.default_apps.remove(mime)
     }
 
     /// Remove a given handler from a given mime's default file associaion
@@ -85,16 +81,13 @@ impl MimeApps {
         &mut self,
         mime: &Mime,
         handler: &DesktopHandler,
-    ) -> Result<()> {
+    ) -> Option<DesktopHandler> {
         let handler_list = self.default_apps.entry(mime.clone()).or_default();
 
-        if let Some(pos) = handler_list.iter().position(|x| *x == *handler) {
-            if let Some(_removed) = handler_list.remove(pos) {
-                self.save()?
-            }
-        }
-
-        Ok(())
+        handler_list
+            .iter()
+            .position(|x| *x == *handler)
+            .and_then(|pos| handler_list.remove(pos))
     }
 
     /// Get a list of handlers associated with a wildcard mime

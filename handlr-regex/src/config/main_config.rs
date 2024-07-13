@@ -272,7 +272,11 @@ impl Config {
 
     /// Entirely remove a given mime's default application association
     pub fn unset_handler(&mut self, mime: &Mime) -> Result<()> {
-        self.mime_apps.unset_handler(mime)
+        if self.mime_apps.unset_handler(mime).is_some() {
+            self.mime_apps.save()?
+        }
+
+        Ok(())
     }
 
     /// Remove a given handler from a given mime's default file associaion
@@ -281,7 +285,11 @@ impl Config {
         mime: &Mime,
         handler: &DesktopHandler,
     ) -> Result<()> {
-        self.mime_apps.remove_handler(mime, handler)
+        if self.mime_apps.remove_handler(mime, handler).is_some() {
+            self.mime_apps.save()?
+        }
+
+        Ok(())
     }
 }
 
