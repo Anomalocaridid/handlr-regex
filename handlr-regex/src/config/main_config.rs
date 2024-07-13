@@ -45,17 +45,7 @@ impl Config {
             .get_handler_from_user(mime, selector, use_selector)
         {
             Err(e) if matches!(*e.kind, ErrorKind::Cancelled) => Err(e),
-            h => h
-                .or_else(|_| {
-                    let wildcard =
-                        Mime::from_str(&format!("{}/*", mime.type_()))?;
-                    self.mime_apps.get_handler_from_user(
-                        &wildcard,
-                        selector,
-                        use_selector,
-                    )
-                })
-                .or_else(|_| self.get_handler_from_added_associations(mime)),
+            h => h.or_else(|_| self.get_handler_from_added_associations(mime)),
         }
     }
 
