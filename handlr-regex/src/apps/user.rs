@@ -66,11 +66,7 @@ impl MimeApps {
     }
 
     /// Set a default application association, overwriting any existing association for the same mimetype
-    pub(crate) fn set_handler(
-        &mut self,
-        mime: &Mime,
-        handler: &DesktopHandler,
-    ) {
+    pub fn set_handler(&mut self, mime: &Mime, handler: &DesktopHandler) {
         self.default_apps
             .insert(mime.clone(), DesktopList(vec![handler.clone()].into()));
     }
@@ -101,6 +97,32 @@ impl MimeApps {
         Ok(())
     }
 
+    /// Get a list of handlers associated with a wildcard mime
+    fn get_from_wildcard(&self, mime: &Mime) -> Option<&DesktopList> {
+        // Get the handlers that wildcard match the given mime
+        let associations = self.default_apps.iter().filter(|(m, _)| {
+            wildmatch::WildMatch::new(m.as_ref()).matches(mime.as_ref())
+        });
+
+        // Get the length of the longest wildcard that matches
+        // Assuming the longest match is the best match
+        // Inspired by how globs are handled in xdg spec
+        let biggest_wildcard_len = associations
+            .clone()
+            .map(|(ref m, _)| m.as_ref().len())
+            .max()?;
+
+        // Keep only the lists of handlers from associations with the longest wildcards
+        // And get the first one, assuming it takes precedence
+        // Loosely inspired by how globs are handled in xdg spec
+        associations
+            .filter(|(ref m, _)| m.as_ref().len() == biggest_wildcard_len)
+            .map(|(_, handlers)| handlers)
+            .collect_vec()
+            .first()
+            .cloned()
+    }
+
     /// Get the handler associated with a given mime from mimeapps.list's default apps
     pub(crate) fn get_handler_from_user(
         &self,
@@ -109,7 +131,12 @@ impl MimeApps {
         use_selector: bool,
     ) -> Result<DesktopHandler> {
         let error = Error::from(ErrorKind::NotFound(mime.to_string()));
-        match self.default_apps.get(mime) {
+        // Check for an exact match first and then fall back to wildcard
+        match self
+            .default_apps
+            .get(mime)
+            .or_else(|| self.get_from_wildcard(mime))
+        {
             Some(handlers) if use_selector && handlers.len() > 1 => {
                 let handlers = handlers
                     .iter()
