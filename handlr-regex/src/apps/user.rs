@@ -240,3 +240,165 @@ fn select<O: Iterator<Item = String>>(
         Ok(output)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_add_handlers(mime_apps: &mut MimeApps) -> Result<()> {
+        mime_apps.add_handler(
+            &Mime::from_str("text/plain")?,
+            &DesktopHandler::assume_valid("Helix.desktop".into()),
+        );
+
+        // Should return first added handler
+        assert_eq!(
+            mime_apps
+                .get_handler_from_user(
+                    &Mime::from_str("text/plain")?,
+                    "",
+                    false,
+                )?
+                .to_string(),
+            "Helix.desktop"
+        );
+
+        mime_apps.add_handler(
+            &Mime::from_str("text/plain")?,
+            &DesktopHandler::assume_valid("nvim.desktop".into()),
+        );
+
+        // Should still return first added handler
+        assert_eq!(
+            mime_apps
+                .get_handler_from_user(
+                    &Mime::from_str("text/plain")?,
+                    "",
+                    false,
+                )?
+                .to_string(),
+            "Helix.desktop"
+        );
+
+        Ok(())
+    }
+
+    fn test_remove_handlers(mime_apps: &mut MimeApps) -> Result<()> {
+        mime_apps.remove_handler(
+            &Mime::from_str("text/plain")?,
+            &DesktopHandler::assume_valid("Helix.desktop".into()),
+        );
+
+        // With first added handler removed, second handler replaces it
+        assert_eq!(
+            mime_apps
+                .get_handler_from_user(
+                    &Mime::from_str("text/plain")?,
+                    "",
+                    false,
+                )?
+                .to_string(),
+            "nvim.desktop"
+        );
+
+        mime_apps.remove_handler(
+            &Mime::from_str("text/plain")?,
+            &DesktopHandler::assume_valid("nvim.desktop".into()),
+        );
+
+        // Both handlers removed, should not be any left
+        assert!(mime_apps
+            .get_handler_from_user(&Mime::from_str("text/plain")?, "", false)
+            .is_err());
+
+        Ok(())
+    }
+
+    fn test_set_handlers(mime_apps: &mut MimeApps) -> Result<()> {
+        mime_apps.set_handler(
+            &Mime::from_str("text/plain")?,
+            &DesktopHandler::assume_valid("Helix.desktop".into()),
+        );
+
+        assert_eq!(
+            mime_apps
+                .get_handler_from_user(
+                    &Mime::from_str("text/plain")?,
+                    "",
+                    false,
+                )?
+                .to_string(),
+            "Helix.desktop"
+        );
+
+        mime_apps.set_handler(
+            &Mime::from_str("text/plain")?,
+            &DesktopHandler::assume_valid("nvim.desktop".into()),
+        );
+
+        // Should return second set handler because it should replace the first one
+        assert_eq!(
+            mime_apps
+                .get_handler_from_user(
+                    &Mime::from_str("text/plain")?,
+                    "",
+                    false,
+                )?
+                .to_string(),
+            "nvim.desktop"
+        );
+
+        Ok(())
+    }
+
+    fn test_unset_handlers(mime_apps: &mut MimeApps) -> Result<()> {
+        mime_apps.unset_handler(&Mime::from_str("text/plain")?);
+
+        // Handler completely unset, should not be any left
+        assert!(mime_apps
+            .get_handler_from_user(&Mime::from_str("text/plain")?, "", false)
+            .is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn add_and_remove_handlers() -> Result<()> {
+        let mut mime_apps = MimeApps::default();
+
+        test_add_handlers(&mut mime_apps)?;
+        test_remove_handlers(&mut mime_apps)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn set_and_unset_handlers() -> Result<()> {
+        let mut mime_apps = MimeApps::default();
+
+        test_set_handlers(&mut mime_apps)?;
+        test_unset_handlers(&mut mime_apps)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn add_and_unset_handlers() -> Result<()> {
+        let mut mime_apps = MimeApps::default();
+
+        test_add_handlers(&mut mime_apps)?;
+        test_unset_handlers(&mut mime_apps)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn set_and_remove_handlers() -> Result<()> {
+        let mut mime_apps = MimeApps::default();
+
+        test_set_handlers(&mut mime_apps)?;
+        test_remove_handlers(&mut mime_apps)?;
+
+        Ok(())
+    }
+}
