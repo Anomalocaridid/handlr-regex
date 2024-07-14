@@ -99,8 +99,8 @@ mod tests {
             mime::IMAGE_JPEG
         );
 
-        "image//jpg".parse::<MimeOrExtension>().unwrap_err();
-        "image".parse::<MimeOrExtension>().unwrap_err();
+        assert!("image//jpg".parse::<MimeOrExtension>().is_err());
+        assert!("image".parse::<MimeOrExtension>().is_err());
 
         Ok(())
     }
@@ -146,8 +146,8 @@ mod tests {
     fn from_ext() -> Result<()> {
         assert_eq!(".mp3".parse::<MimeOrExtension>()?.0, "audio/mpeg");
         assert_eq!("audio/mpeg".parse::<MimeOrExtension>()?.0, "audio/mpeg");
-        ".".parse::<MimeOrExtension>().unwrap_err();
-        "audio/".parse::<MimeOrExtension>().unwrap_err();
+        assert!(".".parse::<MimeOrExtension>().is_err());
+        assert!("audio/".parse::<MimeOrExtension>().is_err());
 
         Ok(())
     }

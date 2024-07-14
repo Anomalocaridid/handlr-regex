@@ -199,11 +199,11 @@ mod tests {
             regex_handler
         );
 
-        regex_apps
+        assert!(regex_apps
             .get_handler(&UserPath::Url(Url::parse(
                 "https://en.wikipedia.org",
             )?))
-            .unwrap_err();
+            .is_err());
 
         Ok(())
     }
