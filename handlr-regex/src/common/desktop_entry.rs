@@ -157,7 +157,6 @@ impl DesktopEntry {
     }
 
     /// Parse a desktop entry file, given a path
-    // TODO: add tests
     fn parse_file(path: &Path) -> Option<DesktopEntry> {
         // Assume the set locales will not change while handlr is running
         static LOCALES: Lazy<Vec<String>> = Lazy::new(get_languages_from_env);
@@ -193,7 +192,6 @@ impl DesktopEntry {
 
     /// Make a fake DesktopEntry given only a value for exec and terminal.
     /// All other keys will have default values.
-    // TODO: add tests
     pub(crate) fn fake_entry(exec: &str, terminal: bool) -> DesktopEntry {
         DesktopEntry {
             exec: exec.to_owned(),
@@ -216,7 +214,6 @@ impl DesktopEntry {
 
 impl TryFrom<PathBuf> for DesktopEntry {
     type Error = Error;
-    // TODO: add tests
     fn try_from(path: PathBuf) -> Result<Self> {
         Self::parse_file(&path).ok_or(Error::from(ErrorKind::BadEntry(path)))
     }
@@ -229,8 +226,8 @@ mod tests {
     #[test]
     fn complex_exec() -> Result<()> {
         // Note that this entry also has no category key
-        let entry = DesktopEntry::parse_file(Path::new("tests/cmus.desktop"))
-            .expect("DesktopEntry::parse_file() returned None");
+        let entry =
+            DesktopEntry::try_from(PathBuf::from("tests/cmus.desktop"))?;
         assert_eq!(entry.mime_type.len(), 2);
         assert_eq!(entry.mime_type[0].essence_str(), "audio/mp3");
         assert_eq!(entry.mime_type[1].essence_str(), "audio/ogg");
@@ -253,10 +250,9 @@ mod tests {
 
     #[test]
     fn terminal_emulator() -> Result<()> {
-        let entry = DesktopEntry::parse_file(Path::new(
+        let entry = DesktopEntry::try_from(PathBuf::from(
             "tests/org.wezfurlong.wezterm.desktop",
-        ))
-        .expect("DesktopEntry::parse_file() returned None");
+        ))?;
         assert!(entry.mime_type.is_empty());
 
         let mut config = Config::default();
@@ -272,6 +268,21 @@ mod tests {
             )
         );
         assert!(entry.is_terminal_emulator());
+
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_desktop_entries() -> Result<()> {
+        let empty_name =
+            DesktopEntry::try_from(PathBuf::from("tests/empty_name.desktop"));
+
+        assert!(empty_name.is_err());
+
+        let empty_exec =
+            DesktopEntry::try_from(PathBuf::from("tests/empty_exec.desktop"));
+
+        assert!(empty_exec.is_err());
 
         Ok(())
     }

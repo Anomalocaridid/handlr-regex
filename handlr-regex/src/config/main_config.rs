@@ -2,7 +2,7 @@ use mime::Mime;
 use serde::Serialize;
 use std::{
     collections::{HashMap, VecDeque},
-    io::{IsTerminal, Write},
+    io::Write,
     str::FromStr,
 };
 use tabled::Tabled;
@@ -67,7 +67,7 @@ impl Config {
 
     /// Given a mime and arguments, launch the associated handler with the arguments
     /// If a terminal emulator is needed, but not set, one will be chosen and set
-    #[mutants::skip] // Cannot test directly, alters system state
+    #[mutants::skip] // Cannot test directly, runs external command
     pub fn launch_handler(
         &mut self,
         mime: &Mime,
@@ -90,9 +90,10 @@ impl Config {
 
     /// Get the handler associated with a given mime
     /// If a terminal emulator is needed, but not set, one will be chosen and set
-    #[mutants::skip] // Cannot test directly, alters system state
-    pub fn show_handler(
+    #[mutants::skip] // Cannot test directly, depends on system state
+    pub fn show_handler<W: Write>(
         &mut self,
+        writer: &mut W,
         mime: &Mime,
         output_json: bool,
         selector: Option<String>,
@@ -118,7 +119,7 @@ impl Config {
         } else {
             handler.to_string()
         };
-        println!("{}", output);
+        writeln!(writer, "{output}")?;
         Ok(())
     }
 
@@ -250,7 +251,6 @@ impl Config {
     }
 
     /// Print the set associations and system-level associations in a table
-    // TODO: add tests
     pub fn print<W: Write>(
         &self,
         writer: &mut W,
@@ -258,8 +258,11 @@ impl Config {
         output_json: bool,
         terminal_output: bool,
     ) -> Result<()> {
-        let mimeapps_table =
-            MimeAppsTable::new(&self.mime_apps, &self.system_apps);
+        let mimeapps_table = MimeAppsTable::new(
+            &self.mime_apps,
+            &self.system_apps,
+            terminal_output,
+        );
 
         if detailed {
             if output_json {
@@ -337,32 +340,33 @@ struct MimeAppsEntry {
     mime: String,
     #[tabled(display_with("Self::display_handlers", self))]
     handlers: Vec<String>,
+    #[tabled(skip)]
+    #[serde(skip_serializing)]
+    // This field should not appear in any output
+    // It is only used for determining how to render output
+    separator: String,
 }
 
 impl MimeAppsEntry {
     /// Create a new `MimeAppsEntry`
-    fn new(mime: &Mime, handlers: &VecDeque<DesktopHandler>) -> Self {
+    fn new(
+        mime: &Mime,
+        handlers: &VecDeque<DesktopHandler>,
+        separator: &str,
+    ) -> Self {
         Self {
             mime: mime.to_string(),
             handlers: handlers
                 .iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<String>>(),
+            separator: separator.to_string(),
         }
     }
 
     /// Display list of handlers as a string
-    // TODO: add tests
     fn display_handlers(&self) -> String {
-        // If output is a terminal, optimize for readability
-        // Otherwise, if piped, optimize for parseability
-        let separator = if std::io::stdout().is_terminal() {
-            ",\n"
-        } else {
-            ", "
-        };
-
-        self.handlers.join(separator)
+        self.handlers.join(&self.separator)
     }
 }
 
@@ -376,15 +380,26 @@ struct MimeAppsTable {
 
 impl MimeAppsTable {
     /// Create a new `MimeAppsTable`
-    fn new(mimeapps: &MimeApps, system_apps: &SystemApps) -> Self {
-        fn to_entries(map: &HashMap<Mime, DesktopList>) -> Vec<MimeAppsEntry> {
-            let mut rows = map
-                .iter()
-                .map(|(mime, handlers)| MimeAppsEntry::new(mime, handlers))
-                .collect::<Vec<_>>();
-            rows.sort_unstable();
-            rows
-        }
+    fn new(
+        mimeapps: &MimeApps,
+        system_apps: &SystemApps,
+        terminal_output: bool,
+    ) -> Self {
+        // If output is a terminal, optimize for readability
+        // Otherwise, if piped, optimize for parseability
+        let separator = if terminal_output { ",\n" } else { ", " };
+
+        let to_entries =
+            |map: &HashMap<Mime, DesktopList>| -> Vec<MimeAppsEntry> {
+                let mut rows = map
+                    .iter()
+                    .map(|(mime, handlers)| {
+                        MimeAppsEntry::new(mime, handlers, separator)
+                    })
+                    .collect::<Vec<_>>();
+                rows.sort_unstable();
+                rows
+            };
         Self {
             added_associations: to_entries(&mimeapps.added_associations),
             default_apps: to_entries(&mimeapps.default_apps),
@@ -463,6 +478,134 @@ mod tests {
                 .to_string(),
             "startcenter.desktop"
         );
+
+        Ok(())
+    }
+
+    // Helper command to test the tables of handlers
+    // Renders a table with a bunch of arbitrary handlers to a writer
+    // TODO: test printing with non-empty system apps too
+    fn print_handlers_test<W: Write>(
+        buffer: &mut W,
+        detailed: bool,
+        output_json: bool,
+        terminal_output: bool,
+    ) -> Result<()> {
+        let mut config = Config::default();
+
+        // Add arbitrary video handlers
+        config.mime_apps.add_handler(
+            &Mime::from_str("video/mp4")?,
+            &DesktopHandler::assume_valid("mpv.desktop".into()),
+        );
+        config.mime_apps.add_handler(
+            &Mime::from_str("video/asdf")?,
+            &DesktopHandler::assume_valid("mpv.desktop".into()),
+        );
+        config.mime_apps.add_handler(
+            &Mime::from_str("video/webm")?,
+            &DesktopHandler::assume_valid("brave.desktop".into()),
+        );
+
+        // Add arbitrary text handlers
+        config.mime_apps.add_handler(
+            &Mime::from_str("text/plain")?,
+            &DesktopHandler::assume_valid("helix.desktop".into()),
+        );
+        config.mime_apps.add_handler(
+            &Mime::from_str("text/plain")?,
+            &DesktopHandler::assume_valid("nvim.desktop".into()),
+        );
+        config.mime_apps.add_handler(
+            &Mime::from_str("text/plain")?,
+            &DesktopHandler::assume_valid("kakoune.desktop".into()),
+        );
+
+        // Add arbitrary document handlers
+        config.mime_apps.add_handler(
+            &Mime::from_str("application/vnd.oasis.opendocument.*")?,
+            &DesktopHandler::assume_valid("startcenter.desktop".into()),
+        );
+        config.mime_apps.add_handler(
+            &Mime::from_str("application/vnd.openxmlformats-officedocument.*")?,
+            &DesktopHandler::assume_valid("startcenter.desktop".into()),
+        );
+
+        // Add arbirtary terminal emulator as an added association
+        config
+            .mime_apps
+            .added_associations
+            .entry(Mime::from_str("x-scheme-handler/terminal")?)
+            .or_default()
+            .push_back(DesktopHandler::assume_valid(
+                "org.wezfurlong.wezterm.desktop".into(),
+            ));
+
+        config.print(buffer, detailed, output_json, terminal_output)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn print_handlers_default() -> Result<()> {
+        let mut buffer = Vec::new();
+        print_handlers_test(&mut buffer, false, false, true)?;
+        goldie::assert!(String::from_utf8(buffer)?);
+        Ok(())
+    }
+
+    #[test]
+    fn print_handlers_piped() -> Result<()> {
+        let mut buffer = Vec::new();
+        print_handlers_test(&mut buffer, false, false, false)?;
+        goldie::assert!(String::from_utf8(buffer)?);
+        Ok(())
+    }
+
+    #[test]
+    fn print_handlers_detailed() -> Result<()> {
+        let mut buffer = Vec::new();
+        print_handlers_test(&mut buffer, true, false, true)?;
+        goldie::assert!(String::from_utf8(buffer)?);
+        Ok(())
+    }
+
+    #[test]
+    fn print_handlers_detailed_piped() -> Result<()> {
+        let mut buffer = Vec::new();
+        print_handlers_test(&mut buffer, true, false, false)?;
+        goldie::assert!(String::from_utf8(buffer)?);
+        Ok(())
+    }
+
+    #[test]
+    fn print_handlers_json() -> Result<()> {
+        // NOTE: both calls should have the same result
+        // JSON output and terminal output
+        let mut buffer = Vec::new();
+        print_handlers_test(&mut buffer, false, true, true)?;
+        goldie::assert!(String::from_utf8(buffer)?);
+
+        // JSON output and piped
+        let mut buffer = Vec::new();
+        print_handlers_test(&mut buffer, false, true, false)?;
+        goldie::assert!(String::from_utf8(buffer)?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn print_handlers_detailed_json() -> Result<()> {
+        // NOTE: both calls should have the same result
+        // JSON output and terminal output
+        let mut buffer = Vec::new();
+        print_handlers_test(&mut buffer, true, true, false)?;
+        goldie::assert!(String::from_utf8(buffer)?);
+
+        // JSON output and piped
+        let mut buffer = Vec::new();
+        print_handlers_test(&mut buffer, true, true, false)?;
+        goldie::assert!(String::from_utf8(buffer)?);
 
         Ok(())
     }

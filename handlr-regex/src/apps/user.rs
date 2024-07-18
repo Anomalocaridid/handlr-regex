@@ -19,14 +19,22 @@ use std::{
 /// Helper struct for a list of `DesktopHandler`s
 #[serde_as]
 #[derive(
-    Debug, Default, Clone, Deref, DerefMut, SerializeDisplay, DeserializeFromStr,
+    Debug,
+    Default,
+    Clone,
+    Deref,
+    DerefMut,
+    SerializeDisplay,
+    DeserializeFromStr,
+    PartialEq,
+    Eq,
 )]
 pub struct DesktopList(VecDeque<DesktopHandler>);
 
 impl FromStr for DesktopList {
     type Err = Error;
 
-    // TODO: add tests
+    #[mutants::skip] // Cannot test directly, depends on system state
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(
             s.split(';')
@@ -51,7 +59,6 @@ pub struct MimeApps {
 }
 
 impl Display for DesktopList {
-    // TODO: add tests
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Ensure final semicolon is added
         write!(f, "{};", self.iter().join(";"))
@@ -119,7 +126,7 @@ impl MimeApps {
     }
 
     /// Get the handler associated with a given mime from mimeapps.list's default apps
-    // TODO: test selector
+    #[mutants::skip] // Cannot entirely test, namely cannot test selector functionality
     pub(crate) fn get_handler_from_user(
         &self,
         mime: &Mime,
@@ -203,7 +210,7 @@ impl MimeApps {
 }
 
 /// Run given selector command
-// TODO: add tests
+#[mutants::skip] // Cannot test directly, runs external command
 fn select<O: Iterator<Item = String>>(
     selector: &str,
     mut opts: O,
@@ -405,6 +412,24 @@ mod tests {
 
         test_set_handlers(&mut mime_apps)?;
         test_remove_handlers(&mut mime_apps)?;
+
+        Ok(())
+    }
+
+    #[test]
+    // Meant to test serialization by proxy
+    fn test_desktop_list_display() -> Result<()> {
+        let desktop_list = DesktopList(
+            ["helix.desktop", "nvim.desktop", "kakoune.desktop"]
+                .iter()
+                .map(|h| DesktopHandler::assume_valid(h.into()))
+                .collect(),
+        );
+
+        assert_eq!(
+            format!("{desktop_list}"),
+            "helix.desktop;nvim.desktop;kakoune.desktop;"
+        );
 
         Ok(())
     }

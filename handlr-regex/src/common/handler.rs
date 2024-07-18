@@ -147,7 +147,7 @@ impl Handleable for RegexHandler {
 struct HandlerRegexSet(#[serde(with = "serde_regex")] RegexSet);
 
 impl PartialEq for HandlerRegexSet {
-    // TODO: add tests
+    #[mutants::skip] // Trivial
     fn eq(&self, other: &Self) -> bool {
         self.patterns() == other.patterns()
     }
@@ -156,7 +156,7 @@ impl PartialEq for HandlerRegexSet {
 impl Eq for HandlerRegexSet {}
 
 impl Hash for HandlerRegexSet {
-    // TODO: add tests
+    #[mutants::skip] // Trivial
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.patterns().hash(state);
     }
@@ -204,7 +204,11 @@ mod tests {
                     "https://youtu.be/dQw4w9WgXcQ"
                 )?))?
                 .get_entry()?,
-            DesktopEntry::fake_entry(exec, false)
+            DesktopEntry {
+                exec: exec.to_string(),
+                terminal: false,
+                ..Default::default()
+            }
         );
 
         assert!(regex_apps

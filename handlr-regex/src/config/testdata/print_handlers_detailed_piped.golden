@@ -1,0 +1,13 @@
+Default Apps
+mime                                           	handlers                                    
+application/vnd.oasis.opendocument.*           	startcenter.desktop                         
+application/vnd.openxmlformats-officedocument.*	startcenter.desktop                         
+text/plain                                     	helix.desktop, nvim.desktop, kakoune.desktop
+video/asdf                                     	mpv.desktop                                 
+video/mp4                                      	mpv.desktop                                 
+video/webm                                     	brave.desktop                               
+Added associations
+mime                     	handlers                      
+x-scheme-handler/terminal	org.wezfurlong.wezterm.desktop
+System Apps
+mime	handlers

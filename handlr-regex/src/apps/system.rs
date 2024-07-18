@@ -12,13 +12,11 @@ pub struct SystemApps(HashMap<Mime, DesktopList>);
 
 impl SystemApps {
     /// Get the list of handlers associated with a given mime
-    // TODO: test
     pub fn get_handlers(&self, mime: &Mime) -> Option<DesktopList> {
         Some(self.get(mime)?.clone())
     }
 
     /// Get the primary of handler associated with a given mime
-    // TODO: test
     pub fn get_handler(&self, mime: &Mime) -> Option<DesktopHandler> {
         Some(self.get_handlers(mime)?.front()?.clone())
     }
@@ -64,6 +62,45 @@ impl SystemApps {
         Self::get_entries()?.try_for_each(|(_, e)| {
             writeln!(writer, "{}\t{}", e.file_name.to_string_lossy(), e.name)
         })?;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use super::*;
+
+    #[test]
+    fn get_handlers() -> Result<()> {
+        let mut expected_handlers = DesktopList::default();
+        expected_handlers
+            .push_back(DesktopHandler::assume_valid("helix.desktop".into()));
+        expected_handlers
+            .push_back(DesktopHandler::assume_valid("nvim.desktop".into()));
+
+        let mime = Mime::from_str("text/plain")?;
+        let mut associations: HashMap<Mime, DesktopList> = HashMap::new();
+
+        associations.insert(mime.clone(), expected_handlers.clone());
+
+        let system_apps = SystemApps(associations);
+
+        assert_eq!(
+            system_apps
+                .get_handler(&mime)
+                .expect("Could not get handler")
+                .to_string(),
+            "helix.desktop"
+        );
+        assert_eq!(
+            system_apps
+                .get_handlers(&mime)
+                .expect("Could not get handler"),
+            expected_handlers
+        );
 
         Ok(())
     }

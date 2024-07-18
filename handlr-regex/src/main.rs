@@ -46,6 +46,7 @@ fn main() -> Result<()> {
                 disable_selector,
             } => {
                 config.show_handler(
+                    &mut stdout,
                     &mime,
                     json,
                     selector,

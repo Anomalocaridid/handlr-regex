@@ -1,0 +1,12 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Display=true
+Exec=
+Terminal=false
+Name=cmus-remote
+Comment=Music player cmus-remote control
+NoDisplay=true
+Icon=cmus
+MimeType=audio/mp3;audio/ogg;
