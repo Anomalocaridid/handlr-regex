@@ -1,0 +1,13 @@
+path                                	mime                     
+tests                               	inode/directory          
+tests/cat                           	application/x-shellscript
+tests/cmus.desktop                  	application/x-desktop    
+tests/empty.txt                     	text/plain               
+tests/no_html_tags.html             	text/html                
+tests/org.wezfurlong.wezterm.desktop	application/x-desktop    
+tests/p.html                        	text/html                
+tests/rust.vim                      	text/plain               
+tests/SettingsWidgetFdoSecrets.ui   	application/x-designer   
+https://duckduckgo.com/             	x-scheme-handler/https   
+.                                   	inode/directory          
+../README.md                        	text/markdown            
