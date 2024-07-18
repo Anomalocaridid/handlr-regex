@@ -12,6 +12,7 @@ use std::io::IsTerminal;
 fn main() -> Result<()> {
     let mut config = Config::new().unwrap_or_default();
     let terminal_output = std::io::stdout().is_terminal();
+    let mut stdout = std::io::stdout().lock();
 
     let res = || -> Result<()> {
         match Cmd::parse() {
@@ -63,7 +64,7 @@ fn main() -> Result<()> {
                 disable_selector,
             )?,
             Cmd::Mime { paths, json } => {
-                mime_table(&paths, json, terminal_output)?;
+                mime_table(&mut stdout, &paths, json, terminal_output)?;
             }
             Cmd::List { all, json } => {
                 config.print(all, json, terminal_output)?;
@@ -81,7 +82,7 @@ fn main() -> Result<()> {
                 if desktop_files {
                     SystemApps::list_handlers()?;
                 } else if mimes {
-                    common::db_autocomplete(&mut std::io::stdout().lock())?;
+                    common::db_autocomplete(&mut stdout)?;
                 }
             }
         }

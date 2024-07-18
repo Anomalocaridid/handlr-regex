@@ -7,6 +7,7 @@ use serde::Serialize;
 use std::{
     convert::{TryFrom, TryInto},
     fmt::{Display, Formatter},
+    io::Write,
     path::PathBuf,
     str::FromStr,
 };
@@ -73,7 +74,8 @@ impl UserPathTable {
     }
 }
 
-pub fn mime_table(
+pub fn mime_table<W: Write>(
+    writer: &mut W,
     paths: &[UserPath],
     output_json: bool,
     terminal_output: bool,
@@ -89,7 +91,7 @@ pub fn mime_table(
         render_table(&rows, terminal_output)
     };
 
-    println!("{table}");
+    writeln!(writer, "{table}")?;
 
     Ok(())
 }
