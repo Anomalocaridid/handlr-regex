@@ -5,7 +5,7 @@ use crate::{
 };
 use derive_more::Deref;
 use mime::Mime;
-use std::{collections::HashMap, convert::TryFrom, ffi::OsString};
+use std::{collections::HashMap, convert::TryFrom, ffi::OsString, io::Write};
 
 #[derive(Debug, Default, Clone, Deref)]
 pub struct SystemApps(HashMap<Mime, DesktopList>);
@@ -59,15 +59,10 @@ impl SystemApps {
     }
 
     /// List the available handlers
-    // TODO: refactor to test
-    pub fn list_handlers() -> Result<()> {
-        use std::io::Write;
-
-        let stdout = std::io::stdout();
-        let mut stdout = stdout.lock();
-
+    // TODO: add tests
+    pub fn list_handlers<W: Write>(writer: &mut W) -> Result<()> {
         Self::get_entries()?.try_for_each(|(_, e)| {
-            writeln!(stdout, "{}\t{}", e.file_name.to_string_lossy(), e.name)
+            writeln!(writer, "{}\t{}", e.file_name.to_string_lossy(), e.name)
         })?;
 
         Ok(())

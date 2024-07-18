@@ -2,7 +2,7 @@ use mime::Mime;
 use serde::Serialize;
 use std::{
     collections::{HashMap, VecDeque},
-    io::IsTerminal,
+    io::{IsTerminal, Write},
     str::FromStr,
 };
 use tabled::Tabled;
@@ -250,9 +250,10 @@ impl Config {
     }
 
     /// Print the set associations and system-level associations in a table
-    // TODO: refactor and add tests
-    pub fn print(
+    // TODO: add tests
+    pub fn print<W: Write>(
         &self,
+        writer: &mut W,
         detailed: bool,
         output_json: bool,
         terminal_output: bool,
@@ -262,36 +263,44 @@ impl Config {
 
         if detailed {
             if output_json {
-                println!("{}", serde_json::to_string(&mimeapps_table)?)
+                writeln!(writer, "{}", serde_json::to_string(&mimeapps_table)?)?
             } else {
-                println!("Default Apps");
-                println!(
+                writeln!(writer, "Default Apps")?;
+                writeln!(
+                    writer,
                     "{}",
                     render_table(&mimeapps_table.default_apps, terminal_output)
-                );
+                )?;
                 if !self.mime_apps.added_associations.is_empty() {
-                    println!("Added associations");
-                    println!(
+                    writeln!(writer, "Added associations")?;
+                    writeln!(
+                        writer,
                         "{}",
                         render_table(
                             &mimeapps_table.added_associations,
                             terminal_output
                         )
-                    );
+                    )?;
                 }
-                println!("System Apps");
-                println!(
+                writeln!(writer, "System Apps")?;
+                writeln!(
+                    writer,
                     "{}",
                     render_table(&mimeapps_table.system_apps, terminal_output)
-                )
+                )?
             }
         } else if output_json {
-            println!("{}", serde_json::to_string(&mimeapps_table.default_apps)?)
+            writeln!(
+                writer,
+                "{}",
+                serde_json::to_string(&mimeapps_table.default_apps)?
+            )?
         } else {
-            println!(
+            writeln!(
+                writer,
                 "{}",
                 render_table(&mimeapps_table.default_apps, terminal_output)
-            )
+            )?
         }
 
         Ok(())

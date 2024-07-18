@@ -68,7 +68,7 @@ fn main() -> Result<()> {
                 mime_table(&mut stdout, &paths, json, terminal_output)?;
             }
             Cmd::List { all, json } => {
-                config.print(all, json, terminal_output)?;
+                config.print(&mut stdout, all, json, terminal_output)?;
             }
             Cmd::Unset { mime } => {
                 config.unset_handler(&mime)?;
@@ -81,7 +81,7 @@ fn main() -> Result<()> {
                 mimes,
             } => {
                 if desktop_files {
-                    SystemApps::list_handlers()?;
+                    SystemApps::list_handlers(&mut stdout)?;
                 } else if mimes {
                     common::db_autocomplete(&mut stdout)?;
                 }
