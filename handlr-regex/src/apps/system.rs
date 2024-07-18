@@ -59,7 +59,7 @@ impl SystemApps {
     }
 
     /// List the available handlers
-    // TODO: add tests
+    #[mutants::skip] // Cannot test directly, depends on system state
     pub fn list_handlers<W: Write>(writer: &mut W) -> Result<()> {
         Self::get_entries()?.try_for_each(|(_, e)| {
             writeln!(writer, "{}\t{}", e.file_name.to_string_lossy(), e.name)
