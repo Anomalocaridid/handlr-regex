@@ -19,7 +19,7 @@ use std::{
 };
 
 /// Represents a desktop entry file for an application
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DesktopEntry {
     /// Name of the application
     pub(crate) name: String,
@@ -200,6 +200,12 @@ impl DesktopEntry {
     /// Check if the given desktop entry represents a terminal emulator
     pub fn is_terminal_emulator(&self) -> bool {
         self.categories.contains(&"TerminalEmulator".to_string())
+    }
+
+    #[cfg(test)]
+    /// Internal helper function for tests outside of this file
+    pub fn test_get_from_path(path: &str) -> Option<DesktopEntry> {
+        Self::parse_file(Path::new(path))
     }
 }
 

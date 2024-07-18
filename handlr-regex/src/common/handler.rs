@@ -74,6 +74,7 @@ impl Handleable for DesktopHandler {
 }
 
 impl DesktopHandler {
+    /// Create a DesktopHandler, skipping validity checks
     pub fn assume_valid(name: OsString) -> Self {
         Self(name)
     }
@@ -174,6 +175,7 @@ impl RegexApps {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::DesktopEntry;
     use url::Url;
 
     #[test]
@@ -185,18 +187,18 @@ mod tests {
         let regex_handler = RegexHandler {
             exec: String::from(exec),
             terminal: false,
-            regexes: HandlerRegexSet(
-                RegexSet::new(regexes).expect("Test regex is invalid"),
-            ),
+            regexes: HandlerRegexSet(RegexSet::new(regexes)?),
         };
 
         let regex_apps = RegexApps(vec![regex_handler.clone()]);
 
         assert_eq!(
-            regex_apps.get_handler(&UserPath::Url(Url::parse(
-                "https://youtu.be/dQw4w9WgXcQ"
-            )?))?,
-            regex_handler
+            regex_apps
+                .get_handler(&UserPath::Url(Url::parse(
+                    "https://youtu.be/dQw4w9WgXcQ"
+                )?))?
+                .get_entry()?,
+            DesktopEntry::fake_entry(exec, false)
         );
 
         assert!(regex_apps
