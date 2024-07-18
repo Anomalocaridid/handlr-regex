@@ -32,6 +32,7 @@ derive_more = { version = "0.99.18", default-features = false, features = ["dere
 serde_ini = "0.2.0"
 serde_with = "3.8.3"
 wildmatch = "2.3.4"
+mutants = "0.0.3"
 
 [[bin]]
 name = "handlr"
