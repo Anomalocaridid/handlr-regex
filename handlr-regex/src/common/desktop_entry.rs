@@ -215,21 +215,52 @@ mod tests {
     use super::*;
 
     #[test]
-    fn complex_exec() {
+    fn complex_exec() -> Result<()> {
         // Note that this entry also has no category key
         let entry = DesktopEntry::parse_file(Path::new("tests/cmus.desktop"))
             .expect("DesktopEntry::parse_file() returned None");
         assert_eq!(entry.mime_type.len(), 2);
         assert_eq!(entry.mime_type[0].essence_str(), "audio/mp3");
         assert_eq!(entry.mime_type[1].essence_str(), "audio/ogg");
+
+        let mut config = Config::default();
+        let args = vec!["test".to_string()];
+        assert_eq!(entry.get_cmd(&mut config, args, "", false)?,
+            (
+                "bash".to_string(),
+                [
+                    "-c", 
+                    "(! pgrep cmus && tilix -e cmus && tilix -a session-add-down -e cava); sleep 0.1 && cmus-remote -q test"
+                ].iter().map(|s| s.to_string()).collect()
+            )
+        );
+        assert!(!entry.is_terminal_emulator());
+
+        Ok(())
     }
 
     #[test]
-    fn no_mime_type() {
+    fn terminal_emulator() -> Result<()> {
         let entry = DesktopEntry::parse_file(Path::new(
             "tests/org.wezfurlong.wezterm.desktop",
         ))
         .expect("DesktopEntry::parse_file() returned None");
-        assert_eq!(entry.mime_type.len(), 0);
+        assert!(entry.mime_type.is_empty());
+
+        let mut config = Config::default();
+        let args = vec!["test".to_string()];
+        assert_eq!(
+            entry.get_cmd(&mut config, args, "", false)?,
+            (
+                "wezterm".to_string(),
+                ["start", "--cwd", ".", "test"]
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect()
+            )
+        );
+        assert!(entry.is_terminal_emulator());
+
+        Ok(())
     }
 }
