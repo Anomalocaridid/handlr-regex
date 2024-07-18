@@ -1,4 +1,5 @@
 use crate::error::Result;
+use std::io::Write;
 
 static CUSTOM_MIMES: &[&str] = &[
     "inode/directory",
@@ -7,23 +8,18 @@ static CUSTOM_MIMES: &[&str] = &[
     "x-scheme-handler/terminal",
 ];
 
-pub fn autocomplete() -> Result<()> {
-    use std::io::Write;
-
-    let stdout = std::io::stdout();
-    let mut stdout = stdout.lock();
-
+pub fn autocomplete<W: Write>(writer: &mut W) -> Result<()> {
     mime_db::EXTENSIONS
         .iter()
-        .try_for_each(|(ext, _)| writeln!(stdout, ".{}", ext))?;
+        .try_for_each(|(ext, _)| writeln!(writer, ".{}", ext))?;
 
     CUSTOM_MIMES
         .iter()
-        .try_for_each(|mime| writeln!(stdout, "{}", mime))?;
+        .try_for_each(|mime| writeln!(writer, "{}", mime))?;
 
     mime_db::TYPES
         .iter()
-        .try_for_each(|(mime, _, _)| writeln!(stdout, "{}", mime))?;
+        .try_for_each(|(mime, _, _)| writeln!(writer, "{}", mime))?;
 
     Ok(())
 }

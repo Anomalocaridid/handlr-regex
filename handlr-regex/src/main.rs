@@ -81,7 +81,7 @@ fn main() -> Result<()> {
                 if desktop_files {
                     SystemApps::list_handlers()?;
                 } else if mimes {
-                    common::db_autocomplete()?;
+                    common::db_autocomplete(&mut std::io::stdout().lock())?;
                 }
             }
         }
