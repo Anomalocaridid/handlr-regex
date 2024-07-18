@@ -1,14 +1,13 @@
-use std::io::IsTerminal;
-
 use tabled::{
     settings::{themes::Colorization, Alignment, Color, Padding, Style},
     Table, Tabled,
 };
 
-pub fn render_table<T: Tabled>(rows: &Vec<T>) -> String {
+/// Render a table from a vector of instances of Tabled structs
+pub fn render_table<T: Tabled>(rows: &Vec<T>, terminal_output: bool) -> String {
     let mut table = Table::new(rows);
 
-    if std::io::stdout().is_terminal() {
+    if terminal_output {
         // If output is going to a terminal, print as a table
         table
             .with(Style::sharp())

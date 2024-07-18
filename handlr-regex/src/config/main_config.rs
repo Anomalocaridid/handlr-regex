@@ -241,7 +241,12 @@ impl Config {
     }
 
     /// Print the set associations and system-level associations in a table
-    pub fn print(&self, detailed: bool, output_json: bool) -> Result<()> {
+    pub fn print(
+        &self,
+        detailed: bool,
+        output_json: bool,
+        terminal_output: bool,
+    ) -> Result<()> {
         let mimeapps_table =
             MimeAppsTable::new(&self.mime_apps, &self.system_apps);
 
@@ -250,21 +255,33 @@ impl Config {
                 println!("{}", serde_json::to_string(&mimeapps_table)?)
             } else {
                 println!("Default Apps");
-                println!("{}", render_table(&mimeapps_table.default_apps));
+                println!(
+                    "{}",
+                    render_table(&mimeapps_table.default_apps, terminal_output)
+                );
                 if !self.mime_apps.added_associations.is_empty() {
                     println!("Added associations");
                     println!(
                         "{}",
-                        render_table(&mimeapps_table.added_associations)
+                        render_table(
+                            &mimeapps_table.added_associations,
+                            terminal_output
+                        )
                     );
                 }
                 println!("System Apps");
-                println!("{}", render_table(&mimeapps_table.system_apps))
+                println!(
+                    "{}",
+                    render_table(&mimeapps_table.system_apps, terminal_output)
+                )
             }
         } else if output_json {
             println!("{}", serde_json::to_string(&mimeapps_table.default_apps)?)
         } else {
-            println!("{}", render_table(&mimeapps_table.default_apps))
+            println!(
+                "{}",
+                render_table(&mimeapps_table.default_apps, terminal_output)
+            )
         }
 
         Ok(())

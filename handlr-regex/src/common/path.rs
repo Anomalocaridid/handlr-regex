@@ -73,7 +73,11 @@ impl UserPathTable {
     }
 }
 
-pub fn mime_table(paths: &[UserPath], output_json: bool) -> Result<()> {
+pub fn mime_table(
+    paths: &[UserPath],
+    output_json: bool,
+    terminal_output: bool,
+) -> Result<()> {
     let rows = paths
         .iter()
         .map(UserPathTable::new)
@@ -82,7 +86,7 @@ pub fn mime_table(paths: &[UserPath], output_json: bool) -> Result<()> {
     let table = if output_json {
         serde_json::to_string(&rows)?
     } else {
-        render_table(&rows)
+        render_table(&rows, terminal_output)
     };
 
     println!("{table}");

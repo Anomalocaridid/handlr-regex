@@ -11,6 +11,7 @@ use std::io::IsTerminal;
 
 fn main() -> Result<()> {
     let mut config = Config::new().unwrap_or_default();
+    let terminal_output = std::io::stdout().is_terminal();
 
     let res = || -> Result<()> {
         match Cmd::parse() {
@@ -62,10 +63,10 @@ fn main() -> Result<()> {
                 disable_selector,
             )?,
             Cmd::Mime { paths, json } => {
-                mime_table(&paths, json)?;
+                mime_table(&paths, json, terminal_output)?;
             }
             Cmd::List { all, json } => {
-                config.print(all, json)?;
+                config.print(all, json, terminal_output)?;
             }
             Cmd::Unset { mime } => {
                 config.unset_handler(&mime)?;
