@@ -26,6 +26,7 @@ pub struct DesktopList(VecDeque<DesktopHandler>);
 impl FromStr for DesktopList {
     type Err = Error;
 
+    // TODO: add tests
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(
             s.split(';')
@@ -50,6 +51,7 @@ pub struct MimeApps {
 }
 
 impl Display for DesktopList {
+    // TODO: add tests
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Ensure final semicolon is added
         write!(f, "{};", self.iter().join(";"))
@@ -117,6 +119,7 @@ impl MimeApps {
     }
 
     /// Get the handler associated with a given mime from mimeapps.list's default apps
+    // TODO: test selector
     pub(crate) fn get_handler_from_user(
         &self,
         mime: &Mime,
@@ -156,6 +159,7 @@ impl MimeApps {
     }
 
     /// Get the path to the user's mimeapps.list file
+    #[mutants::skip] // Cannot test directly, depends on system state
     fn path() -> Result<PathBuf> {
         let mut config = xdg::BaseDirectories::new()?.get_config_home();
         config.push("mimeapps.list");
@@ -163,6 +167,7 @@ impl MimeApps {
     }
 
     /// Read and parse mimeapps.list
+    #[mutants::skip] // Cannot test directly, depends on system state
     pub fn read() -> Result<Self> {
         let exists = std::path::Path::new(&Self::path()?).exists();
 
@@ -182,6 +187,7 @@ impl MimeApps {
     }
 
     /// Save associations to mimeapps.list
+    #[mutants::skip] // Cannot test directly, alters system state
     pub fn save(&self) -> Result<()> {
         let file = std::fs::OpenOptions::new()
             .read(true)
@@ -197,6 +203,7 @@ impl MimeApps {
 }
 
 /// Run given selector command
+// TODO: add tests
 fn select<O: Iterator<Item = String>>(
     selector: &str,
     mut opts: O,

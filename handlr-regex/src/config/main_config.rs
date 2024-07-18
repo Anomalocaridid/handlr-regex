@@ -66,6 +66,8 @@ impl Config {
     }
 
     /// Given a mime and arguments, launch the associated handler with the arguments
+    /// If a terminal emulator is needed, but not set, one will be chosen and set
+    #[mutants::skip] // Cannot test directly, alters system state
     pub fn launch_handler(
         &mut self,
         mime: &Mime,
@@ -87,6 +89,8 @@ impl Config {
     }
 
     /// Get the handler associated with a given mime
+    /// If a terminal emulator is needed, but not set, one will be chosen and set
+    #[mutants::skip] // Cannot test directly, alters system state
     pub fn show_handler(
         &mut self,
         mime: &Mime,
@@ -120,6 +124,7 @@ impl Config {
 
     /// Set a default application association, overwriting any existing association for the same mimetype
     /// and writes it to mimeapps.list
+    #[mutants::skip] // Cannot test directly, alters system state
     pub fn set_handler(
         &mut self,
         mime: &Mime,
@@ -131,6 +136,7 @@ impl Config {
 
     /// Add a handler to an existing default application association
     /// and writes it to mimeapps.list
+    #[mutants::skip] // Cannot test directly, alters system state
     pub fn add_handler(
         &mut self,
         mime: &Mime,
@@ -141,6 +147,8 @@ impl Config {
     }
 
     /// Open the given paths with their respective handlers
+    /// If a terminal emulator is needed, but not set, one will be chosen and set
+    #[mutants::skip] // Cannot test directly, alters system state
     pub fn open_paths(
         &mut self,
         paths: &[UserPath],
@@ -189,6 +197,7 @@ impl Config {
 
     /// Get the command for the x-scheme-handler/terminal handler if one is set.
     /// Otherwise, finds a terminal emulator program, sets it as the handler, and makes a notification.
+    #[mutants::skip] // Cannot test directly, alters system state
     pub fn terminal(
         &mut self,
         selector: &str,
@@ -241,6 +250,7 @@ impl Config {
     }
 
     /// Print the set associations and system-level associations in a table
+    // TODO: refactor and add tests
     pub fn print(
         &self,
         detailed: bool,
@@ -288,6 +298,7 @@ impl Config {
     }
 
     /// Entirely remove a given mime's default application association
+    #[mutants::skip] // Cannot test directly, alters system state
     pub fn unset_handler(&mut self, mime: &Mime) -> Result<()> {
         if self.mime_apps.unset_handler(mime).is_some() {
             self.mime_apps.save()?
@@ -297,6 +308,7 @@ impl Config {
     }
 
     /// Remove a given handler from a given mime's default file associaion
+    #[mutants::skip] // Cannot test directly, alters system state
     pub fn remove_handler(
         &mut self,
         mime: &Mime,
@@ -331,6 +343,7 @@ impl MimeAppsEntry {
     }
 
     /// Display list of handlers as a string
+    // TODO: add tests
     fn display_handlers(&self) -> String {
         // If output is a terminal, optimize for readability
         // Otherwise, if piped, optimize for parseability

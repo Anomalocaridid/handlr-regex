@@ -31,6 +31,7 @@ pub trait Handleable {
     /// Get the desktop entry associated with the handler
     fn get_entry(&self) -> Result<DesktopEntry>;
     /// Open the given paths with the handler
+    #[mutants::skip] // Cannot test directly, runs commands
     fn open(
         &self,
         config: &mut Config,
@@ -68,6 +69,7 @@ impl FromStr for DesktopHandler {
 }
 
 impl Handleable for DesktopHandler {
+    #[mutants::skip] // Cannot test directly, depends on system state
     fn get_entry(&self) -> Result<DesktopEntry> {
         DesktopEntry::try_from(Self::get_path(&self.0)?)
     }
@@ -80,6 +82,7 @@ impl DesktopHandler {
     }
 
     /// Get the path of a given desktop entry file
+    #[mutants::skip] // Cannot test directly, depends on system state
     pub fn get_path(name: &std::ffi::OsStr) -> Result<PathBuf> {
         let mut path = PathBuf::from("applications");
         path.push(name);
@@ -98,6 +101,7 @@ impl DesktopHandler {
     }
 
     /// Launch a DesktopHandler's desktop entry
+    #[mutants::skip] // Cannot test directly, runs command
     pub fn launch(
         &self,
         config: &mut Config,
@@ -143,6 +147,7 @@ impl Handleable for RegexHandler {
 struct HandlerRegexSet(#[serde(with = "serde_regex")] RegexSet);
 
 impl PartialEq for HandlerRegexSet {
+    // TODO: add tests
     fn eq(&self, other: &Self) -> bool {
         self.patterns() == other.patterns()
     }
@@ -151,6 +156,7 @@ impl PartialEq for HandlerRegexSet {
 impl Eq for HandlerRegexSet {}
 
 impl Hash for HandlerRegexSet {
+    // TODO: add tests
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.patterns().hash(state);
     }

@@ -46,6 +46,7 @@ pub enum Mode {
 
 impl DesktopEntry {
     /// Execute the command in `exec` in the given mode and with the given arguments
+    #[mutants::skip] // Cannot test directly, runs command
     pub fn exec(
         &self,
         config: &mut Config,
@@ -70,6 +71,7 @@ impl DesktopEntry {
     }
 
     /// Internal helper function for `exec`
+    #[mutants::skip] // Cannot test directly, runs command
     fn exec_inner(
         &self,
         config: &mut Config,
@@ -95,6 +97,7 @@ impl DesktopEntry {
     }
 
     /// Get the `exec` command, formatted with given arguments
+    #[mutants::skip] // Cannot test directly, alters system state
     pub fn get_cmd(
         &self,
         config: &mut Config,
@@ -154,6 +157,7 @@ impl DesktopEntry {
     }
 
     /// Parse a desktop entry file, given a path
+    // TODO: add tests
     fn parse_file(path: &Path) -> Option<DesktopEntry> {
         // Assume the set locales will not change while handlr is running
         static LOCALES: Lazy<Vec<String>> = Lazy::new(get_languages_from_env);
@@ -189,6 +193,7 @@ impl DesktopEntry {
 
     /// Make a fake DesktopEntry given only a value for exec and terminal.
     /// All other keys will have default values.
+    // TODO: add tests
     pub(crate) fn fake_entry(exec: &str, terminal: bool) -> DesktopEntry {
         DesktopEntry {
             exec: exec.to_owned(),
@@ -211,6 +216,7 @@ impl DesktopEntry {
 
 impl TryFrom<PathBuf> for DesktopEntry {
     type Error = Error;
+    // TODO: add tests
     fn try_from(path: PathBuf) -> Result<Self> {
         Self::parse_file(&path).ok_or(Error::from(ErrorKind::BadEntry(path)))
     }

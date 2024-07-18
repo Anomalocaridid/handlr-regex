@@ -12,16 +12,19 @@ pub struct SystemApps(HashMap<Mime, DesktopList>);
 
 impl SystemApps {
     /// Get the list of handlers associated with a given mime
+    // TODO: test
     pub fn get_handlers(&self, mime: &Mime) -> Option<DesktopList> {
         Some(self.get(mime)?.clone())
     }
 
     /// Get the primary of handler associated with a given mime
+    // TODO: test
     pub fn get_handler(&self, mime: &Mime) -> Option<DesktopHandler> {
         Some(self.get_handlers(mime)?.front()?.clone())
     }
 
     /// Get all system-level desktop entries on the system
+    #[mutants::skip] // Cannot test directly, depends on system state
     pub fn get_entries(
     ) -> Result<impl Iterator<Item = (OsString, DesktopEntry)>> {
         Ok(xdg::BaseDirectories::new()?
@@ -39,6 +42,7 @@ impl SystemApps {
     }
 
     /// Create a new instance of `SystemApps`
+    #[mutants::skip] // Cannot test directly, depends on system state
     pub fn populate() -> Result<Self> {
         let mut map = HashMap::<Mime, DesktopList>::with_capacity(50);
 
@@ -55,6 +59,7 @@ impl SystemApps {
     }
 
     /// List the available handlers
+    // TODO: refactor to test
     pub fn list_handlers() -> Result<()> {
         use std::io::Write;
 

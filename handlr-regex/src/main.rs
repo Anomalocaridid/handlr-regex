@@ -9,6 +9,7 @@ use handlr_regex::{
 };
 use std::io::IsTerminal;
 
+#[mutants::skip] // Cannot test directly at the moment
 fn main() -> Result<()> {
     let mut config = Config::new().unwrap_or_default();
     let terminal_output = std::io::stdout().is_terminal();

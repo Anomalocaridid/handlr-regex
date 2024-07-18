@@ -43,11 +43,13 @@ impl ConfigFile {
     }
 
     /// Load ~/.config/handlr/handlr.toml
+    #[mutants::skip] // Cannot test directly, depends on system state
     pub(super) fn load() -> Result<Self> {
         Ok(confy::load("handlr")?)
     }
 
     /// Determine whether or not the selector should be enabled
+    // TODO: add tests
     pub(super) fn use_selector(
         &self,
         enable_selector: bool,
