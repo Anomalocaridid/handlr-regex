@@ -88,7 +88,7 @@ fn main() -> Result<()> {
         Ok(())
     }();
 
-    match (res, std::io::stdout().is_terminal()) {
+    match (res, terminal_output) {
         (Err(e), _) if matches!(*e.kind, ErrorKind::Cancelled) => {
             std::process::exit(1);
         }
