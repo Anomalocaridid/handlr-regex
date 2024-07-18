@@ -58,6 +58,9 @@ pub enum ErrorKind {
     #[cfg(test)]
     #[error(transparent)]
     BadUrl(#[from] url::ParseError),
+    #[cfg(test)]
+    #[error(transparent)]
+    FromUtf8Error(#[from] std::string::FromUtf8Error),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

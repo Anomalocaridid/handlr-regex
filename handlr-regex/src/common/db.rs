@@ -23,3 +23,16 @@ pub fn autocomplete<W: Write>(writer: &mut W) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn autocomplete_mimes_and_extensions() -> Result<()> {
+        let mut buffer = Vec::new();
+        autocomplete(&mut buffer)?;
+        goldie::assert!(String::from_utf8(buffer)?);
+        Ok(())
+    }
+}
