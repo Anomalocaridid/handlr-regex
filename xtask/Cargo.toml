@@ -1,11 +1,10 @@
 [package]
 name = "xtask"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version.workspace = true
+edition.workspace = true
+publish = false
 
 [dependencies]
-handlr-regex = { path = "../handlr-regex" }
-clap = { version = "4.5.2", features = ["derive"] }
+handlr-regex = { path = ".." }
+clap.workspace = true
 clap_mangen = "0.2.20"
