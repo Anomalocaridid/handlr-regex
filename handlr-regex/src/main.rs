@@ -36,7 +36,6 @@ fn main() -> Result<()> {
                     selector,
                     enable_selector,
                     disable_selector,
-                    terminal_output,
                 )?;
             }
             Cmd::Get {
@@ -53,7 +52,6 @@ fn main() -> Result<()> {
                     selector,
                     enable_selector,
                     disable_selector,
-                    terminal_output,
                 )?;
             }
             Cmd::Open {
@@ -66,13 +64,12 @@ fn main() -> Result<()> {
                 selector,
                 enable_selector,
                 disable_selector,
-                terminal_output,
             )?,
             Cmd::Mime { paths, json } => {
                 mime_table(&mut stdout, &paths, json, terminal_output)?;
             }
             Cmd::List { all, json } => {
-                config.print(&mut stdout, all, json, terminal_output)?;
+                config.print(&mut stdout, all, json)?;
             }
             Cmd::Unset { mime } => {
                 config.unset_handler(&mime)?;

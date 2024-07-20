@@ -2,7 +2,7 @@ use mime::Mime;
 use serde::Serialize;
 use std::{
     collections::{HashMap, VecDeque},
-    io::Write,
+    io::{IsTerminal, Write},
     str::FromStr,
 };
 use tabled::Tabled;
@@ -18,9 +18,14 @@ use crate::{
 /// Used to streamline explicitly passing state.
 #[derive(Default)]
 pub struct Config {
+    /// User-configured associations
     mime_apps: MimeApps,
+    /// Available applications on the system
     system_apps: SystemApps,
+    /// Handlr-specific config file
     config: ConfigFile,
+    /// Whether or not stdout is a terminal
+    pub terminal_output: bool,
 }
 
 impl Config {
@@ -30,6 +35,7 @@ impl Config {
             mime_apps: MimeApps::read()?,
             system_apps: SystemApps::populate()?,
             config: ConfigFile::load()?,
+            terminal_output: std::io::stdout().is_terminal(),
         })
     }
 
@@ -75,7 +81,6 @@ impl Config {
         selector: Option<String>,
         enable_selector: bool,
         disable_selector: bool,
-        terminal_output: bool,
     ) -> Result<()> {
         let selector = selector.unwrap_or(self.config.selector.clone());
         let use_selector =
@@ -86,7 +91,6 @@ impl Config {
             args.into_iter().map(|a| a.to_string()).collect(),
             &selector,
             use_selector,
-            terminal_output,
         )
     }
 
@@ -101,7 +105,6 @@ impl Config {
         selector: Option<String>,
         enable_selector: bool,
         disable_selector: bool,
-        terminal_output: bool,
     ) -> Result<()> {
         let selector = selector.unwrap_or(self.config.selector.clone());
         let use_selector =
@@ -111,13 +114,7 @@ impl Config {
 
         let output = if output_json {
             let entry = handler.get_entry()?;
-            let cmd = entry.get_cmd(
-                self,
-                vec![],
-                &selector,
-                use_selector,
-                terminal_output,
-            )?;
+            let cmd = entry.get_cmd(self, vec![], &selector, use_selector)?;
 
             (serde_json::json!( {
                 "handler": handler.to_string(),
@@ -165,7 +162,6 @@ impl Config {
         selector: Option<String>,
         enable_selector: bool,
         disable_selector: bool,
-        terminal_output: bool,
     ) -> Result<()> {
         let selector = selector.unwrap_or(self.config.selector.clone());
         let use_selector =
@@ -185,13 +181,7 @@ impl Config {
         }
 
         for (handler, paths) in handlers.into_iter() {
-            handler.open(
-                self,
-                paths,
-                &selector,
-                use_selector,
-                terminal_output,
-            )?;
+            handler.open(self, paths, &selector, use_selector)?;
         }
 
         Ok(())
@@ -272,12 +262,11 @@ impl Config {
         writer: &mut W,
         detailed: bool,
         output_json: bool,
-        terminal_output: bool,
     ) -> Result<()> {
         let mimeapps_table = MimeAppsTable::new(
             &self.mime_apps,
             &self.system_apps,
-            terminal_output,
+            self.terminal_output,
         );
 
         if detailed {
@@ -288,7 +277,10 @@ impl Config {
                 writeln!(
                     writer,
                     "{}",
-                    render_table(&mimeapps_table.default_apps, terminal_output)
+                    render_table(
+                        &mimeapps_table.default_apps,
+                        self.terminal_output
+                    )
                 )?;
                 if !self.mime_apps.added_associations.is_empty() {
                     writeln!(writer, "Added associations")?;
@@ -297,7 +289,7 @@ impl Config {
                         "{}",
                         render_table(
                             &mimeapps_table.added_associations,
-                            terminal_output
+                            self.terminal_output
                         )
                     )?;
                 }
@@ -305,7 +297,10 @@ impl Config {
                 writeln!(
                     writer,
                     "{}",
-                    render_table(&mimeapps_table.system_apps, terminal_output)
+                    render_table(
+                        &mimeapps_table.system_apps,
+                        self.terminal_output
+                    )
                 )?
             }
         } else if output_json {
@@ -318,7 +313,10 @@ impl Config {
             writeln!(
                 writer,
                 "{}",
-                render_table(&mimeapps_table.default_apps, terminal_output)
+                render_table(
+                    &mimeapps_table.default_apps,
+                    self.terminal_output
+                )
             )?
         }
 
@@ -557,7 +555,10 @@ mod tests {
                 "org.wezfurlong.wezterm.desktop".into(),
             ));
 
-        config.print(buffer, detailed, output_json, terminal_output)?;
+        // Set terminal output
+        config.terminal_output = terminal_output;
+
+        config.print(buffer, detailed, output_json)?;
 
         Ok(())
     }

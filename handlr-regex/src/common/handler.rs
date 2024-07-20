@@ -38,7 +38,6 @@ pub trait Handleable {
         args: Vec<String>,
         selector: &str,
         enable_selector: bool,
-        terminal_output: bool,
     ) -> Result<()> {
         self.get_entry()?.exec(
             config,
@@ -46,7 +45,6 @@ pub trait Handleable {
             args,
             selector,
             enable_selector,
-            terminal_output,
         )
     }
 }
@@ -110,7 +108,6 @@ impl DesktopHandler {
         args: Vec<String>,
         selector: &str,
         enable_selector: bool,
-        terminal_output: bool,
     ) -> Result<()> {
         self.get_entry()?.exec(
             config,
@@ -118,7 +115,6 @@ impl DesktopHandler {
             args,
             selector,
             enable_selector,
-            terminal_output,
         )
     }
 }
