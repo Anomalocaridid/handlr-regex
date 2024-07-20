@@ -1,12 +1,17 @@
+mod apps;
+mod cli;
+mod common;
+mod config;
+mod error;
+mod utils;
+
+use apps::SystemApps;
+use cli::Cmd;
+use common::mime_table;
+use config::Config;
+use error::{ErrorKind, Result};
+
 use clap::Parser;
-use handlr_regex::{
-    apps::SystemApps,
-    cli::Cmd,
-    common::{self, mime_table},
-    config::Config,
-    error::{ErrorKind, Result},
-    utils,
-};
 use std::io::IsTerminal;
 
 #[mutants::skip] // Cannot test directly at the moment
