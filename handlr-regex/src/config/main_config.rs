@@ -75,6 +75,7 @@ impl Config {
         selector: Option<String>,
         enable_selector: bool,
         disable_selector: bool,
+        terminal_output: bool,
     ) -> Result<()> {
         let selector = selector.unwrap_or(self.config.selector.clone());
         let use_selector =
@@ -85,6 +86,7 @@ impl Config {
             args.into_iter().map(|a| a.to_string()).collect(),
             &selector,
             use_selector,
+            terminal_output,
         )
     }
 
@@ -99,6 +101,7 @@ impl Config {
         selector: Option<String>,
         enable_selector: bool,
         disable_selector: bool,
+        terminal_output: bool,
     ) -> Result<()> {
         let selector = selector.unwrap_or(self.config.selector.clone());
         let use_selector =
@@ -108,7 +111,13 @@ impl Config {
 
         let output = if output_json {
             let entry = handler.get_entry()?;
-            let cmd = entry.get_cmd(self, vec![], &selector, use_selector)?;
+            let cmd = entry.get_cmd(
+                self,
+                vec![],
+                &selector,
+                use_selector,
+                terminal_output,
+            )?;
 
             (serde_json::json!( {
                 "handler": handler.to_string(),
@@ -156,6 +165,7 @@ impl Config {
         selector: Option<String>,
         enable_selector: bool,
         disable_selector: bool,
+        terminal_output: bool,
     ) -> Result<()> {
         let selector = selector.unwrap_or(self.config.selector.clone());
         let use_selector =
@@ -175,7 +185,13 @@ impl Config {
         }
 
         for (handler, paths) in handlers.into_iter() {
-            handler.open(self, paths, &selector, use_selector)?;
+            handler.open(
+                self,
+                paths,
+                &selector,
+                use_selector,
+                terminal_output,
+            )?;
         }
 
         Ok(())

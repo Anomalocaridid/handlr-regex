@@ -12,7 +12,6 @@ use once_cell::sync::Lazy;
 use std::{
     convert::TryFrom,
     ffi::OsString,
-    io::IsTerminal,
     path::{Path, PathBuf},
     process::{Command, Stdio},
     str::FromStr,
@@ -54,16 +53,35 @@ impl DesktopEntry {
         arguments: Vec<String>,
         selector: &str,
         use_selector: bool,
+        terminal_output: bool,
     ) -> Result<()> {
         let supports_multiple =
             self.exec.contains("%F") || self.exec.contains("%U");
         if arguments.is_empty() {
-            self.exec_inner(config, vec![], selector, use_selector)?
+            self.exec_inner(
+                config,
+                vec![],
+                selector,
+                use_selector,
+                terminal_output,
+            )?
         } else if supports_multiple || mode == Mode::Launch {
-            self.exec_inner(config, arguments, selector, use_selector)?;
+            self.exec_inner(
+                config,
+                arguments,
+                selector,
+                use_selector,
+                terminal_output,
+            )?;
         } else {
             for arg in arguments {
-                self.exec_inner(config, vec![arg], selector, use_selector)?;
+                self.exec_inner(
+                    config,
+                    vec![arg],
+                    selector,
+                    use_selector,
+                    terminal_output,
+                )?;
             }
         };
 
@@ -78,16 +96,22 @@ impl DesktopEntry {
         args: Vec<String>,
         selector: &str,
         use_selector: bool,
+        terminal_output: bool,
     ) -> Result<()> {
         let mut cmd = {
-            let (cmd, args) =
-                self.get_cmd(config, args, selector, use_selector)?;
+            let (cmd, args) = self.get_cmd(
+                config,
+                args,
+                selector,
+                use_selector,
+                terminal_output,
+            )?;
             let mut cmd = Command::new(cmd);
             cmd.args(args);
             cmd
         };
 
-        if self.terminal && std::io::stdout().is_terminal() {
+        if self.terminal && terminal_output {
             cmd.spawn()?.wait()?;
         } else {
             cmd.stdout(Stdio::null()).stderr(Stdio::null()).spawn()?;
@@ -104,6 +128,7 @@ impl DesktopEntry {
         args: Vec<String>,
         selector: &str,
         use_selector: bool,
+        terminal_output: bool,
     ) -> Result<(String, Vec<String>)> {
         let special =
             AhoCorasick::new_auto_configured(&["%f", "%F", "%u", "%U"]);
@@ -144,7 +169,7 @@ impl DesktopEntry {
 
         // If the entry expects a terminal (emulator), but this process is not running in one, we
         // launch a new one.
-        if self.terminal && !std::io::stdout().is_terminal() {
+        if self.terminal && terminal_output {
             let term_cmd = config.terminal(selector, use_selector)?;
             exec = shlex::split(&term_cmd)
                 .ok_or_else(|| Error::from(ErrorKind::BadCmd(term_cmd)))?
@@ -234,7 +259,7 @@ mod tests {
 
         let mut config = Config::default();
         let args = vec!["test".to_string()];
-        assert_eq!(entry.get_cmd(&mut config, args, "", false)?,
+        assert_eq!(entry.get_cmd(&mut config, args, "", false, false)?,
             (
                 "bash".to_string(),
                 [
@@ -258,7 +283,7 @@ mod tests {
         let mut config = Config::default();
         let args = vec!["test".to_string()];
         assert_eq!(
-            entry.get_cmd(&mut config, args, "", false)?,
+            entry.get_cmd(&mut config, args, "", false, false)?,
             (
                 "wezterm".to_string(),
                 ["start", "--cwd", ".", "test"]
