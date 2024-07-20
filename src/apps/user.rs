@@ -52,10 +52,10 @@ impl FromStr for DesktopList {
 pub struct MimeApps {
     #[serde(rename = "Added Associations")]
     #[serde_as(as = "HashMap<DisplayFromStr, _>")]
-    pub(crate) added_associations: HashMap<Mime, DesktopList>,
+    pub added_associations: HashMap<Mime, DesktopList>,
     #[serde(rename = "Default Applications")]
     #[serde_as(as = "HashMap<DisplayFromStr, _>")]
-    pub(crate) default_apps: HashMap<Mime, DesktopList>,
+    pub default_apps: HashMap<Mime, DesktopList>,
 }
 
 impl Display for DesktopList {
@@ -127,7 +127,7 @@ impl MimeApps {
 
     /// Get the handler associated with a given mime from mimeapps.list's default apps
     #[mutants::skip] // Cannot entirely test, namely cannot test selector functionality
-    pub(crate) fn get_handler_from_user(
+    pub fn get_handler_from_user(
         &self,
         mime: &Mime,
         selector: &str,

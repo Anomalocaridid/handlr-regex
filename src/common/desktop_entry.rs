@@ -21,17 +21,17 @@ use std::{
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DesktopEntry {
     /// Name of the application
-    pub(crate) name: String,
+    pub name: String,
     /// Command to execute
-    pub(crate) exec: String,
+    pub exec: String,
     /// Name of the desktop entry file
-    pub(crate) file_name: OsString,
+    pub file_name: OsString,
     /// Whether the program runs in a terminal window
-    pub(crate) terminal: bool,
+    pub terminal: bool,
     /// The MIME type(s) supported by this application
-    pub(crate) mime_type: Vec<Mime>,
+    pub mime_type: Vec<Mime>,
     /// Categories in which the entry should be shown in a menu
-    pub(crate) categories: Vec<String>,
+    pub categories: Vec<String>,
 }
 
 /// Modes for running a DesktopFile's `exec` command
@@ -191,7 +191,7 @@ impl DesktopEntry {
 
     /// Make a fake DesktopEntry given only a value for exec and terminal.
     /// All other keys will have default values.
-    pub(crate) fn fake_entry(exec: &str, terminal: bool) -> DesktopEntry {
+    pub fn fake_entry(exec: &str, terminal: bool) -> DesktopEntry {
         DesktopEntry {
             exec: exec.to_owned(),
             terminal,
