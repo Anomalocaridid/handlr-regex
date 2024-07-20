@@ -1,5 +1,11 @@
+mod cli {
+    include!("../../src/cli.rs");
+}
+mod common; // Trick the cli module into cooperating
+
+use cli::Cmd;
+
 use clap::{CommandFactory, Parser};
-use handlr_regex::cli::Cmd;
 use std::{
     env,
     error::Error,

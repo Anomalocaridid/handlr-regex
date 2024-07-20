@@ -11,6 +11,7 @@ clap = { version = "4.5.2", features = ["derive"] }
 [workspace.package]
 edition = "2021"
 version = "0.10.1"
+description = "Fork of handlr with regex support"
 
 [package]
 name = "handlr-regex"
@@ -18,7 +19,7 @@ version.workspace = true
 authors = ["Duncan Russell <Duncan@anomalocaris.xyz>", "Gregory <gregory.mkv@gmail.com>"]
 edition.workspace = true
 license = "MIT"
-description = "Fork of handlr with regex support"
+description.workspace = true
 repository = "https://github.com/Anomalocaridid/handlr-regex"
 readme = "../README.md"
 

@@ -3,8 +3,8 @@ name = "xtask"
 version.workspace = true
 edition.workspace = true
 publish = false
+description.workspace = true
 
 [dependencies]
-handlr-regex = { path = ".." }
 clap.workspace = true
 clap_mangen = "0.2.20"

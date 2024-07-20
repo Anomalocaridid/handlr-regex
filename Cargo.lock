@@ -2113,7 +2113,6 @@ version = "0.10.1"
 dependencies = [
  "clap",
  "clap_mangen",
- "handlr-regex",
 ]
 
 [[package]]
