@@ -12,6 +12,7 @@ use serde_with::{
 use std::{
     collections::{HashMap, VecDeque},
     fmt::Display,
+    io::Read,
     path::PathBuf,
     str::FromStr,
 };
@@ -184,7 +185,13 @@ impl MimeApps {
             .read(true)
             .open(Self::path()?)?;
 
-        let mut mimeapps: Self = serde_ini::de::from_read(file)?;
+        Self::read_from(file)
+    }
+
+    /// Create MimeApps from reader
+    /// Makes testing easier
+    fn read_from<R: Read>(reader: R) -> Result<Self> {
+        let mut mimeapps: Self = serde_ini::de::from_read(reader)?;
 
         // Remove empty default associations
         // Can happen if all handlers set are invalid (e.g. do not exist)
