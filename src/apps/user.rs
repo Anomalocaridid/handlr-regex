@@ -12,7 +12,7 @@ use serde_with::{
 use std::{
     collections::{HashMap, VecDeque},
     fmt::Display,
-    io::Read,
+    io::{Read, Write},
     path::PathBuf,
     str::FromStr,
 };
@@ -35,13 +35,23 @@ pub struct DesktopList(VecDeque<DesktopHandler>);
 impl FromStr for DesktopList {
     type Err = Error;
 
-    #[mutants::skip] // Cannot test directly, depends on system state
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Kludge to help with testing this and things that rely on this
+        // Otherwise, this would depend on system state
+        fn filter(s: &str) -> Option<DesktopHandler> {
+            #[cfg(not(test))]
+            let result = DesktopHandler::from_str(s).ok();
+            #[cfg(test)]
+            let result = Some(DesktopHandler::assume_valid(s.into()));
+
+            result
+        }
+
         Ok(Self(
             s.split(';')
                 .filter(|s| !s.is_empty()) // Account for ending semicolon
                 .unique()
-                .filter_map(|s| DesktopHandler::from_str(s).ok())
+                .filter_map(filter)
                 .collect::<VecDeque<DesktopHandler>>(),
         ))
     }
@@ -188,7 +198,7 @@ impl MimeApps {
         Self::read_from(file)
     }
 
-    /// Create MimeApps from reader
+    /// Deserialize MimeApps from reader
     /// Makes testing easier
     fn read_from<R: Read>(reader: R) -> Result<Self> {
         let mut mimeapps: Self = serde_ini::de::from_read(reader)?;
@@ -203,15 +213,20 @@ impl MimeApps {
     /// Save associations to mimeapps.list
     #[mutants::skip] // Cannot test directly, alters system state
     pub fn save(&self) -> Result<()> {
-        let file = std::fs::OpenOptions::new()
+        let mut file = std::fs::OpenOptions::new()
             .read(true)
             .create(true)
             .write(true)
             .truncate(true)
             .open(Self::path()?)?;
 
-        serde_ini::ser::to_writer(file, self)?;
+        self.save_to(&mut file)
+    }
 
+    /// Serialize MimeApps and write to writer
+    /// Makes testing easier
+    fn save_to<W: Write>(&self, writer: &mut W) -> Result<()> {
+        serde_ini::ser::to_writer(writer, self)?;
         Ok(())
     }
 }
@@ -264,6 +279,8 @@ fn select<O: Iterator<Item = String>>(
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+
     use super::*;
 
     fn test_add_handlers(mime_apps: &mut MimeApps) -> Result<()> {
@@ -436,6 +453,42 @@ mod tests {
         assert_eq!(
             format!("{desktop_list}"),
             "helix.desktop;nvim.desktop;kakoune.desktop;"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn mimeapps_no_added_round_trip() -> Result<()> {
+        let path = "./tests/mimeapps_no_added.list";
+        let file = File::open(path)?;
+        let mime_apps = MimeApps::read_from(file)?;
+
+        let mut buffer = Vec::new();
+        mime_apps.save_to(&mut buffer)?;
+
+        assert_eq!(
+            String::from_utf8(buffer)?,
+            // Unfortunately, serde_ini outputs \r\n line endings
+            std::fs::read_to_string(path)?.replace('\n', "\r\n")
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn mimeapps_no_default_round_trip() -> Result<()> {
+        let path = "./tests/mimeapps_no_default.list";
+        let file = File::open(path)?;
+        let mime_apps = MimeApps::read_from(file)?;
+
+        let mut buffer = Vec::new();
+        mime_apps.save_to(&mut buffer)?;
+
+        assert_eq!(
+            String::from_utf8(buffer)?,
+            // Unfortunately, serde_ini outputs \r\n line endings
+            std::fs::read_to_string(path)?.replace('\n', "\r\n")
         );
 
         Ok(())
