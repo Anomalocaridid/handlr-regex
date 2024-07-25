@@ -60,11 +60,15 @@ impl FromStr for DesktopList {
 /// Represents user-configured mimeapps.list file
 #[serde_as]
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
+// IMPORTANT: This ensures missing fields are replaced by a default value rather than making deserialization fail entirely
+#[serde(default)]
 pub struct MimeApps {
     #[serde(rename = "Added Associations")]
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
     #[serde_as(as = "HashMap<DisplayFromStr, _>")]
     pub added_associations: HashMap<Mime, DesktopList>,
     #[serde(rename = "Default Applications")]
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
     #[serde_as(as = "HashMap<DisplayFromStr, _>")]
     pub default_apps: HashMap<Mime, DesktopList>,
 }
