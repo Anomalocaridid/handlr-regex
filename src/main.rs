@@ -16,7 +16,7 @@ use std::io::IsTerminal;
 
 #[mutants::skip] // Cannot test directly at the moment
 fn main() -> Result<()> {
-    let mut config = Config::new().unwrap_or_default();
+    let mut config = Config::new();
     let terminal_output = std::io::stdout().is_terminal();
     let mut stdout = std::io::stdout().lock();
 

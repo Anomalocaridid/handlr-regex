@@ -30,13 +30,14 @@ pub struct Config {
 
 impl Config {
     /// Create a new instance of AppsConfig
-    pub fn new() -> Result<Self> {
-        Ok(Self {
-            mime_apps: MimeApps::read()?,
-            system_apps: SystemApps::populate()?,
-            config: ConfigFile::load()?,
+    pub fn new() -> Self {
+        Self {
+            // Ensure fields individually default rather than making the whole thing fail if one is missing
+            mime_apps: MimeApps::read().unwrap_or_default(),
+            system_apps: SystemApps::populate().unwrap_or_default(),
+            config: ConfigFile::load().unwrap_or_default(),
             terminal_output: std::io::stdout().is_terminal(),
-        })
+        }
     }
 
     /// Get the handler associated with a given mime
