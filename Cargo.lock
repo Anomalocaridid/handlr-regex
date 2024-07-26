@@ -640,6 +640,7 @@ dependencies = [
  "mime-db",
  "mutants",
  "once_cell",
+ "pretty_assertions",
  "regex",
  "serde",
  "serde_ini",

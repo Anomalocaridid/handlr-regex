@@ -54,6 +54,7 @@ path = "src/main.rs"
 
 [dev-dependencies]
 goldie = "0.5.0"
+pretty_assertions = "1.4.0"
 
 [profile.release]
 opt-level = "z"

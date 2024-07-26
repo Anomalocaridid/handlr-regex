@@ -1,0 +1,31 @@
+[Added Associations]
+video/vnd.youtube.yt=freetube.desktop;
+x-scheme-handler/terminal=org.wezfurlong.wezterm.desktop;org.codeberg.dnkl.foot.desktop;
+[Default Applications]
+application/msword=writer.desktop;
+application/pdf=org.pwmt.zathura-pdf-mupdf.desktop;
+application/vnd.ms-excel=calc.desktop;
+application/vnd.ms-powerpoint=impress.desktop;
+application/vnd.oasis.opendocument.database=base.desktop;
+application/vnd.oasis.opendocument.formula=math.desktop;
+application/vnd.oasis.opendocument.graphics=draw.desktop;
+application/vnd.oasis.opendocument.presentation=impress.desktop;
+application/vnd.oasis.opendocument.presentation-template=impress.desktop;
+application/vnd.oasis.opendocument.spreadsheet=calc.desktop;
+application/vnd.oasis.opendocument.spreadsheet-flat-xml=calc.desktop;
+application/vnd.oasis.opendocument.text=writer.desktop;
+application/vnd.oasis.opendocument.text-template=writer.desktop;
+application/vnd.openxmlformats-officedocument.presentationml.presentation=impress.desktop;
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet=calc.desktop;
+application/vnd.openxmlformats-officedocument.wordprocessingml.document=writer.desktop;
+application/vnd.openxmlformats-officedocument.wordprocessingml.template=writer.desktop;
+application/x-yaml=Helix.desktop;
+audio/*=org.strawberrymusicplayer.strawberry.desktop;
+image/*=imv.desktop;
+inode/directory=yazi.desktop;
+text/*=Helix.desktop;nvim.desktop;
+text/html=firefox.desktop;Helix.desktop;nvim.desktop;
+video/*=mpv.desktop;
+x-scheme-handler/http=firefox.desktop;
+x-scheme-handler/https=firefox.desktop;
+x-scheme-handler/terminal=org.wezfurlong.wezterm.desktop;

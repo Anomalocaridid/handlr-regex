@@ -283,9 +283,9 @@ fn select<O: Iterator<Item = String>>(
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
-
     use super::*;
+    use pretty_assertions::assert_eq;
+    use std::fs::File;
 
     fn test_add_handlers(mime_apps: &mut MimeApps) -> Result<()> {
         mime_apps.add_handler(
@@ -462,9 +462,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn mimeapps_no_added_round_trip() -> Result<()> {
-        let path = "./tests/mimeapps_no_added.list";
+    // Helper function to test serializing and deserializing mimeapps.list files
+    fn mimeapps_round_trip(path: &str) -> Result<()> {
         let file = File::open(path)?;
         let mime_apps = MimeApps::read_from(file)?;
 
@@ -481,20 +480,17 @@ mod tests {
     }
 
     #[test]
+    fn mimeapps_no_added_round_trip() -> Result<()> {
+        mimeapps_round_trip("./tests/mimeapps_no_added.list")
+    }
+
+    #[test]
     fn mimeapps_no_default_round_trip() -> Result<()> {
-        let path = "./tests/mimeapps_no_default.list";
-        let file = File::open(path)?;
-        let mime_apps = MimeApps::read_from(file)?;
+        mimeapps_round_trip("./tests/mimeapps_no_default.list")
+    }
 
-        let mut buffer = Vec::new();
-        mime_apps.save_to(&mut buffer)?;
-
-        assert_eq!(
-            String::from_utf8(buffer)?,
-            // Unfortunately, serde_ini outputs \r\n line endings
-            std::fs::read_to_string(path)?.replace('\n', "\r\n")
-        );
-
-        Ok(())
+    #[test]
+    fn mimeapps_sorted_round_trip() -> Result<()> {
+        mimeapps_round_trip("./tests/mimeapps_sorted.list")
     }
 }
