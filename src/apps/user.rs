@@ -10,7 +10,7 @@ use serde_with::{
     serde_as, DeserializeFromStr, DisplayFromStr, SerializeDisplay,
 };
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{BTreeMap, VecDeque},
     fmt::Display,
     io::{Read, Write},
     path::PathBuf,
@@ -64,13 +64,13 @@ impl FromStr for DesktopList {
 #[serde(default)]
 pub struct MimeApps {
     #[serde(rename = "Added Associations")]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    #[serde_as(as = "HashMap<DisplayFromStr, _>")]
-    pub added_associations: HashMap<Mime, DesktopList>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    #[serde_as(as = "BTreeMap<DisplayFromStr, _>")]
+    pub added_associations: BTreeMap<Mime, DesktopList>,
     #[serde(rename = "Default Applications")]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    #[serde_as(as = "HashMap<DisplayFromStr, _>")]
-    pub default_apps: HashMap<Mime, DesktopList>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    #[serde_as(as = "BTreeMap<DisplayFromStr, _>")]
+    pub default_apps: BTreeMap<Mime, DesktopList>,
 }
 
 impl Display for DesktopList {

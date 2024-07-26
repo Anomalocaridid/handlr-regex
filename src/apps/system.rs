@@ -5,10 +5,10 @@ use crate::{
 };
 use derive_more::Deref;
 use mime::Mime;
-use std::{collections::HashMap, convert::TryFrom, ffi::OsString, io::Write};
+use std::{collections::BTreeMap, convert::TryFrom, ffi::OsString, io::Write};
 
 #[derive(Debug, Default, Clone, Deref)]
-pub struct SystemApps(HashMap<Mime, DesktopList>);
+pub struct SystemApps(BTreeMap<Mime, DesktopList>);
 
 impl SystemApps {
     /// Get the list of handlers associated with a given mime
@@ -42,7 +42,7 @@ impl SystemApps {
     /// Create a new instance of `SystemApps`
     #[mutants::skip] // Cannot test directly, depends on system state
     pub fn populate() -> Result<Self> {
-        let mut map = HashMap::<Mime, DesktopList>::with_capacity(50);
+        let mut map = BTreeMap::<Mime, DesktopList>::new();
 
         Self::get_entries()?.for_each(|(_, entry)| {
             let (file_name, mimes) = (entry.file_name, entry.mime_type);
@@ -82,7 +82,7 @@ mod tests {
             .push_back(DesktopHandler::assume_valid("nvim.desktop".into()));
 
         let mime = Mime::from_str("text/plain")?;
-        let mut associations: HashMap<Mime, DesktopList> = HashMap::new();
+        let mut associations: BTreeMap<Mime, DesktopList> = BTreeMap::new();
 
         associations.insert(mime.clone(), expected_handlers.clone());
 

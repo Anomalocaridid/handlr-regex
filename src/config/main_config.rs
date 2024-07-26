@@ -1,7 +1,7 @@
 use mime::Mime;
 use serde::Serialize;
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{BTreeMap, HashMap, VecDeque},
     io::{IsTerminal, Write},
     str::FromStr,
 };
@@ -405,7 +405,7 @@ impl MimeAppsTable {
         let separator = if terminal_output { ",\n" } else { ", " };
 
         let to_entries =
-            |map: &HashMap<Mime, DesktopList>| -> Vec<MimeAppsEntry> {
+            |map: &BTreeMap<Mime, DesktopList>| -> Vec<MimeAppsEntry> {
                 let mut rows = map
                     .iter()
                     .map(|(mime, handlers)| {
