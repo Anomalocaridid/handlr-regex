@@ -12,12 +12,10 @@ use config::Config;
 use error::{ErrorKind, Result};
 
 use clap::Parser;
-use std::io::IsTerminal;
 
 #[mutants::skip] // Cannot test directly at the moment
 fn main() -> Result<()> {
     let mut config = Config::new();
-    let terminal_output = std::io::stdout().is_terminal();
     let mut stdout = std::io::stdout().lock();
 
     let res = || -> Result<()> {
@@ -71,7 +69,7 @@ fn main() -> Result<()> {
                 disable_selector,
             )?,
             Cmd::Mime { paths, json } => {
-                mime_table(&mut stdout, &paths, json, terminal_output)?;
+                mime_table(&mut stdout, &paths, json, config.terminal_output)?;
             }
             Cmd::List { all, json } => {
                 config.print(&mut stdout, all, json)?;
@@ -96,7 +94,7 @@ fn main() -> Result<()> {
         Ok(())
     }();
 
-    match (res, terminal_output) {
+    match (res, config.terminal_output) {
         (Err(e), _) if matches!(*e.kind, ErrorKind::Cancelled) => {
             std::process::exit(1);
         }
