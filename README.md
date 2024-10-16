@@ -61,11 +61,11 @@ handlr mime https://duckduckgo.com . README.md
 - Optional json output for scripting
 - Properly supports `Terminal=true` entries
 
-## Setting default terminal 
+## Setting default terminal
 
-Unfortunately, there isn't an XDG spec and thus a standardized way for `handlr` to get your default terminal emulator to run `Terminal=true` desktop entries. There was a proposal floating around a few years ago to use `x-scheme-handler/terminal` for this purpose. It seems to me the least worst option, compared to handling quirks of N+1 distros or using a handlr-specific config option. 
+Unfortunately, there isn't an XDG spec and thus a standardized way for `handlr` to get your default terminal emulator to run `Terminal=true` desktop entries. There was a proposal floating around a few years ago to use `x-scheme-handler/terminal` for this purpose. It seems to me the least worst option, compared to handling quirks of N+1 distros or using a handlr-specific config option.
 
-Now if `x-scheme-handler/terminal` is present, `handlr` will use it. 
+Now if `x-scheme-handler/terminal` is present, `handlr` will use it.
 
 Otherwise, `handlr` will find an app with `TerminalEmulator` category and use it instead.
 
@@ -91,7 +91,7 @@ If it uses/supports `-e` (i.e. `xterm`, `xfce4-terminal`, `foot`, etc.) then you
 If it requires something else, then set `term_exec_args` in `~/.config/handlr/handlr.toml` to the necessary arguments like so:
 
 ```
-// Replace 'run' with whatever arguments you need 
+// Replace 'run' with whatever arguments you need
 term_exec_args = 'run'
 ```
 
@@ -134,7 +134,7 @@ Starting with v0.10.0, commands with table output (i.e. `handlr list` and `handl
 
 ## Optional wildcards
 
-When `expand_wildcards` is set to `true` in `~/.config/handler/handlr.toml`, rather than wildcard mimes being saved directly to `mimeapps.list`, they will be expanded into all matching mimetypes.
+When `expand_wildcards` is set to `true` in `~/.config/handlr/handlr.toml`, rather than wildcard mimes being saved directly to `mimeapps.list`, they will be expanded into all matching mimetypes.
 
 This is off by default and will not automatically expand wildcards already present in `mimeapps.list` when enabled. Simply use `handlr remove` and `handlr add` to manually expand them.
 
