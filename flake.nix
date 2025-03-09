@@ -19,7 +19,7 @@
         naersk-lib = pkgs.callPackage naersk { };
       in
       {
-        defaultPackage = naersk-lib.buildPackage {
+        packages.default = naersk-lib.buildPackage {
           src = ./.;
           nativeBuildInputs = with pkgs; [
             installShellFiles
@@ -45,11 +45,13 @@
           mkShell {
             buildInputs = [
               cargo
+              cargo-insta # Adds `cargo insta` command for reviewing snapshots
+              cargo-mutants # Adds `cargo mutants` command for mutation testing
+              clippy # Adds more checks to cargo
+              pre-commit
+              rust-analyzer # Rust language server
               rustc
               rustfmt
-              pre-commit
-              rustPackages.clippy
-              cargo-mutants
             ];
             RUST_SRC_PATH = rustPlatform.rustLibSrc;
           };
