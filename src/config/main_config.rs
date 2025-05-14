@@ -191,7 +191,7 @@ impl Config {
 
                 exec
             })
-            .ok_or_else(|| Error::NoTerminal)
+            .ok_or(Error::NoTerminal)
     }
 
     /// Print the set associations and system-level associations in a table
