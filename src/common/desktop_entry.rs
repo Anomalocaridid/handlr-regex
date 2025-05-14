@@ -2,13 +2,13 @@ use crate::{
     config::Config,
     error::{Error, Result},
 };
-use aho_corasick::AhoCorasick;
 use freedesktop_desktop_entry::{
     get_languages_from_env, DesktopEntry as FreeDesktopEntry,
 };
 use itertools::Itertools;
 use mime::Mime;
 use once_cell::sync::Lazy;
+use regex::Regex;
 use std::{
     convert::TryFrom,
     ffi::OsString,
@@ -70,12 +70,7 @@ impl DesktopEntry {
     /// Internal helper function for `exec`
     #[mutants::skip] // Cannot test directly, runs command
     fn exec_inner(&self, config: &Config, args: Vec<String>) -> Result<()> {
-        let mut cmd = {
-            let (cmd, args) = self.get_cmd(config, args)?;
-            let mut cmd = Command::new(cmd);
-            cmd.args(args);
-            cmd
-        };
+        let mut cmd = self.get_cmd(config, args)?;
 
         if self.terminal && config.terminal_output {
             cmd.spawn()?.wait()?;
@@ -86,61 +81,41 @@ impl DesktopEntry {
         Ok(())
     }
 
+    /// Get a Command of the `exec` command that runs in a shell
+    fn get_cmd(&self, config: &Config, args: Vec<String>) -> Result<Command> {
+        let mut cmd = Command::new("sh");
+        cmd.arg("-c");
+        cmd.arg(self.format_exec(config, args)?);
+        Ok(cmd)
+    }
+
     /// Get the `exec` command, formatted with given arguments
-    pub fn get_cmd(
+    pub fn format_exec(
         &self,
         config: &Config,
         args: Vec<String>,
-    ) -> Result<(String, Vec<String>)> {
-        let special =
-            AhoCorasick::new_auto_configured(&["%f", "%F", "%u", "%U"]);
+    ) -> Result<String> {
+        let special = Regex::new("(?i)%f|%u")?;
 
-        let mut exec = shlex::split(&self.exec).ok_or_else(|| {
-            Error::BadExec(
-                self.exec.clone(),
-                self.file_name.to_string_lossy().to_string(),
-            )
-        })?;
+        let mut exec = self.exec.clone();
 
-        // The desktop entry doesn't contain arguments - we make best effort and append them at
-        // the end
         if special.is_match(&self.exec) {
-            exec = exec
-                .into_iter()
-                .flat_map(|s| match s.as_str() {
-                    "%f" | "%F" | "%u" | "%U" => args.clone(),
-                    s if special.is_match(s) => vec![{
-                        let mut replaced =
-                            String::with_capacity(s.len() + args.len() * 2);
-                        special.replace_all_with(
-                            s,
-                            &mut replaced,
-                            |_, _, dst| {
-                                dst.push_str(args.clone().join(" ").as_str());
-                                false
-                            },
-                        );
-                        replaced
-                    }],
-                    _ => vec![s],
-                })
-                .collect()
+            exec = special.replace_all(&exec, args.join(" ")).to_string();
         } else {
-            exec.extend_from_slice(&args);
+            exec.push(' ');
+            exec.push_str(&args.join(" "));
         }
 
         // If the entry expects a terminal (emulator), but this process is not running in one, we
         // launch a new one.
         if self.terminal && !config.terminal_output {
-            let term_cmd = config.terminal()?;
-            exec = shlex::split(&term_cmd)
-                .ok_or_else(|| Error::BadCmd(term_cmd))?
-                .into_iter()
-                .chain(exec)
-                .collect();
+            let mut term_cmd = config.terminal()?;
+            term_cmd.push(' ');
+            term_cmd.push_str(&exec);
+            exec = term_cmd;
         }
 
-        Ok((exec.remove(0), exec))
+        Ok(exec.trim_end().to_string())
     }
 
     /// Parse a desktop entry file, given a path

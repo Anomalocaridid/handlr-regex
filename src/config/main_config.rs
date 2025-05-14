@@ -88,12 +88,12 @@ impl Config {
 
         let output = if output_json {
             let entry = handler.get_entry()?;
-            let cmd = entry.get_cmd(self, vec![])?;
+            let cmd = entry.format_exec(self, vec![])?;
 
             (serde_json::json!( {
                 "handler": handler.to_string(),
                 "name": entry.name,
-                "cmd": cmd.0 + " " + &cmd.1.join(" "),
+                "cmd": cmd,
             }))
             .to_string()
         } else {
