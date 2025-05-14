@@ -258,4 +258,16 @@ mod tests {
 
         test_get_cmd(&entry, &config, "wezterm start --cwd . -e hx test")
     }
+
+    #[test]
+    fn complex_shell_exec() -> Result<()> {
+        let entry =
+            DesktopEntry::try_from(PathBuf::from("tests/emacsclient.desktop"))?;
+
+        test_get_cmd(
+            &entry,
+            &Config::default(),
+            "sh -c \"if [ -n \\\\\"\\\\$*\\\\\" ]; then exec /usr/bin/emacsclient --alternate-editor= --reuse-frame \\\\\"\\\\$@\\\\\"; else exec emacsclient --alternate-editor= --create-frame; fi\" sh test"
+        )
+    }
 }
