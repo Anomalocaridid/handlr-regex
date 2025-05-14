@@ -183,6 +183,21 @@ mod tests {
 
     use super::*;
 
+    fn test_get_cmd(
+        entry: &DesktopEntry,
+        config: &Config,
+        exec: &str,
+    ) -> Result<()> {
+        let cmd = entry.get_cmd(config, vec!["test".to_string()])?;
+        assert_eq!(cmd.get_program(), "sh");
+        assert_eq!(
+            cmd.get_args().collect_vec(),
+            ["-c", exec].iter().map_into::<OsString>().collect_vec()
+        );
+
+        Ok(())
+    }
+
     #[test]
     fn complex_exec() -> Result<()> {
         // Note that this entry also has no category key
@@ -192,20 +207,11 @@ mod tests {
         assert_eq!(entry.mime_type[0].essence_str(), "audio/mp3");
         assert_eq!(entry.mime_type[1].essence_str(), "audio/ogg");
 
-        let config = Config::default();
-        let args = vec!["test".to_string()];
-        assert_eq!(entry.get_cmd(& config, args)?,
-            (
-                "bash".to_string(),
-                [
-                    "-c", 
-                    "(! pgrep cmus && tilix -e cmus && tilix -a session-add-down -e cava); sleep 0.1 && cmus-remote -q test"
-                ].iter().map(|s| s.to_string()).collect()
-            )
-        );
-        assert!(!entry.is_terminal_emulator());
-
-        Ok(())
+        test_get_cmd(
+            &entry,
+            &Config::default(),
+            "bash -c \"(! pgrep cmus && tilix -e cmus && tilix -a session-add-down -e cava); sleep 0.1 && cmus-remote -q test\""
+        )
     }
 
     #[test]
@@ -214,22 +220,9 @@ mod tests {
             "tests/org.wezfurlong.wezterm.desktop",
         ))?;
         assert!(entry.mime_type.is_empty());
-
-        let config = Config::default();
-        let args = vec!["test".to_string()];
-        assert_eq!(
-            entry.get_cmd(&config, args)?,
-            (
-                "wezterm".to_string(),
-                ["start", "--cwd", ".", "test"]
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect()
-            )
-        );
         assert!(entry.is_terminal_emulator());
 
-        Ok(())
+        test_get_cmd(&entry, &Config::default(), "wezterm start --cwd . test")
     }
 
     #[test]
@@ -263,19 +256,6 @@ mod tests {
         let entry =
             DesktopEntry::try_from(PathBuf::from("tests/Helix.desktop"))?;
 
-        let command = entry.get_cmd(&config, vec!["test.txt".to_string()])?;
-
-        assert_eq!(
-            command,
-            (
-                "wezterm".to_string(),
-                ["start", "--cwd", ".", "-e", "hx", "test.txt"]
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect()
-            )
-        );
-
-        Ok(())
+        test_get_cmd(&entry, &config, "wezterm start --cwd . -e hx test")
     }
 }
