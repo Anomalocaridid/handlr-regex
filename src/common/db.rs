@@ -1,4 +1,4 @@
-use itertools::Itertools;
+use once_cell::sync::Lazy;
 
 static CUSTOM_MIMES: &[&str] = &[
     "inode/directory",
@@ -7,8 +7,8 @@ static CUSTOM_MIMES: &[&str] = &[
     "x-scheme-handler/terminal",
 ];
 
-/// Helper function to get a list of known mime types
-pub fn mime_types() -> Vec<String> {
+/// A list of known mime types
+pub static MIME_TYPES: Lazy<Vec<String>> = Lazy::new(|| {
     CUSTOM_MIMES
         .iter()
         .map(|s| s.to_string())
@@ -17,5 +17,5 @@ pub fn mime_types() -> Vec<String> {
                 .into_iter()
                 .map(|(mime, _, _)| mime.to_string()),
         )
-        .collect_vec()
-}
+        .collect()
+});

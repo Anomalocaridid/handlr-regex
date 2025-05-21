@@ -1,6 +1,7 @@
 use crate::error::{Error, Result};
 use derive_more::Deref;
 use mime::Mime;
+use once_cell::sync::Lazy;
 use std::{convert::TryFrom, path::Path, str::FromStr};
 use url::Url;
 
@@ -40,17 +41,18 @@ impl TryFrom<&Path> for MimeType {
     type Error = Error;
     fn try_from(path: &Path) -> Result<Self> {
         let db = xdg_mime::SharedMimeInfo::new();
+        static APPLICATION_X_ZEROSIZE: Lazy<Mime> = Lazy::new(|| {
+            "application/x-zerosize"
+                .parse::<Mime>()
+                .expect("handlr: hardcoded mime should be valid")
+        });
 
         let mut guess = db.guess_mime_type();
         guess.file_name(&path.to_string_lossy());
 
         let mut mime = guess.guess().mime_type().clone();
         // TODO: remove this check once xdg-mime crate makes a new release (currently v0.4.0)
-        if mime
-            == "application/x-zerosize"
-                .parse::<Mime>()
-                .expect("handlr: hardcoded mime should be valid")
-        {
+        if mime == *APPLICATION_X_ZEROSIZE {
             mime = guess.path(path).guess().mime_type().clone();
         }
 

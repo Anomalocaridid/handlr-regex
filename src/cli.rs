@@ -1,6 +1,6 @@
 use crate::{
     apps::SystemApps,
-    common::{mime_types, DesktopHandler, MimeType, UserPath},
+    common::{DesktopHandler, MimeType, UserPath, MIME_TYPES},
 };
 use clap::{builder::StyledStr, ArgAction, Args, Parser, Subcommand};
 use clap_complete::{
@@ -259,7 +259,7 @@ fn autocomplete_mimes(current: &OsStr) -> Vec<CompletionCandidate> {
     let mut mimes = mime_db::EXTENSIONS
         .iter()
         .map(|(ext, _)| format!(".{ext}"))
-        .chain(mime_types())
+        .chain(MIME_TYPES.clone())
         .filter(|x| x.starts_with(current.to_string_lossy().as_ref()))
         .map(CompletionCandidate::new)
         .collect::<Vec<_>>();
