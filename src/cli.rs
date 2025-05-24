@@ -17,6 +17,10 @@ use std::{ffi::OsStr, fmt::Write, io::IsTerminal};
 /// Based on handlr at <https://github.com/chmln/handlr>
 ///
 /// Regular expression handlers inspired by mimeo at <https://xyne.dev/projects/mimeo/>
+///
+/// Config file location: ~/.config/handlr/handlr.toml
+///
+/// Log file location: ~/.cache/handlr/handlr.log
 #[deny(missing_docs)]
 #[derive(Parser)]
 #[clap(disable_help_subcommand = true)]
