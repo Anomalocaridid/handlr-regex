@@ -1,3 +1,5 @@
+use std::process::ExitCode;
+
 use tracing::{error, info};
 
 /// Custom error type
@@ -51,14 +53,23 @@ pub enum Error {
     FromUtf8(#[from] std::string::FromUtf8Error),
 }
 
-impl Error {
-    #[mutants::skip] // Cannot test, relies on user input
-    pub fn log(&self) {
-        match self {
-            Self::Cancelled => info!("{}", self),
-            _ => error!("{}", self),
+pub type Result<T, E = Error> = std::result::Result<T, E>;
+
+#[mutants::skip] // Cannot completely test, relies on user input
+pub fn handle(result: Result<()>) -> ExitCode {
+    if let Err(error) = result {
+        match error {
+            // Cancelling the selector is an acceptable outcome
+            Error::Cancelled => {
+                info!("{}", error);
+                ExitCode::SUCCESS
+            }
+            _ => {
+                error!("{}", error);
+                ExitCode::FAILURE
+            }
         }
+    } else {
+        ExitCode::SUCCESS
     }
 }
-
-pub type Result<T, E = Error> = std::result::Result<T, E>;

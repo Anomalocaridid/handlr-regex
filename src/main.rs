@@ -6,6 +6,8 @@ mod error;
 mod logging;
 mod testing;
 
+use std::process::ExitCode;
+
 use cli::{Cli, Cmd};
 use common::mime_table;
 use config::Config;
@@ -17,7 +19,7 @@ use clap_complete::CompleteEnv;
 use tracing::debug;
 
 #[mutants::skip] // Cannot test directly at the moment
-fn main() {
+fn main() -> ExitCode {
     // Shell completions
     CompleteEnv::with_factory(|| Cli::command().name("handlr"))
         .completer("handlr")
@@ -28,9 +30,7 @@ fn main() {
     let _guard = init_tracing(&cli)
         .expect("handlr error: Could not initialize global tracing subscriber");
 
-    if let Err(error) = run(cli) {
-        error.log()
-    }
+    error::handle(run(cli))
 }
 
 /// Run main program logic
