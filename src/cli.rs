@@ -50,7 +50,7 @@ pub struct Cli {
 
     /// Disable notifications on error
     #[clap(global = true, long = "disable-notifications", short = 'n', action = ArgAction::SetFalse)]
-    enable_notifications: bool,
+    enable_notifications: Option<bool>,
 
     /// Overrides whether or not to behave as if the output is an interactive terminal
     #[clap(global = true, long = "force-terminal-output", short = 't')]
@@ -68,7 +68,7 @@ impl Cli {
     }
 
     pub fn show_notifications(&self) -> bool {
-        !self.terminal_output() && self.enable_notifications
+        !self.terminal_output() && self.enable_notifications.unwrap_or(true)
     }
 }
 
@@ -344,7 +344,7 @@ mod tests {
             command: Cmd::Unset {
                 mime: MimeType::from_str("fake/mime")?,
             },
-            enable_notifications: true,
+            enable_notifications: Some(true),
             terminal_output: Some(false),
             verbosity: Verbosity::default(),
         };
@@ -354,7 +354,7 @@ mod tests {
         cli.terminal_output = Some(true);
         assert!(!cli.show_notifications());
 
-        cli.enable_notifications = false;
+        cli.enable_notifications = Some(false);
         assert!(!cli.show_notifications());
 
         cli.terminal_output = Some(true);
