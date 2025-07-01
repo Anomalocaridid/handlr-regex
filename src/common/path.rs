@@ -128,7 +128,7 @@ mod tests {
             "tests/assets/SettingsWidgetFdoSecrets.ui",
             "https://duckduckgo.com",
             ".",
-            "../README.md",
+            "README.md",
         ]
         .iter()
         .map(|p| UserPath::from_str(p))

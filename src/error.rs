@@ -45,6 +45,8 @@ pub enum Error {
     BadCmd(String),
     #[error(transparent)]
     TracingGlobalDefault(#[from] tracing::dispatcher::SetGlobalDefaultError),
+    #[error("Could not find file at path: '{0}'")]
+    NonexistentFile(String),
     #[cfg(test)]
     #[error(transparent)]
     BadUrl(#[from] url::ParseError),

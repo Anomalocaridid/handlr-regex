@@ -891,23 +891,27 @@ mod tests {
         )?;
 
         let mut expected_handlers = HashMap::new();
-        expected_handlers
-            .insert(Handler::new("swayimg.desktop"), vec!["a.png".to_owned()]);
-        expected_handlers
-            .insert(Handler::new("mupdf.desktop"), vec!["a.pdf".to_owned()]);
+        expected_handlers.insert(
+            Handler::new("swayimg.desktop"),
+            vec!["tests/assets/a.png".to_owned()],
+        );
+        expected_handlers.insert(
+            Handler::new("mupdf.desktop"),
+            vec!["tests/assets/a.pdf".to_owned()],
+        );
 
         assert_eq!(
             config.assign_files_to_handlers(&[
-                UserPath::from_str("a.png")?,
-                UserPath::from_str("a.pdf")?
+                UserPath::from_str("tests/assets/a.png")?,
+                UserPath::from_str("tests/assets/a.pdf")?
             ])?,
             expected_handlers
         );
 
         assert_eq!(
             config.assign_files_to_handlers(&[
-                UserPath::from_str("a.pdf")?,
-                UserPath::from_str("a.png")?
+                UserPath::from_str("tests/assets/a.pdf")?,
+                UserPath::from_str("tests/assets/a.png")?
             ])?,
             expected_handlers
         );
@@ -915,25 +919,30 @@ mod tests {
         let mut expected_handlers = HashMap::new();
         expected_handlers.insert(
             Handler::new("swayimg.desktop"),
-            vec!["a.png".to_owned(), "b.png".to_owned()],
+            vec![
+                "tests/assets/a.png".to_owned(),
+                "tests/assets/b.png".to_owned(),
+            ],
         );
-        expected_handlers
-            .insert(Handler::new("mupdf.desktop"), vec!["a.pdf".to_owned()]);
+        expected_handlers.insert(
+            Handler::new("mupdf.desktop"),
+            vec!["tests/assets/a.pdf".to_owned()],
+        );
 
         assert_eq!(
             config.assign_files_to_handlers(&[
-                UserPath::from_str("a.png")?,
-                UserPath::from_str("b.png")?,
-                UserPath::from_str("a.pdf")?
+                UserPath::from_str("tests/assets/a.png")?,
+                UserPath::from_str("tests/assets/b.png")?,
+                UserPath::from_str("tests/assets/a.pdf")?
             ])?,
             expected_handlers
         );
 
         assert_eq!(
             config.assign_files_to_handlers(&[
-                UserPath::from_str("a.pdf")?,
-                UserPath::from_str("a.png")?,
-                UserPath::from_str("b.png")?
+                UserPath::from_str("tests/assets/a.pdf")?,
+                UserPath::from_str("tests/assets/a.png")?,
+                UserPath::from_str("tests/assets/b.png")?
             ])?,
             expected_handlers
         );

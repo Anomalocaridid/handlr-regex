@@ -40,6 +40,12 @@ impl TryFrom<&Url> for MimeType {
 impl TryFrom<&Path> for MimeType {
     type Error = Error;
     fn try_from(path: &Path) -> Result<Self> {
+        if !path.try_exists()? {
+            return Err(Error::NonexistentFile(
+                path.to_string_lossy().to_string(),
+            ));
+        }
+
         let db = xdg_mime::SharedMimeInfo::new();
 
         let mut guess = db.guess_mime_type();
@@ -151,5 +157,10 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn nonexistent_file() {
+        assert!(MimeType::try_from(Path::new("nonexistent_file")).is_err());
     }
 }

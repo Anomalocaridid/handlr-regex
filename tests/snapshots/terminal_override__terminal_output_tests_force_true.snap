@@ -7,19 +7,19 @@ info:
     - "-vvv"
     - "--disable-notifications"
     - mime
-    - "./assets"
+    - "./tests/assets"
 ---
 success: true
 exit_code: 0
 ----- stdout -----
-┌──────────┬────────────────────────┐
-│[37m [39m[37mpath[39m[37m    [39m[37m [39m│[37m [39m[37mmime[39m[37m                  [39m[37m [39m│
-├──────────┼────────────────────────┤
-│[40m [49m[40m./assets[49m[40m [49m│[40m [49m[40mapplication/x-zerosize[49m[40m [49m│
-└──────────┴────────────────────────┘
+┌────────────────┬─────────────────┐
+│[37m [39m[37mpath[39m[37m          [39m[37m [39m│[37m [39m[37mmime[39m[37m           [39m[37m [39m│
+├────────────────┼─────────────────┤
+│[40m [49m[40m./tests/assets[49m[40m [49m│[40m [49m[40minode/directory[49m[40m [49m│
+└────────────────┴─────────────────┘
 
 ----- stderr -----
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr[0m[2m:[0m Interactive terminal detected: true
-[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::common::path[0m[2m:[0m Printing mime information for paths: ["./assets"]
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::common::path[0m[2m:[0m Printing mime information for paths: ["./tests/assets"]
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::common::path[0m[2m:[0m JSON output: false
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::common::path[0m[2m:[0m Finished printing mime information
