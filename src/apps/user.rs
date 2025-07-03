@@ -396,17 +396,10 @@ fn select<O: Iterator<Item = String>>(
     selector: &str,
     mut opts: O,
 ) -> Result<String> {
-    use std::{
-        io::prelude::*,
-        process::{Command, Stdio},
-    };
+    use std::{io::prelude::*, process::Stdio};
 
     let process = {
-        let mut split = shlex::split(selector)
-            .ok_or_else(|| Error::BadCmd(selector.to_string()))?;
-        let (cmd, args) = (split.remove(0), split);
-        Command::new(cmd)
-            .args(args)
+        execute::command(selector)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()?

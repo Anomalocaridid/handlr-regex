@@ -2,21 +2,22 @@ use crate::{
     config::Config,
     error::{Error, Result},
 };
-use aho_corasick::AhoCorasick;
 use freedesktop_desktop_entry::{
     get_languages_from_env, DesktopEntry as FreeDesktopEntry,
 };
 use itertools::Itertools;
 use mime::Mime;
 use once_cell::sync::Lazy;
+use regex::Regex;
 use std::{
     convert::TryFrom,
     ffi::OsString,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::Stdio,
     str::FromStr,
 };
 use tracing::debug;
+use tracing_unwrap::ResultExt;
 
 /// Represents a desktop entry file for an application
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -71,13 +72,10 @@ impl DesktopEntry {
     /// Internal helper function for `exec`
     #[mutants::skip] // Cannot test directly, runs command
     fn exec_inner(&self, config: &Config, args: Vec<String>) -> Result<()> {
-        let mut cmd = {
-            let (cmd, args) = self.get_cmd(config, args)?;
-            debug!("Executing program \"{}\" with args: {:?}", cmd, args);
-            let mut cmd = Command::new(cmd);
-            cmd.args(args);
-            cmd
-        };
+        let cmd = self.get_cmd(config, args)?;
+        debug!("Executing command: \"{}\"", cmd);
+
+        let mut cmd = execute::command(cmd);
 
         if self.terminal && config.terminal_output {
             cmd.spawn()?.wait()?;
@@ -93,55 +91,30 @@ impl DesktopEntry {
         &self,
         config: &Config,
         args: Vec<String>,
-    ) -> Result<(String, Vec<String>)> {
-        let special =
-            AhoCorasick::new_auto_configured(&["%f", "%F", "%u", "%U"]);
+    ) -> Result<String> {
+        let special = Regex::new("(?i)%(f|u)")
+            .expect_or_log("Hardcoded regex should be valid");
 
-        let mut exec = shlex::split(&self.exec).ok_or_else(|| {
-            Error::BadExec(
-                self.exec.clone(),
-                self.file_name.to_string_lossy().to_string(),
-            )
-        })?;
+        let mut exec = self.exec.clone();
+        let args = args.join(" ");
 
-        // The desktop entry doesn't contain arguments - we make best effort and append them at
-        // the end
-        if special.is_match(&self.exec) {
-            exec = exec
-                .into_iter()
-                .flat_map(|s| match s.as_str() {
-                    "%f" | "%F" | "%u" | "%U" => args.clone(),
-                    s => vec![{
-                        let mut replaced =
-                            String::with_capacity(s.len() + args.len() * 2);
-                        special.replace_all_with(
-                            s,
-                            &mut replaced,
-                            |_, _, dst| {
-                                dst.push_str(args.clone().join(" ").as_str());
-                                false
-                            },
-                        );
-                        replaced
-                    }],
-                })
-                .collect()
+        if special.is_match(&exec) {
+            exec = special.replace_all(&exec, args).to_string();
         } else {
-            exec.extend_from_slice(&args);
+            // The desktop entry doesn't contain arguments - we make best effort and append them at the end
+            exec.push(' ');
+            exec.push_str(&args);
         }
 
-        // If the entry expects a terminal (emulator), but this process is not running in one, we
-        // launch a new one.
+        // If the entry expects a terminal (emulator), but this process is not running in one, we launch a new one.
         if self.terminal && !config.terminal_output {
-            let term_cmd = config.terminal()?;
-            exec = shlex::split(&term_cmd)
-                .ok_or(Error::BadCmd(term_cmd))?
-                .into_iter()
-                .chain(exec)
-                .collect();
+            let mut term_cmd = config.terminal()?;
+            term_cmd.push(' ');
+            term_cmd.push_str(&exec);
+            exec = term_cmd;
         }
 
-        Ok((exec.remove(0), exec))
+        Ok(exec.trim().to_string())
     }
 
     /// Parse a desktop entry file, given a path
@@ -211,15 +184,11 @@ mod tests {
     fn test_get_cmd(
         entry: &DesktopEntry,
         config: &Config,
-        expected_program: &str,
-        expected_args: Vec<&str>,
+        expected_command: &str,
     ) -> Result<()> {
         assert_eq!(
             entry.get_cmd(config, vec!["test".to_string()])?,
-            (
-                expected_program.to_string(),
-                expected_args.iter().map(|s| s.to_string()).collect()
-            )
+            expected_command
         );
         Ok(())
     }
@@ -234,11 +203,10 @@ mod tests {
         assert_eq!(entry.mime_type[1].essence_str(), "audio/ogg");
         assert!(!entry.is_terminal_emulator());
 
-        test_get_cmd(&entry, &Config::default(), "bash",
-                vec![
-                    "-c", 
-                    "(! pgrep cmus && tilix -e cmus && tilix -a session-add-down -e cava); sleep 0.1 && cmus-remote -q test"
-                ]
+        test_get_cmd(
+            &entry,
+            &Config::default(),
+            "bash -c \"(! pgrep cmus && tilix -e cmus && tilix -a session-add-down -e cava); sleep 0.1 && cmus-remote -q test\""
         )
     }
 
@@ -250,12 +218,7 @@ mod tests {
         assert!(entry.mime_type.is_empty());
         assert!(entry.is_terminal_emulator());
 
-        test_get_cmd(
-            &entry,
-            &Config::default(),
-            "wezterm",
-            vec!["start", "--cwd", ".", "test"],
-        )
+        test_get_cmd(&entry, &Config::default(), "wezterm start --cwd . test")
     }
 
     #[test]
@@ -292,11 +255,6 @@ mod tests {
             "tests/assets/Helix.desktop",
         ))?;
 
-        test_get_cmd(
-            &entry,
-            &config,
-            "wezterm",
-            vec!["start", "--cwd", ".", "-e", "hx", "test"],
-        )
+        test_get_cmd(&entry, &config, "wezterm start --cwd . -e hx test")
     }
 }

@@ -2,4 +2,4 @@
 source: src/config/main_config.rs
 expression: "String::from_utf8(buffer)?"
 ---
-{"cmd":"hx ","handler":"tests/assets/Helix.desktop","name":"Helix"}
+{"cmd":"hx","handler":"tests/assets/Helix.desktop","name":"Helix"}

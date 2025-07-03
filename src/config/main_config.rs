@@ -121,7 +121,7 @@ impl Config {
             (serde_json::json!( {
                 "handler": handler.to_string(),
                 "name": entry.name,
-                "cmd": cmd.0 + " " + &cmd.1.join(" "),
+                "cmd": cmd,
             }))
             .to_string()
         } else {

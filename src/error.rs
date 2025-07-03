@@ -39,10 +39,6 @@ pub enum Error {
     SerdeIniDe(#[from] serde_ini::de::Error),
     #[error(transparent)]
     SerdeIniSer(#[from] serde_ini::ser::Error),
-    #[error("Could not split exec command '{0}' in desktop file '{1}' into shell words")]
-    BadExec(String, String),
-    #[error("Could not split command '{0}' into shell words")]
-    BadCmd(String),
     #[error(transparent)]
     TracingGlobalDefault(#[from] tracing::dispatcher::SetGlobalDefaultError),
     #[error("Could not find file at path: '{0}'")]
