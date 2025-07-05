@@ -2,9 +2,7 @@ use crate::{
     config::Config,
     error::{Error, Result},
 };
-use freedesktop_desktop_entry::{
-    get_languages_from_env, DesktopEntry as FreeDesktopEntry,
-};
+use freedesktop_entry_parser::Entry;
 use itertools::Itertools;
 use mime::Mime;
 use std::{
@@ -13,7 +11,6 @@ use std::{
     path::{Path, PathBuf},
     process::Stdio,
     str::FromStr,
-    sync::LazyLock,
 };
 use tracing::debug;
 
@@ -116,30 +113,54 @@ impl DesktopEntry {
 
     /// Parse a desktop entry file, given a path
     fn parse_file(path: &Path) -> Option<DesktopEntry> {
-        // Assume the set locales will not change while handlr is running
-        static LOCALES: LazyLock<Vec<String>> =
-            LazyLock::new(get_languages_from_env);
+        let mut langs = Vec::new();
 
-        let fd_entry =
-            FreeDesktopEntry::from_path(path.to_path_buf(), &LOCALES).ok()?;
+        if let Ok(lang) = std::env::var("LANG") {
+            langs.push(lang)
+        }
+
+        if let Ok(languages) = std::env::var("LANGUAGES") {
+            languages
+                .split(':')
+                .for_each(|lang| langs.push(lang.to_owned()));
+        }
+
+        let fd_entry = Entry::parse_file(path).ok()?;
+        let fd_entry = fd_entry.section("Desktop Entry");
 
         let entry = DesktopEntry {
-            name: fd_entry.name(&LOCALES)?.into_owned(),
-            exec: fd_entry.exec()?.to_owned(),
+            name: langs
+                .iter()
+                .filter_map(|lang| fd_entry.attr_with_param("Name", lang))
+                .next()
+                .or_else(|| fd_entry.attr("Name"))?
+                .to_string(),
+            exec: fd_entry.attr("Exec")?.to_string(),
             file_name: path.file_name()?.to_owned(),
-            terminal: fd_entry.terminal(),
+            terminal: fd_entry
+                .attr("Terminal")
+                .and_then(|t| t.parse().ok())
+                .unwrap_or(false),
             mime_type: fd_entry
-                .mime_type()
-                .unwrap_or_default()
-                .iter()
-                .filter_map(|m| Mime::from_str(m).ok())
-                .collect_vec(),
+                .attr("MimeType")
+                .map(|m| {
+                    m.split(';')
+                        .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
+                        .unique() // Remove duplicate entries
+                        .filter_map(|m| Mime::from_str(m).ok())
+                        .collect_vec()
+                })
+                .unwrap_or_default(),
             categories: fd_entry
-                .categories()
-                .unwrap_or_default()
-                .iter()
-                .map(|&c| c.to_owned())
-                .collect_vec(),
+                .attr("Categories")
+                .map(|c| {
+                    c.split(';')
+                        .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
+                        .unique() // Remove duplicate entries
+                        .map(|c| c.to_string())
+                        .collect_vec()
+                })
+                .unwrap_or_default(),
         };
 
         if !entry.name.is_empty() && !entry.exec.is_empty() {
@@ -174,6 +195,8 @@ impl TryFrom<PathBuf> for DesktopEntry {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
     use super::*;
     use crate::common::DesktopHandler;
     use similar_asserts::assert_eq;
@@ -254,5 +277,48 @@ mod tests {
         ))?;
 
         test_get_cmd(&entry, &config, "wezterm start --cwd . -e hx test")
+    }
+
+    fn locale_test(
+        lang: Option<&str>,
+        languages: Option<&str>,
+        expected_name: &str,
+    ) -> Result<()> {
+        env::remove_var("LANG");
+        env::remove_var("LANGUAGES");
+
+        if let Some(lang) = lang {
+            env::set_var("LANG", lang);
+        }
+
+        if let Some(languages) = languages {
+            env::set_var("LANGUAGES", languages);
+        }
+
+        let entry =
+            DesktopEntry::try_from(PathBuf::from("tests/assets/vlc.desktop"))?;
+        assert_eq!(entry.name, expected_name);
+        Ok(())
+    }
+
+    #[test]
+    fn locale_support() -> Result<()> {
+        // No variables
+        locale_test(None, None, "VLC media player")?;
+
+        // Just $LANG
+        locale_test(Some("es"), None, "Reproductor multimedia VLC")?;
+
+        // Just $LANGUAGES
+        locale_test(None, Some("ja:fr:nl"), "VLCメディアプレイヤー")?;
+
+        // No valid variables
+        locale_test(Some("qwert"), Some("yuiop"), "VLC media player")?;
+
+        // Some invalid languages
+        locale_test(Some("asdfg"), Some("hjkl;:bn:hu"), "VLC মিডিয়া প্লেয়ার")?;
+        locale_test(Some("zxcv"), Some("pa:it:ru"), "VLC ਮੀਡਿਆ ਪਲੇਅਰ")?;
+
+        Ok(())
     }
 }
