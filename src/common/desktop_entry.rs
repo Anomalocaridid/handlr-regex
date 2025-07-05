@@ -7,17 +7,15 @@ use freedesktop_desktop_entry::{
 };
 use itertools::Itertools;
 use mime::Mime;
-use once_cell::sync::Lazy;
-use regex::Regex;
 use std::{
     convert::TryFrom,
     ffi::OsString,
     path::{Path, PathBuf},
     process::Stdio,
     str::FromStr,
+    sync::LazyLock,
 };
 use tracing::debug;
-use tracing_unwrap::ResultExt;
 
 /// Represents a desktop entry file for an application
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -92,8 +90,7 @@ impl DesktopEntry {
         config: &Config,
         args: Vec<String>,
     ) -> Result<String> {
-        let special = Regex::new("(?i)%(f|u)")
-            .expect_or_log("Hardcoded regex should be valid");
+        let special = lazy_regex::regex!("%(f|u)"i);
 
         let mut exec = self.exec.clone();
         let args = args.join(" ");
@@ -120,7 +117,8 @@ impl DesktopEntry {
     /// Parse a desktop entry file, given a path
     fn parse_file(path: &Path) -> Option<DesktopEntry> {
         // Assume the set locales will not change while handlr is running
-        static LOCALES: Lazy<Vec<String>> = Lazy::new(get_languages_from_env);
+        static LOCALES: LazyLock<Vec<String>> =
+            LazyLock::new(get_languages_from_env);
 
         let fd_entry =
             FreeDesktopEntry::from_path(path.to_path_buf(), &LOCALES).ok()?;

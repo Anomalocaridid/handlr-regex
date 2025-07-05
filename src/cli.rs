@@ -9,7 +9,7 @@ use clap_verbosity_flag::{Verbosity, WarnLevel};
 #[cfg(executable)]
 use crate::{
     apps::SystemApps,
-    common::mime_types,
+    common::MIME_TYPES,
     common::{DesktopHandler, MimeType, UserPath},
 };
 #[cfg(executable)]
@@ -296,7 +296,7 @@ fn autocomplete_mimes(current: &OsStr) -> Vec<CompletionCandidate> {
     let mut mimes = mime_db::EXTENSIONS
         .iter()
         .map(|(ext, _)| format!(".{ext}"))
-        .chain(mime_types())
+        .chain(MIME_TYPES.iter().cloned())
         .filter(|x| x.starts_with(current.to_string_lossy().as_ref()))
         .map(CompletionCandidate::new)
         .collect::<Vec<_>>();

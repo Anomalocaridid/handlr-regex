@@ -1,5 +1,5 @@
 use crate::{
-    common::{mime_types, DesktopHandler, Handleable},
+    common::{DesktopHandler, Handleable, MIME_TYPES},
     config::ConfigFile,
     error::{Error, Result},
 };
@@ -85,7 +85,7 @@ impl MimeApps {
 
         if expand_wildcards {
             let wildcard = WildMatch::new(mime.as_ref());
-            mime_types()
+            MIME_TYPES
                 .iter()
                 .filter(|mime| wildcard.matches(mime))
                 .try_for_each(|mime| -> Result<()> {
@@ -120,7 +120,7 @@ impl MimeApps {
 
         if expand_wildcards {
             let wildcard = WildMatch::new(mime.as_ref());
-            mime_types()
+            MIME_TYPES
                 .iter()
                 .filter(|mime| wildcard.matches(mime))
                 .try_for_each(|mime| -> Result<()> {
