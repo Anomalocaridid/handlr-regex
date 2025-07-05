@@ -7,6 +7,7 @@ use derive_more::{Deref, Display};
 use enum_dispatch::enum_dispatch;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 use std::{
     convert::TryFrom,
     ffi::OsString,
@@ -113,21 +114,21 @@ pub struct RegexHandler {
     exec: String,
     #[serde(default)]
     terminal: bool,
-    regexes: RegexSet,
+    regexes: Vec<Regex>,
 }
 
 impl RegexHandler {
     /// Test if a given path matches the handler's regex
     fn is_match(&self, path: &str) -> bool {
-        let is_match = self.regexes.is_match(path);
+        let matches = self
+            .regexes
+            .iter()
+            .filter(|regex| regex.is_match(path))
+            .collect_vec();
+
+        let is_match = !matches.is_empty();
 
         if is_match {
-            let matches = self
-                .regexes
-                .matches(path)
-                .into_iter()
-                .map(|index| &self.regexes.patterns()[index])
-                .collect_vec();
             debug!(
                 "Regex matches found in `{}` for `{}`: {:?}",
                 self, path, matches
@@ -146,35 +147,24 @@ impl Handleable for RegexHandler {
     }
 }
 
-/// Helper struct needed because regex::RegexSet does not implement Hash
-#[derive(Deref, Debug, Clone, Deserialize)]
-struct RegexSet(#[serde(with = "serde_regex")] regex::RegexSet);
+/// Wrapper struct needed because `Regex` does not implement Eq, Hash, or Deserialize
+#[serde_as]
+#[derive(Debug, Clone, Deref, Deserialize)]
+struct Regex(#[serde_as(as = "DisplayFromStr")] lazy_regex::Regex);
 
-#[cfg(test)]
-impl RegexSet {
-    /// Create new RegexSet, currently only needed for tests
-    pub fn new<I, S>(exprs: I) -> Result<Self>
-    where
-        S: AsRef<str>,
-        I: IntoIterator<Item = S>,
-    {
-        Ok(RegexSet(regex::RegexSet::new(exprs)?))
-    }
-}
-
-impl PartialEq for RegexSet {
+impl PartialEq for Regex {
     #[mutants::skip] // Trivial
     fn eq(&self, other: &Self) -> bool {
-        self.patterns() == other.patterns()
+        self.as_str() == other.as_str()
     }
 }
 
-impl Eq for RegexSet {}
+impl Eq for Regex {}
 
-impl Hash for RegexSet {
+impl Hash for Regex {
     #[mutants::skip] // Trivial
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.patterns().hash(state);
+        self.as_str().hash(state);
     }
 }
 
@@ -200,17 +190,25 @@ mod tests {
     use crate::common::DesktopEntry;
     use url::Url;
 
-    #[test]
-    fn regex_handlers() -> Result<()> {
+    crate::logs_snapshot_test!(regex_handlers, {
         let exec: &str = "freetube %u";
-        let regexes: &[String] =
-            &[String::from(r"(https://)?(www\.)?youtu(be\.com|\.be)/*")];
-
         let regex_handler = RegexHandler {
             exec: String::from(exec),
             terminal: false,
-            regexes: RegexSet::new(regexes)?,
+            regexes: [String::from(
+                r"(https://)?(www\.)?youtu(be\.com|\.be)/*",
+            )]
+            .iter()
+            .map(|s| {
+                Regex(
+                    lazy_regex::Regex::new(s)
+                        .expect("Hardcoded regex should be valid"),
+                )
+            })
+            .collect(),
         };
+
+        println!("{:#?}", regex_handler);
 
         let regex_apps = RegexApps(vec![regex_handler.clone()]);
 
@@ -232,7 +230,5 @@ mod tests {
                 "https://en.wikipedia.org",
             )?))
             .is_err());
-
-        Ok(())
-    }
+    });
 }

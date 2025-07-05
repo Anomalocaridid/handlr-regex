@@ -23,8 +23,6 @@ pub enum Error {
     InvalidMime(mime::Mime),
     #[error("Malformed desktop entry at {0}")]
     BadEntry(std::path::PathBuf),
-    #[error(transparent)]
-    BadRegex(#[from] regex::Error),
     #[error("Error spawning selector process '{0}'")]
     Selector(String),
     #[error("Selection cancelled")]

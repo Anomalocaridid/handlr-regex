@@ -1,0 +1,6 @@
+---
+source: src/common/handler.rs
+expression: "String :: from_utf8(buffer).expect(\"Buffer is invalid utf8\")"
+---
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::common::handler[0m[2m:[0m Regex matches found in `"freetube %u" (Regex Handler)` for `https://youtu.be/dQw4w9WgXcQ`: [Regex(Regex("(https://)?(www\\.)?youtu(be\\.com|\\.be)/*"))]
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::common::handler[0m[2m:[0m No regex matches found in `"freetube %u" (Regex Handler)` for `https://en.wikipedia.org/`

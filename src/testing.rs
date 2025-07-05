@@ -12,6 +12,8 @@ macro_rules! logs_snapshot_test {
     ($name:ident, $block:block) => {
         #[test]
         fn $name() -> $crate::error::Result<()> {
+            use std::io::Read;
+
             use tracing::{subscriber, Level};
             use tracing_subscriber::{
                 filter, fmt, layer::SubscriberExt, registry,
@@ -42,7 +44,7 @@ macro_rules! logs_snapshot_test {
 
             insta::with_settings!(
                 {
-                    filters => testing::timestamp_filter()
+                    filters => $crate::testing::timestamp_filter()
                 },
                 { insta::assert_snapshot!(String::from_utf8(buffer).expect("Buffer is invalid utf8")) }
             );

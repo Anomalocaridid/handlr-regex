@@ -435,9 +435,6 @@ impl MimeAppsTable {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Read;
-
-    use crate::testing;
 
     use super::*;
     use similar_asserts::assert_eq;
