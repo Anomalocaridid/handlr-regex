@@ -19,6 +19,8 @@ exit_code: 0
 └────────────────┴─────────────────┘
 
 ----- stderr -----
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::main_config[0m[2m:[0m $LANG not set
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::main_config[0m[2m:[0m $LANG not set
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr[0m[2m:[0m Interactive terminal detected: true
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::common::path[0m[2m:[0m Printing mime information for paths: ["./tests/assets"]
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::common::path[0m[2m:[0m JSON output: false

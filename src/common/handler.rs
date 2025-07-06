@@ -1,6 +1,6 @@
 use crate::{
     common::{DesktopEntry, ExecMode, UserPath},
-    config::Config,
+    config::{Config, Languages},
     error::{Error, Result},
 };
 use derive_more::{Deref, Display};
@@ -9,7 +9,6 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use std::{
-    convert::TryFrom,
     ffi::OsString,
     fmt::Display,
     hash::{Hash, Hasher},
@@ -38,11 +37,12 @@ impl Handler {
 #[enum_dispatch]
 pub trait Handleable {
     /// Get the desktop entry associated with the handler
-    fn get_entry(&self) -> Result<DesktopEntry>;
+    fn get_entry(&self, languages: &Languages) -> Result<DesktopEntry>;
     /// Open the given paths with the handler
     #[mutants::skip] // Cannot test directly, runs commands
     fn open(&self, config: &Config, args: Vec<String>) -> Result<()> {
-        self.get_entry()?.exec(config, ExecMode::Open, args)
+        self.get_entry(&config.languages)?
+            .exec(config, ExecMode::Open, args)
     }
 }
 
@@ -66,8 +66,8 @@ impl FromStr for DesktopHandler {
 }
 
 impl Handleable for DesktopHandler {
-    fn get_entry(&self) -> Result<DesktopEntry> {
-        DesktopEntry::try_from(Self::get_path(&self.0)?)
+    fn get_entry(&self, languages: &Languages) -> Result<DesktopEntry> {
+        DesktopEntry::parse_file(&Self::get_path(&self.0)?, languages)
     }
 }
 
@@ -96,12 +96,15 @@ impl DesktopHandler {
     #[mutants::skip] // Cannot test directly, runs command
     pub fn launch(&self, config: &Config, args: Vec<String>) -> Result<()> {
         info!("Launching `{}` with args: {:?}", self, args);
-        self.get_entry()?.exec(config, ExecMode::Launch, args)
+        self.get_entry(&config.languages)?
+            .exec(config, ExecMode::Launch, args)
     }
 
     /// Issue a warning if the given handler is invalid
     pub fn warn_if_invalid(&self) {
-        if let Err(e) = self.get_entry() {
+        // This is just checking that the handler is valid
+        // so we can assume that access to the language settings is unecessary
+        if let Err(e) = self.get_entry(&Vec::new()) {
             warn!("The desktop entry `{}` is invalid: {}", self, e);
         }
     }
@@ -142,7 +145,7 @@ impl RegexHandler {
 }
 
 impl Handleable for RegexHandler {
-    fn get_entry(&self) -> Result<DesktopEntry> {
+    fn get_entry(&self, _languages: &Languages) -> Result<DesktopEntry> {
         Ok(DesktopEntry::fake_entry(&self.exec, self.terminal))
     }
 }
@@ -217,7 +220,7 @@ mod tests {
                 .get_handler(&UserPath::Url(Url::parse(
                     "https://youtu.be/dQw4w9WgXcQ"
                 )?))?
-                .get_entry()?,
+                .get_entry(&Vec::new())?,
             DesktopEntry {
                 exec: exec.to_string(),
                 terminal: false,

@@ -7,6 +7,8 @@ use clap_verbosity_flag::{Verbosity, WarnLevel};
 
 // Dependencies not needed for the build script
 #[cfg(executable)]
+use crate::config::get_languages;
+#[cfg(executable)]
 use crate::{
     apps::SystemApps,
     common::MIME_TYPES,
@@ -308,8 +310,9 @@ fn autocomplete_mimes(current: &OsStr) -> Vec<CompletionCandidate> {
 #[mutants::skip] // Cannot test directly, relies on system state
 #[cfg(executable)]
 fn autocomplete_desktop_files(current: &OsStr) -> Vec<CompletionCandidate> {
-    SystemApps::get_entries()
+    SystemApps::get_entries(&get_languages())
         .expect("handlr error: Could not get system desktop entries")
+        .into_iter()
         .filter(|(path, _)| {
             path.to_string_lossy()
                 .starts_with(current.to_string_lossy().as_ref())

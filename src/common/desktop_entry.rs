@@ -1,17 +1,11 @@
 use crate::{
-    config::Config,
+    config::{Config, Languages},
     error::{Error, Result},
 };
 use freedesktop_entry_parser::Entry;
 use itertools::Itertools;
 use mime::Mime;
-use std::{
-    convert::TryFrom,
-    ffi::OsString,
-    path::{Path, PathBuf},
-    process::Stdio,
-    str::FromStr,
-};
+use std::{ffi::OsString, path::Path, process::Stdio, str::FromStr};
 use tracing::debug;
 
 /// Represents a desktop entry file for an application
@@ -112,62 +106,56 @@ impl DesktopEntry {
     }
 
     /// Parse a desktop entry file, given a path
-    fn parse_file(path: &Path) -> Option<DesktopEntry> {
-        let mut langs = Vec::new();
+    pub fn parse_file(
+        path: &Path,
+        languages: &Languages,
+    ) -> Result<DesktopEntry> {
+        (|| -> Option<_> {
+            let fd_entry = Entry::parse_file(path).ok()?;
+            let fd_entry = fd_entry.section("Desktop Entry");
 
-        if let Ok(lang) = std::env::var("LANG") {
-            langs.push(lang)
-        }
+            let entry = DesktopEntry {
+                name: languages
+                    .iter()
+                    .filter_map(|lang| fd_entry.attr_with_param("Name", lang))
+                    .next()
+                    .or_else(|| fd_entry.attr("Name"))?
+                    .to_string(),
+                exec: fd_entry.attr("Exec")?.to_string(),
+                file_name: path.file_name()?.to_owned(),
+                terminal: fd_entry
+                    .attr("Terminal")
+                    .and_then(|t| t.parse().ok())
+                    .unwrap_or(false),
+                mime_type: fd_entry
+                    .attr("MimeType")
+                    .map(|m| {
+                        m.split(';')
+                            .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
+                            .unique() // Remove duplicate entries
+                            .filter_map(|m| Mime::from_str(m).ok())
+                            .collect_vec()
+                    })
+                    .unwrap_or_default(),
+                categories: fd_entry
+                    .attr("Categories")
+                    .map(|c| {
+                        c.split(';')
+                            .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
+                            .unique() // Remove duplicate entries
+                            .map(|c| c.to_string())
+                            .collect_vec()
+                    })
+                    .unwrap_or_default(),
+            };
 
-        if let Ok(languages) = std::env::var("LANGUAGES") {
-            languages
-                .split(':')
-                .for_each(|lang| langs.push(lang.to_owned()));
-        }
-
-        let fd_entry = Entry::parse_file(path).ok()?;
-        let fd_entry = fd_entry.section("Desktop Entry");
-
-        let entry = DesktopEntry {
-            name: langs
-                .iter()
-                .filter_map(|lang| fd_entry.attr_with_param("Name", lang))
-                .next()
-                .or_else(|| fd_entry.attr("Name"))?
-                .to_string(),
-            exec: fd_entry.attr("Exec")?.to_string(),
-            file_name: path.file_name()?.to_owned(),
-            terminal: fd_entry
-                .attr("Terminal")
-                .and_then(|t| t.parse().ok())
-                .unwrap_or(false),
-            mime_type: fd_entry
-                .attr("MimeType")
-                .map(|m| {
-                    m.split(';')
-                        .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
-                        .unique() // Remove duplicate entries
-                        .filter_map(|m| Mime::from_str(m).ok())
-                        .collect_vec()
-                })
-                .unwrap_or_default(),
-            categories: fd_entry
-                .attr("Categories")
-                .map(|c| {
-                    c.split(';')
-                        .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
-                        .unique() // Remove duplicate entries
-                        .map(|c| c.to_string())
-                        .collect_vec()
-                })
-                .unwrap_or_default(),
-        };
-
-        if !entry.name.is_empty() && !entry.exec.is_empty() {
-            Some(entry)
-        } else {
-            None
-        }
+            if !entry.name.is_empty() && !entry.exec.is_empty() {
+                Some(entry)
+            } else {
+                None
+            }
+        })()
+        .ok_or(Error::BadEntry(path.to_path_buf()))
     }
 
     /// Make a fake DesktopEntry given only a value for exec and terminal.
@@ -186,16 +174,9 @@ impl DesktopEntry {
     }
 }
 
-impl TryFrom<PathBuf> for DesktopEntry {
-    type Error = Error;
-    fn try_from(path: PathBuf) -> Result<Self> {
-        Self::parse_file(&path).ok_or(Error::BadEntry(path))
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use std::env;
+    use std::path::PathBuf;
 
     use super::*;
     use crate::common::DesktopHandler;
@@ -217,8 +198,10 @@ mod tests {
     #[test]
     fn complex_exec() -> Result<()> {
         // Note that this entry also has no category key
-        let entry =
-            DesktopEntry::try_from(PathBuf::from("tests/assets/cmus.desktop"))?;
+        let entry = DesktopEntry::parse_file(
+            &PathBuf::from("tests/assets/cmus.desktop"),
+            &Vec::new(),
+        )?;
         assert_eq!(entry.mime_type.len(), 2);
         assert_eq!(entry.mime_type[0].essence_str(), "audio/mp3");
         assert_eq!(entry.mime_type[1].essence_str(), "audio/ogg");
@@ -233,9 +216,10 @@ mod tests {
 
     #[test]
     fn terminal_emulator() -> Result<()> {
-        let entry = DesktopEntry::try_from(PathBuf::from(
-            "tests/assets/org.wezfurlong.wezterm.desktop",
-        ))?;
+        let entry = DesktopEntry::parse_file(
+            &PathBuf::from("tests/assets/org.wezfurlong.wezterm.desktop"),
+            &Vec::new(),
+        )?;
         assert!(entry.mime_type.is_empty());
         assert!(entry.is_terminal_emulator());
 
@@ -244,15 +228,19 @@ mod tests {
 
     #[test]
     fn invalid_desktop_entries() -> Result<()> {
-        let empty_name = DesktopEntry::try_from(PathBuf::from(
-            "tests/assets/empty_name.desktop",
-        ));
+        let languages = Vec::new();
+
+        let empty_name = DesktopEntry::parse_file(
+            &PathBuf::from("tests/assets/empty_name.desktop"),
+            &languages,
+        );
 
         assert!(empty_name.is_err());
 
-        let empty_exec = DesktopEntry::try_from(PathBuf::from(
-            "tests/assets/empty_exec.desktop",
-        ));
+        let empty_exec = DesktopEntry::parse_file(
+            &PathBuf::from("tests/assets/empty_exec.desktop"),
+            &languages,
+        );
 
         assert!(empty_exec.is_err());
 
@@ -272,52 +260,43 @@ mod tests {
             ),
         )?;
 
-        let entry = DesktopEntry::try_from(PathBuf::from(
-            "tests/assets/Helix.desktop",
-        ))?;
+        let entry = DesktopEntry::parse_file(
+            &PathBuf::from("tests/assets/Helix.desktop"),
+            &Vec::new(),
+        )?;
 
         test_get_cmd(&entry, &config, "wezterm start --cwd . -e hx test")
     }
 
-    fn locale_test(
-        lang: Option<&str>,
-        languages: Option<&str>,
-        expected_name: &str,
-    ) -> Result<()> {
-        env::remove_var("LANG");
-        env::remove_var("LANGUAGES");
+    /// Helper function for testing language support
+    fn lang_test(languages: &[&str], expected_name: &str) -> Result<()> {
+        let entry = DesktopEntry::parse_file(
+            &PathBuf::from("tests/assets/vlc.desktop"),
+            &languages.iter().map(|s| s.to_string()).collect_vec(),
+        )?;
 
-        if let Some(lang) = lang {
-            env::set_var("LANG", lang);
-        }
-
-        if let Some(languages) = languages {
-            env::set_var("LANGUAGES", languages);
-        }
-
-        let entry =
-            DesktopEntry::try_from(PathBuf::from("tests/assets/vlc.desktop"))?;
         assert_eq!(entry.name, expected_name);
+
         Ok(())
     }
 
     #[test]
-    fn locale_support() -> Result<()> {
-        // No variables
-        locale_test(None, None, "VLC media player")?;
+    fn language_support() -> Result<()> {
+        // No languages
+        lang_test(&[], "VLC media player")?;
 
-        // Just $LANG
-        locale_test(Some("es"), None, "Reproductor multimedia VLC")?;
+        // Just one language
+        lang_test(&["es"], "Reproductor multimedia VLC")?;
 
-        // Just $LANGUAGES
-        locale_test(None, Some("ja:fr:nl"), "VLCメディアプレイヤー")?;
+        // Multiple languages
+        lang_test(&["ja", "fr", "nl"], "VLCメディアプレイヤー")?;
 
-        // No valid variables
-        locale_test(Some("qwert"), Some("yuiop"), "VLC media player")?;
+        // No valid languages
+        lang_test(&["qwert", "yuiop"], "VLC media player")?;
 
         // Some invalid languages
-        locale_test(Some("asdfg"), Some("hjkl;:bn:hu"), "VLC মিডিয়া প্লেয়ার")?;
-        locale_test(Some("zxcv"), Some("pa:it:ru"), "VLC ਮੀਡਿਆ ਪਲੇਅਰ")?;
+        lang_test(&["asdfg", "hjkl?;", "bn", "hu"], "VLC মিডিয়া প্লেয়ার")?;
+        lang_test(&["zxcv", "pa", "it", "ru"], "VLC ਮੀਡਿਆ ਪਲੇਅਰ")?;
 
         Ok(())
     }

@@ -1,6 +1,6 @@
 use crate::{
     common::{DesktopHandler, Handleable, MIME_TYPES},
-    config::ConfigFile,
+    config::{ConfigFile, Languages},
     error::{Error, Result},
 };
 use derive_more::{Deref, DerefMut};
@@ -248,6 +248,7 @@ impl MimeApps {
         &self,
         mime: &Mime,
         config_file: &ConfigFile,
+        languages: &Languages,
     ) -> Result<DesktopHandler> {
         let error = Error::NotFound(mime.to_string());
         // Check for an exact match first and then fall back to wildcard
@@ -266,12 +267,11 @@ impl MimeApps {
                     .iter()
                     .flat_map(|h| -> Result<(&DesktopHandler, String)> {
                         // Filtering breaks testing, so treat every app as valid
-                        // TODO: test logging
 
                         if cfg!(test) {
                             Ok((h, h.to_string()))
                         } else {
-                            let entry = h.get_entry();
+                            let entry = h.get_entry(languages);
                             if let Err(ref e) = entry {
                                 debug!(
                                     "Desktop entry `{}` is invalid: {}",
@@ -507,7 +507,11 @@ mod tests {
 
         assert_eq!(
             mime_apps
-                .get_handler_from_user(&mime::TEXT_PLAIN, &config_file)?
+                .get_handler_from_user(
+                    &mime::TEXT_PLAIN,
+                    &config_file,
+                    &Vec::new()
+                )?
                 .to_string(),
             "nvim.desktop"
         );

@@ -46,6 +46,7 @@ insta = { version = "1.42.2", features = ["filters"] }
 insta-cmd = "0.6.0"
 pipe = "0.4.0"
 similar-asserts = "1.7.0"
+temp-env = "0.3.6"
 
 [build-dependencies]
 clap = { version = "4.5.2", features = ["derive"] }
