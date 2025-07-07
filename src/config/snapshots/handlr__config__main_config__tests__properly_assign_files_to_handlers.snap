@@ -12,52 +12,52 @@ expression: "String :: from_utf8(buffer).expect(\"Buffer is invalid utf8\")"
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `application/pdf`: mupdf.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
-[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `a.png`
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `tests/assets/a.png`
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Configured handlers for `image/png` in mimeapps.list Default Associations: swayimg.desktop;
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Selector enabled: false, number of set handlers: 1
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::apps::user[0m[2m:[0m Not running selector, choosing first handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Match found for `image/png` in mimeapps.list Default Associations
-[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `a.pdf`
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `tests/assets/a.pdf`
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Configured handlers for `application/pdf` in mimeapps.list Default Associations: mupdf.desktop;
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Selector enabled: false, number of set handlers: 1
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::apps::user[0m[2m:[0m Not running selector, choosing first handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Match found for `application/pdf` in mimeapps.list Default Associations
-[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `a.pdf`
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `tests/assets/a.pdf`
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Configured handlers for `application/pdf` in mimeapps.list Default Associations: mupdf.desktop;
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Selector enabled: false, number of set handlers: 1
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::apps::user[0m[2m:[0m Not running selector, choosing first handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Match found for `application/pdf` in mimeapps.list Default Associations
-[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `a.png`
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `tests/assets/a.png`
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Configured handlers for `image/png` in mimeapps.list Default Associations: swayimg.desktop;
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Selector enabled: false, number of set handlers: 1
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::apps::user[0m[2m:[0m Not running selector, choosing first handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Match found for `image/png` in mimeapps.list Default Associations
-[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `a.png`
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `tests/assets/a.png`
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Configured handlers for `image/png` in mimeapps.list Default Associations: swayimg.desktop;
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Selector enabled: false, number of set handlers: 1
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::apps::user[0m[2m:[0m Not running selector, choosing first handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Match found for `image/png` in mimeapps.list Default Associations
-[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `b.png`
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `tests/assets/b.png`
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Configured handlers for `image/png` in mimeapps.list Default Associations: swayimg.desktop;
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Selector enabled: false, number of set handlers: 1
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::apps::user[0m[2m:[0m Not running selector, choosing first handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Match found for `image/png` in mimeapps.list Default Associations
-[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `a.pdf`
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `tests/assets/a.pdf`
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Configured handlers for `application/pdf` in mimeapps.list Default Associations: mupdf.desktop;
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Selector enabled: false, number of set handlers: 1
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::apps::user[0m[2m:[0m Not running selector, choosing first handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Match found for `application/pdf` in mimeapps.list Default Associations
-[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `a.pdf`
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `tests/assets/a.pdf`
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Configured handlers for `application/pdf` in mimeapps.list Default Associations: mupdf.desktop;
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Selector enabled: false, number of set handlers: 1
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::apps::user[0m[2m:[0m Not running selector, choosing first handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Match found for `application/pdf` in mimeapps.list Default Associations
-[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `a.png`
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `tests/assets/a.png`
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Configured handlers for `image/png` in mimeapps.list Default Associations: swayimg.desktop;
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Selector enabled: false, number of set handlers: 1
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::apps::user[0m[2m:[0m Not running selector, choosing first handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Match found for `image/png` in mimeapps.list Default Associations
-[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `b.png`
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m No matching regex handlers found for `tests/assets/b.png`
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Configured handlers for `image/png` in mimeapps.list Default Associations: swayimg.desktop;
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Selector enabled: false, number of set handlers: 1
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::apps::user[0m[2m:[0m Not running selector, choosing first handler

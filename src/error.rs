@@ -1,3 +1,5 @@
+use std::process::ExitCode;
+
 use tracing::{error, info};
 
 /// Custom error type
@@ -21,8 +23,6 @@ pub enum Error {
     InvalidMime(mime::Mime),
     #[error("Malformed desktop entry at {0}")]
     BadEntry(std::path::PathBuf),
-    #[error(transparent)]
-    BadRegex(#[from] regex::Error),
     #[error("Error spawning selector process '{0}'")]
     Selector(String),
     #[error("Selection cancelled")]
@@ -37,12 +37,10 @@ pub enum Error {
     SerdeIniDe(#[from] serde_ini::de::Error),
     #[error(transparent)]
     SerdeIniSer(#[from] serde_ini::ser::Error),
-    #[error("Could not split exec command '{0}' in desktop file '{1}' into shell words")]
-    BadExec(String, String),
-    #[error("Could not split command '{0}' into shell words")]
-    BadCmd(String),
     #[error(transparent)]
     TracingGlobalDefault(#[from] tracing::dispatcher::SetGlobalDefaultError),
+    #[error("Could not find file at path: '{0}'")]
+    NonexistentFile(String),
     #[cfg(test)]
     #[error(transparent)]
     BadUrl(#[from] url::ParseError),
@@ -51,14 +49,23 @@ pub enum Error {
     FromUtf8(#[from] std::string::FromUtf8Error),
 }
 
-impl Error {
-    #[mutants::skip] // Cannot test, relies on user input
-    pub fn log(&self) {
-        match self {
-            Self::Cancelled => info!("{}", self),
-            _ => error!("{}", self),
+pub type Result<T, E = Error> = std::result::Result<T, E>;
+
+#[mutants::skip] // Cannot completely test, relies on user input
+pub fn handle(result: Result<()>) -> ExitCode {
+    if let Err(error) = result {
+        match error {
+            // Cancelling the selector is an acceptable outcome
+            Error::Cancelled => {
+                info!("{}", error);
+                ExitCode::SUCCESS
+            }
+            _ => {
+                error!("{}", error);
+                ExitCode::FAILURE
+            }
         }
+    } else {
+        ExitCode::SUCCESS
     }
 }
-
-pub type Result<T, E = Error> = std::result::Result<T, E>;

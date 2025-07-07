@@ -11,7 +11,8 @@ fn test_terminal_output(terminal_output: bool) -> Command {
         .arg("-vvv") // Maximum verbosity
         .arg("--disable-notifications") // Not much point showing these in tests
         .arg("mime")
-        .arg("./assets");
+        .arg("./tests/assets")
+        .env_clear(); // Ensure no environment variables compromise the tests
     cmd
 }
 

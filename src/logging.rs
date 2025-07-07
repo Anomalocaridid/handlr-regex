@@ -1,41 +1,40 @@
 use notify_rust::{Notification, Timeout, Urgency};
 use tracing::{field::Visit, Level};
 use tracing_appender::non_blocking::WorkerGuard;
-use tracing_subscriber::{filter, fmt, layer::SubscriberExt, EnvFilter, Layer};
+use tracing_subscriber::{filter, fmt, layer::SubscriberExt, Layer};
 
 use crate::{cli::Cli, error::Result};
 
 /// Init global tracing subscriber
 pub fn init_tracing(cli: &Cli) -> Result<WorkerGuard> {
-    let (file_writer, _guard) =
+    let (file_writer, guard) =
         tracing_appender::non_blocking(tracing_appender::rolling::never(
             xdg::BaseDirectories::new()?.create_cache_directory("handlr")?,
             "handlr.log",
         ));
 
-    // Have log level for certain layers be determined by cli arguments
-    let env_filter = || {
-        EnvFilter::builder()
-            .with_default_directive(cli.verbosity.tracing_level_filter().into())
-            .from_env_lossy()
-    };
+    // Filter logs based on `$RUST_LOG` and cli args
+    let env_filter = std::env::var("RUST_LOG")
+        .ok()
+        .and_then(|var| var.parse::<filter::Targets>().ok())
+        .unwrap_or_else(|| filter::Targets::new().with_default(cli.verbosity));
 
     tracing::subscriber::set_global_default(
         tracing_subscriber::registry()
-            // Send logs to stdout as determined by cli args
+            // Send filtered logs to stdout
             .with(
                 fmt::Layer::new()
                     .with_writer(std::io::stderr)
-                    .with_filter(env_filter()),
+                    .with_filter(env_filter.clone()),
             )
             // Send all logs to a log file
             .with(fmt::Layer::new().with_writer(file_writer).with_ansi(false))
-            // Notify for logs as determined by cli args
+            // Notify for filtered logs
             .with(
                 cli.show_notifications()
-                    .then_some(NotificationLayer.with_filter(env_filter())),
+                    .then_some(NotificationLayer.with_filter(env_filter)),
             )
-            // Filter out all logs from other crates so the user is not overwhelmed looking at the logs
+            // Never any logs from other crates so the user is not overwhelmed by the output
             .with(
                 filter::Targets::new()
                     .with_target("handlr", Level::TRACE)
@@ -43,7 +42,7 @@ pub fn init_tracing(cli: &Cli) -> Result<WorkerGuard> {
             ),
     )?;
 
-    Ok(_guard)
+    Ok(guard)
 }
 
 /// Custom tracing layer for running a notification on relevant events

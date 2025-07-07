@@ -1,21 +1,11 @@
 use crate::{
-    config::Config,
+    config::{Config, Languages},
     error::{Error, Result},
 };
-use aho_corasick::AhoCorasick;
-use freedesktop_desktop_entry::{
-    get_languages_from_env, DesktopEntry as FreeDesktopEntry,
-};
+use freedesktop_entry_parser::Entry;
 use itertools::Itertools;
 use mime::Mime;
-use once_cell::sync::Lazy;
-use std::{
-    convert::TryFrom,
-    ffi::OsString,
-    path::{Path, PathBuf},
-    process::{Command, Stdio},
-    str::FromStr,
-};
+use std::{ffi::OsString, path::Path, process::Stdio, str::FromStr};
 use tracing::debug;
 
 /// Represents a desktop entry file for an application
@@ -71,13 +61,10 @@ impl DesktopEntry {
     /// Internal helper function for `exec`
     #[mutants::skip] // Cannot test directly, runs command
     fn exec_inner(&self, config: &Config, args: Vec<String>) -> Result<()> {
-        let mut cmd = {
-            let (cmd, args) = self.get_cmd(config, args)?;
-            debug!("Executing program \"{}\" with args: {:?}", cmd, args);
-            let mut cmd = Command::new(cmd);
-            cmd.args(args);
-            cmd
-        };
+        let cmd = self.get_cmd(config, args)?;
+        debug!("Executing command: \"{}\"", cmd);
+
+        let mut cmd = execute::command(cmd);
 
         if self.terminal && config.terminal_output {
             cmd.spawn()?.wait()?;
@@ -93,89 +80,82 @@ impl DesktopEntry {
         &self,
         config: &Config,
         args: Vec<String>,
-    ) -> Result<(String, Vec<String>)> {
-        let special =
-            AhoCorasick::new_auto_configured(&["%f", "%F", "%u", "%U"]);
+    ) -> Result<String> {
+        let special = lazy_regex::regex!("%(f|u)"i);
 
-        let mut exec = shlex::split(&self.exec).ok_or_else(|| {
-            Error::BadExec(
-                self.exec.clone(),
-                self.file_name.to_string_lossy().to_string(),
-            )
-        })?;
+        let mut exec = self.exec.clone();
+        let args = args.join(" ");
 
-        // The desktop entry doesn't contain arguments - we make best effort and append them at
-        // the end
-        if special.is_match(&self.exec) {
-            exec = exec
-                .into_iter()
-                .flat_map(|s| match s.as_str() {
-                    "%f" | "%F" | "%u" | "%U" => args.clone(),
-                    s => vec![{
-                        let mut replaced =
-                            String::with_capacity(s.len() + args.len() * 2);
-                        special.replace_all_with(
-                            s,
-                            &mut replaced,
-                            |_, _, dst| {
-                                dst.push_str(args.clone().join(" ").as_str());
-                                false
-                            },
-                        );
-                        replaced
-                    }],
-                })
-                .collect()
+        if special.is_match(&exec) {
+            exec = special.replace_all(&exec, args).to_string();
         } else {
-            exec.extend_from_slice(&args);
+            // The desktop entry doesn't contain arguments - we make best effort and append them at the end
+            exec.push(' ');
+            exec.push_str(&args);
         }
 
-        // If the entry expects a terminal (emulator), but this process is not running in one, we
-        // launch a new one.
+        // If the entry expects a terminal (emulator), but this process is not running in one, we launch a new one.
         if self.terminal && !config.terminal_output {
-            let term_cmd = config.terminal()?;
-            exec = shlex::split(&term_cmd)
-                .ok_or(Error::BadCmd(term_cmd))?
-                .into_iter()
-                .chain(exec)
-                .collect();
+            let mut term_cmd = config.terminal()?;
+            term_cmd.push(' ');
+            term_cmd.push_str(&exec);
+            exec = term_cmd;
         }
 
-        Ok((exec.remove(0), exec))
+        Ok(exec.trim().to_string())
     }
 
     /// Parse a desktop entry file, given a path
-    fn parse_file(path: &Path) -> Option<DesktopEntry> {
-        // Assume the set locales will not change while handlr is running
-        static LOCALES: Lazy<Vec<String>> = Lazy::new(get_languages_from_env);
+    pub fn parse_file(
+        path: &Path,
+        languages: &Languages,
+    ) -> Result<DesktopEntry> {
+        (|| -> Option<_> {
+            let fd_entry = Entry::parse_file(path).ok()?;
+            let fd_entry = fd_entry.section("Desktop Entry");
 
-        let fd_entry =
-            FreeDesktopEntry::from_path(path.to_path_buf(), &LOCALES).ok()?;
+            let entry = DesktopEntry {
+                name: languages
+                    .iter()
+                    .filter_map(|lang| fd_entry.attr_with_param("Name", lang))
+                    .next()
+                    .or_else(|| fd_entry.attr("Name"))?
+                    .to_string(),
+                exec: fd_entry.attr("Exec")?.to_string(),
+                file_name: path.file_name()?.to_owned(),
+                terminal: fd_entry
+                    .attr("Terminal")
+                    .and_then(|t| t.parse().ok())
+                    .unwrap_or(false),
+                mime_type: fd_entry
+                    .attr("MimeType")
+                    .map(|m| {
+                        m.split(';')
+                            .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
+                            .unique() // Remove duplicate entries
+                            .filter_map(|m| Mime::from_str(m).ok())
+                            .collect_vec()
+                    })
+                    .unwrap_or_default(),
+                categories: fd_entry
+                    .attr("Categories")
+                    .map(|c| {
+                        c.split(';')
+                            .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
+                            .unique() // Remove duplicate entries
+                            .map(|c| c.to_string())
+                            .collect_vec()
+                    })
+                    .unwrap_or_default(),
+            };
 
-        let entry = DesktopEntry {
-            name: fd_entry.name(&LOCALES)?.into_owned(),
-            exec: fd_entry.exec()?.to_owned(),
-            file_name: path.file_name()?.to_owned(),
-            terminal: fd_entry.terminal(),
-            mime_type: fd_entry
-                .mime_type()
-                .unwrap_or_default()
-                .iter()
-                .filter_map(|m| Mime::from_str(m).ok())
-                .collect_vec(),
-            categories: fd_entry
-                .categories()
-                .unwrap_or_default()
-                .iter()
-                .map(|&c| c.to_owned())
-                .collect_vec(),
-        };
-
-        if !entry.name.is_empty() && !entry.exec.is_empty() {
-            Some(entry)
-        } else {
-            None
-        }
+            if !entry.name.is_empty() && !entry.exec.is_empty() {
+                Some(entry)
+            } else {
+                None
+            }
+        })()
+        .ok_or(Error::BadEntry(path.to_path_buf()))
     }
 
     /// Make a fake DesktopEntry given only a value for exec and terminal.
@@ -194,15 +174,10 @@ impl DesktopEntry {
     }
 }
 
-impl TryFrom<PathBuf> for DesktopEntry {
-    type Error = Error;
-    fn try_from(path: PathBuf) -> Result<Self> {
-        Self::parse_file(&path).ok_or(Error::BadEntry(path))
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::*;
     use crate::common::DesktopHandler;
     use similar_asserts::assert_eq;
@@ -211,15 +186,11 @@ mod tests {
     fn test_get_cmd(
         entry: &DesktopEntry,
         config: &Config,
-        expected_program: &str,
-        expected_args: Vec<&str>,
+        expected_command: &str,
     ) -> Result<()> {
         assert_eq!(
             entry.get_cmd(config, vec!["test".to_string()])?,
-            (
-                expected_program.to_string(),
-                expected_args.iter().map(|s| s.to_string()).collect()
-            )
+            expected_command
         );
         Ok(())
     }
@@ -227,48 +198,49 @@ mod tests {
     #[test]
     fn complex_exec() -> Result<()> {
         // Note that this entry also has no category key
-        let entry =
-            DesktopEntry::try_from(PathBuf::from("tests/assets/cmus.desktop"))?;
+        let entry = DesktopEntry::parse_file(
+            &PathBuf::from("tests/assets/cmus.desktop"),
+            &Vec::new(),
+        )?;
         assert_eq!(entry.mime_type.len(), 2);
         assert_eq!(entry.mime_type[0].essence_str(), "audio/mp3");
         assert_eq!(entry.mime_type[1].essence_str(), "audio/ogg");
         assert!(!entry.is_terminal_emulator());
 
-        test_get_cmd(&entry, &Config::default(), "bash",
-                vec![
-                    "-c", 
-                    "(! pgrep cmus && tilix -e cmus && tilix -a session-add-down -e cava); sleep 0.1 && cmus-remote -q test"
-                ]
+        test_get_cmd(
+            &entry,
+            &Config::default(),
+            "bash -c \"(! pgrep cmus && tilix -e cmus && tilix -a session-add-down -e cava); sleep 0.1 && cmus-remote -q test\""
         )
     }
 
     #[test]
     fn terminal_emulator() -> Result<()> {
-        let entry = DesktopEntry::try_from(PathBuf::from(
-            "tests/assets/org.wezfurlong.wezterm.desktop",
-        ))?;
+        let entry = DesktopEntry::parse_file(
+            &PathBuf::from("tests/assets/org.wezfurlong.wezterm.desktop"),
+            &Vec::new(),
+        )?;
         assert!(entry.mime_type.is_empty());
         assert!(entry.is_terminal_emulator());
 
-        test_get_cmd(
-            &entry,
-            &Config::default(),
-            "wezterm",
-            vec!["start", "--cwd", ".", "test"],
-        )
+        test_get_cmd(&entry, &Config::default(), "wezterm start --cwd . test")
     }
 
     #[test]
     fn invalid_desktop_entries() -> Result<()> {
-        let empty_name = DesktopEntry::try_from(PathBuf::from(
-            "tests/assets/empty_name.desktop",
-        ));
+        let languages = Vec::new();
+
+        let empty_name = DesktopEntry::parse_file(
+            &PathBuf::from("tests/assets/empty_name.desktop"),
+            &languages,
+        );
 
         assert!(empty_name.is_err());
 
-        let empty_exec = DesktopEntry::try_from(PathBuf::from(
-            "tests/assets/empty_exec.desktop",
-        ));
+        let empty_exec = DesktopEntry::parse_file(
+            &PathBuf::from("tests/assets/empty_exec.desktop"),
+            &languages,
+        );
 
         assert!(empty_exec.is_err());
 
@@ -288,15 +260,44 @@ mod tests {
             ),
         )?;
 
-        let entry = DesktopEntry::try_from(PathBuf::from(
-            "tests/assets/Helix.desktop",
-        ))?;
+        let entry = DesktopEntry::parse_file(
+            &PathBuf::from("tests/assets/Helix.desktop"),
+            &Vec::new(),
+        )?;
 
-        test_get_cmd(
-            &entry,
-            &config,
-            "wezterm",
-            vec!["start", "--cwd", ".", "-e", "hx", "test"],
-        )
+        test_get_cmd(&entry, &config, "wezterm start --cwd . -e hx test")
+    }
+
+    /// Helper function for testing language support
+    fn lang_test(languages: &[&str], expected_name: &str) -> Result<()> {
+        let entry = DesktopEntry::parse_file(
+            &PathBuf::from("tests/assets/vlc.desktop"),
+            &languages.iter().map(|s| s.to_string()).collect_vec(),
+        )?;
+
+        assert_eq!(entry.name, expected_name);
+
+        Ok(())
+    }
+
+    #[test]
+    fn language_support() -> Result<()> {
+        // No languages
+        lang_test(&[], "VLC media player")?;
+
+        // Just one language
+        lang_test(&["es"], "Reproductor multimedia VLC")?;
+
+        // Multiple languages
+        lang_test(&["ja", "fr", "nl"], "VLCメディアプレイヤー")?;
+
+        // No valid languages
+        lang_test(&["qwert", "yuiop"], "VLC media player")?;
+
+        // Some invalid languages
+        lang_test(&["asdfg", "hjkl?;", "bn", "hu"], "VLC মিডিয়া প্লেয়ার")?;
+        lang_test(&["zxcv", "pa", "it", "ru"], "VLC ਮੀਡਿਆ ਪਲੇਅਰ")?;
+
+        Ok(())
     }
 }

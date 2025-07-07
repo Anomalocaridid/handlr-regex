@@ -7,9 +7,11 @@ use clap_verbosity_flag::{Verbosity, WarnLevel};
 
 // Dependencies not needed for the build script
 #[cfg(executable)]
+use crate::config::get_languages;
+#[cfg(executable)]
 use crate::{
     apps::SystemApps,
-    common::mime_types,
+    common::MIME_TYPES,
     common::{DesktopHandler, MimeType, UserPath},
 };
 #[cfg(executable)]
@@ -50,7 +52,7 @@ pub struct Cli {
 
     /// Disable notifications on error
     #[clap(global = true, long = "disable-notifications", short = 'n', action = ArgAction::SetFalse)]
-    enable_notifications: bool,
+    enable_notifications: Option<bool>,
 
     /// Overrides whether or not to behave as if the output is an interactive terminal
     #[clap(global = true, long = "force-terminal-output", short = 't')]
@@ -68,7 +70,7 @@ impl Cli {
     }
 
     pub fn show_notifications(&self) -> bool {
-        !self.terminal_output() && self.enable_notifications
+        !self.terminal_output() && self.enable_notifications.unwrap_or(true)
     }
 }
 
@@ -296,7 +298,7 @@ fn autocomplete_mimes(current: &OsStr) -> Vec<CompletionCandidate> {
     let mut mimes = mime_db::EXTENSIONS
         .iter()
         .map(|(ext, _)| format!(".{ext}"))
-        .chain(mime_types())
+        .chain(MIME_TYPES.iter().cloned())
         .filter(|x| x.starts_with(current.to_string_lossy().as_ref()))
         .map(CompletionCandidate::new)
         .collect::<Vec<_>>();
@@ -308,8 +310,9 @@ fn autocomplete_mimes(current: &OsStr) -> Vec<CompletionCandidate> {
 #[mutants::skip] // Cannot test directly, relies on system state
 #[cfg(executable)]
 fn autocomplete_desktop_files(current: &OsStr) -> Vec<CompletionCandidate> {
-    SystemApps::get_entries()
+    SystemApps::get_entries(&get_languages())
         .expect("handlr error: Could not get system desktop entries")
+        .into_iter()
         .filter(|(path, _)| {
             path.to_string_lossy()
                 .starts_with(current.to_string_lossy().as_ref())
@@ -344,7 +347,7 @@ mod tests {
             command: Cmd::Unset {
                 mime: MimeType::from_str("fake/mime")?,
             },
-            enable_notifications: true,
+            enable_notifications: Some(true),
             terminal_output: Some(false),
             verbosity: Verbosity::default(),
         };
@@ -354,7 +357,7 @@ mod tests {
         cli.terminal_output = Some(true);
         assert!(!cli.show_notifications());
 
-        cli.enable_notifications = false;
+        cli.enable_notifications = Some(false);
         assert!(!cli.show_notifications());
 
         cli.terminal_output = Some(true);

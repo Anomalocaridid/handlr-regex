@@ -1,6 +1,6 @@
 use crate::{
-    common::{mime_types, DesktopHandler, Handleable},
-    config::ConfigFile,
+    common::{DesktopHandler, Handleable, MIME_TYPES},
+    config::{ConfigFile, Languages},
     error::{Error, Result},
 };
 use derive_more::{Deref, DerefMut};
@@ -85,7 +85,7 @@ impl MimeApps {
 
         if expand_wildcards {
             let wildcard = WildMatch::new(mime.as_ref());
-            mime_types()
+            MIME_TYPES
                 .iter()
                 .filter(|mime| wildcard.matches(mime))
                 .try_for_each(|mime| -> Result<()> {
@@ -120,7 +120,7 @@ impl MimeApps {
 
         if expand_wildcards {
             let wildcard = WildMatch::new(mime.as_ref());
-            mime_types()
+            MIME_TYPES
                 .iter()
                 .filter(|mime| wildcard.matches(mime))
                 .try_for_each(|mime| -> Result<()> {
@@ -248,6 +248,7 @@ impl MimeApps {
         &self,
         mime: &Mime,
         config_file: &ConfigFile,
+        languages: &Languages,
     ) -> Result<DesktopHandler> {
         let error = Error::NotFound(mime.to_string());
         // Check for an exact match first and then fall back to wildcard
@@ -266,12 +267,11 @@ impl MimeApps {
                     .iter()
                     .flat_map(|h| -> Result<(&DesktopHandler, String)> {
                         // Filtering breaks testing, so treat every app as valid
-                        // TODO: test logging
 
                         if cfg!(test) {
                             Ok((h, h.to_string()))
                         } else {
-                            let entry = h.get_entry();
+                            let entry = h.get_entry(languages);
                             if let Err(ref e) = entry {
                                 debug!(
                                     "Desktop entry `{}` is invalid: {}",
@@ -396,17 +396,10 @@ fn select<O: Iterator<Item = String>>(
     selector: &str,
     mut opts: O,
 ) -> Result<String> {
-    use std::{
-        io::prelude::*,
-        process::{Command, Stdio},
-    };
+    use std::{io::prelude::*, process::Stdio};
 
     let process = {
-        let mut split = shlex::split(selector)
-            .ok_or_else(|| Error::BadCmd(selector.to_string()))?;
-        let (cmd, args) = (split.remove(0), split);
-        Command::new(cmd)
-            .args(args)
+        execute::command(selector)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()?
@@ -514,7 +507,11 @@ mod tests {
 
         assert_eq!(
             mime_apps
-                .get_handler_from_user(&mime::TEXT_PLAIN, &config_file)?
+                .get_handler_from_user(
+                    &mime::TEXT_PLAIN,
+                    &config_file,
+                    &Vec::new()
+                )?
                 .to_string(),
             "nvim.desktop"
         );

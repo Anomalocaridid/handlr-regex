@@ -1,0 +1,12 @@
+---
+source: src/config/main_config.rs
+expression: "String :: from_utf8(buffer).expect(\"Buffer is invalid utf8\")"
+---
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::main_config[0m[2m:[0m $LANG not set
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::main_config[0m[2m:[0m $LANG not set
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::main_config[0m[2m:[0m $LANG set: 'es'
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::main_config[0m[2m:[0m $LANG not set
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::main_config[0m[2m:[0m $LANG not set
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::main_config[0m[2m:[0m $LANGUAGE set: 'ja:fr:nl'
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::main_config[0m[2m:[0m $LANG set: 'bn'
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::main_config[0m[2m:[0m $LANGUAGE set: 'hu:pa:it:ru'

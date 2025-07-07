@@ -1,14 +1,14 @@
 use crate::{
     common::{DesktopEntry, ExecMode, UserPath},
-    config::Config,
+    config::{Config, Languages},
     error::{Error, Result},
 };
 use derive_more::{Deref, Display};
 use enum_dispatch::enum_dispatch;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 use std::{
-    convert::TryFrom,
     ffi::OsString,
     fmt::Display,
     hash::{Hash, Hasher},
@@ -37,11 +37,12 @@ impl Handler {
 #[enum_dispatch]
 pub trait Handleable {
     /// Get the desktop entry associated with the handler
-    fn get_entry(&self) -> Result<DesktopEntry>;
+    fn get_entry(&self, languages: &Languages) -> Result<DesktopEntry>;
     /// Open the given paths with the handler
     #[mutants::skip] // Cannot test directly, runs commands
     fn open(&self, config: &Config, args: Vec<String>) -> Result<()> {
-        self.get_entry()?.exec(config, ExecMode::Open, args)
+        self.get_entry(&config.languages)?
+            .exec(config, ExecMode::Open, args)
     }
 }
 
@@ -65,8 +66,8 @@ impl FromStr for DesktopHandler {
 }
 
 impl Handleable for DesktopHandler {
-    fn get_entry(&self) -> Result<DesktopEntry> {
-        DesktopEntry::try_from(Self::get_path(&self.0)?)
+    fn get_entry(&self, languages: &Languages) -> Result<DesktopEntry> {
+        DesktopEntry::parse_file(&Self::get_path(&self.0)?, languages)
     }
 }
 
@@ -95,12 +96,15 @@ impl DesktopHandler {
     #[mutants::skip] // Cannot test directly, runs command
     pub fn launch(&self, config: &Config, args: Vec<String>) -> Result<()> {
         info!("Launching `{}` with args: {:?}", self, args);
-        self.get_entry()?.exec(config, ExecMode::Launch, args)
+        self.get_entry(&config.languages)?
+            .exec(config, ExecMode::Launch, args)
     }
 
     /// Issue a warning if the given handler is invalid
     pub fn warn_if_invalid(&self) {
-        if let Err(e) = self.get_entry() {
+        // This is just checking that the handler is valid
+        // so we can assume that access to the language settings is unecessary
+        if let Err(e) = self.get_entry(&Vec::new()) {
             warn!("The desktop entry `{}` is invalid: {}", self, e);
         }
     }
@@ -113,21 +117,21 @@ pub struct RegexHandler {
     exec: String,
     #[serde(default)]
     terminal: bool,
-    regexes: RegexSet,
+    regexes: Vec<Regex>,
 }
 
 impl RegexHandler {
     /// Test if a given path matches the handler's regex
     fn is_match(&self, path: &str) -> bool {
-        let is_match = self.regexes.is_match(path);
+        let matches = self
+            .regexes
+            .iter()
+            .filter(|regex| regex.is_match(path))
+            .collect_vec();
+
+        let is_match = !matches.is_empty();
 
         if is_match {
-            let matches = self
-                .regexes
-                .matches(path)
-                .into_iter()
-                .map(|index| &self.regexes.patterns()[index])
-                .collect_vec();
             debug!(
                 "Regex matches found in `{}` for `{}`: {:?}",
                 self, path, matches
@@ -141,40 +145,29 @@ impl RegexHandler {
 }
 
 impl Handleable for RegexHandler {
-    fn get_entry(&self) -> Result<DesktopEntry> {
+    fn get_entry(&self, _languages: &Languages) -> Result<DesktopEntry> {
         Ok(DesktopEntry::fake_entry(&self.exec, self.terminal))
     }
 }
 
-/// Helper struct needed because regex::RegexSet does not implement Hash
-#[derive(Deref, Debug, Clone, Deserialize)]
-struct RegexSet(#[serde(with = "serde_regex")] regex::RegexSet);
+/// Wrapper struct needed because `Regex` does not implement Eq, Hash, or Deserialize
+#[serde_as]
+#[derive(Debug, Clone, Deref, Deserialize)]
+struct Regex(#[serde_as(as = "DisplayFromStr")] lazy_regex::Regex);
 
-#[cfg(test)]
-impl RegexSet {
-    /// Create new RegexSet, currently only needed for tests
-    pub fn new<I, S>(exprs: I) -> Result<Self>
-    where
-        S: AsRef<str>,
-        I: IntoIterator<Item = S>,
-    {
-        Ok(RegexSet(regex::RegexSet::new(exprs)?))
-    }
-}
-
-impl PartialEq for RegexSet {
+impl PartialEq for Regex {
     #[mutants::skip] // Trivial
     fn eq(&self, other: &Self) -> bool {
-        self.patterns() == other.patterns()
+        self.as_str() == other.as_str()
     }
 }
 
-impl Eq for RegexSet {}
+impl Eq for Regex {}
 
-impl Hash for RegexSet {
+impl Hash for Regex {
     #[mutants::skip] // Trivial
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.patterns().hash(state);
+        self.as_str().hash(state);
     }
 }
 
@@ -200,17 +193,25 @@ mod tests {
     use crate::common::DesktopEntry;
     use url::Url;
 
-    #[test]
-    fn regex_handlers() -> Result<()> {
+    crate::logs_snapshot_test!(regex_handlers, {
         let exec: &str = "freetube %u";
-        let regexes: &[String] =
-            &[String::from(r"(https://)?(www\.)?youtu(be\.com|\.be)/*")];
-
         let regex_handler = RegexHandler {
             exec: String::from(exec),
             terminal: false,
-            regexes: RegexSet::new(regexes)?,
+            regexes: [String::from(
+                r"(https://)?(www\.)?youtu(be\.com|\.be)/*",
+            )]
+            .iter()
+            .map(|s| {
+                Regex(
+                    lazy_regex::Regex::new(s)
+                        .expect("Hardcoded regex should be valid"),
+                )
+            })
+            .collect(),
         };
+
+        println!("{:#?}", regex_handler);
 
         let regex_apps = RegexApps(vec![regex_handler.clone()]);
 
@@ -219,7 +220,7 @@ mod tests {
                 .get_handler(&UserPath::Url(Url::parse(
                     "https://youtu.be/dQw4w9WgXcQ"
                 )?))?
-                .get_entry()?,
+                .get_entry(&Vec::new())?,
             DesktopEntry {
                 exec: exec.to_string(),
                 terminal: false,
@@ -232,7 +233,5 @@ mod tests {
                 "https://en.wikipedia.org",
             )?))
             .is_err());
-
-        Ok(())
-    }
+    });
 }

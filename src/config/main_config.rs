@@ -33,26 +33,56 @@ pub struct Config {
     pub config: ConfigFile,
     /// Whether or not stdout is a terminal
     pub terminal_output: bool,
+    /// Configured languages
+    pub languages: Vec<String>,
+}
+
+/// Type alias for configured languages
+pub type Languages = Vec<String>;
+
+/// Get languages from `$LANG` and `$LANGUAGES`
+pub fn get_languages() -> Languages {
+    let mut langs = Vec::new();
+
+    if let Ok(lang) = std::env::var("LANG") {
+        debug!("$LANG set: '{}'", lang);
+        langs.push(lang)
+    } else {
+        debug!("$LANG not set")
+    }
+
+    if let Ok(languages) = std::env::var("LANGUAGES") {
+        debug!("$LANGUAGE set: '{}'", languages);
+        languages
+            .split(':')
+            .for_each(|lang| langs.push(lang.to_owned()));
+    } else {
+        debug!("$LANG not set")
+    }
+
+    langs
 }
 
 impl Config {
     /// Create a new instance of AppsConfig
     pub fn new(terminal_output: bool) -> Result<Self> {
         let config = ConfigFile::load();
+        let languages = get_languages();
 
         Ok(Self {
             // Ensure fields individually default rather than making the whole thing fail if one is missing
             mime_apps: MimeApps::read()?,
-            system_apps: SystemApps::populate()?,
+            system_apps: SystemApps::populate(&languages)?,
             config: config?,
             terminal_output,
+            languages,
         })
     }
 
     /// Get the handler associated with a given mime
     #[mutants::skip] // Cannot test match guard because it relies on user interactivity
     pub fn get_handler(&self, mime: &Mime) -> Result<DesktopHandler> {
-        match self.mime_apps.get_handler_from_user(mime, &self.config) {
+        match self.mime_apps.get_handler_from_user(mime, &self.config, &self.languages) {
             Err(e) if matches!(e, Error::Cancelled) => Err(e),
             h => h
                 .inspect(|_| {
@@ -115,13 +145,13 @@ impl Config {
         let handler = self.get_handler(mime)?;
 
         let output = if output_json {
-            let entry = handler.get_entry()?;
+            let entry = handler.get_entry(&self.languages)?;
             let cmd = entry.get_cmd(self, vec![])?;
 
             (serde_json::json!( {
                 "handler": handler.to_string(),
                 "name": entry.name,
-                "cmd": cmd.0 + " " + &cmd.1.join(" "),
+                "cmd": cmd,
             }))
             .to_string()
         } else {
@@ -234,9 +264,9 @@ impl Config {
         // Get the terminal handler if there is one set
         self.get_handler(&Mime::from_str("x-scheme-handler/terminal")?)
             .ok()
-            .and_then(|h| h.get_entry().ok())
+            .and_then(|h| h.get_entry(&self.languages).ok())
             // Otherwise, get a terminal emulator program
-            .or_else(|| self.system_apps.terminal_emulator())
+            .or_else(|| self.system_apps.terminal_emulator(&self.languages))
             .map(|e| {
                 let mut exec = e.exec.to_owned();
 
@@ -435,9 +465,8 @@ impl MimeAppsTable {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Read;
 
-    use crate::testing;
+    use crate::logs_snapshot_test;
 
     use super::*;
     use similar_asserts::assert_eq;
@@ -891,23 +920,27 @@ mod tests {
         )?;
 
         let mut expected_handlers = HashMap::new();
-        expected_handlers
-            .insert(Handler::new("swayimg.desktop"), vec!["a.png".to_owned()]);
-        expected_handlers
-            .insert(Handler::new("mupdf.desktop"), vec!["a.pdf".to_owned()]);
+        expected_handlers.insert(
+            Handler::new("swayimg.desktop"),
+            vec!["tests/assets/a.png".to_owned()],
+        );
+        expected_handlers.insert(
+            Handler::new("mupdf.desktop"),
+            vec!["tests/assets/a.pdf".to_owned()],
+        );
 
         assert_eq!(
             config.assign_files_to_handlers(&[
-                UserPath::from_str("a.png")?,
-                UserPath::from_str("a.pdf")?
+                UserPath::from_str("tests/assets/a.png")?,
+                UserPath::from_str("tests/assets/a.pdf")?
             ])?,
             expected_handlers
         );
 
         assert_eq!(
             config.assign_files_to_handlers(&[
-                UserPath::from_str("a.pdf")?,
-                UserPath::from_str("a.png")?
+                UserPath::from_str("tests/assets/a.pdf")?,
+                UserPath::from_str("tests/assets/a.png")?
             ])?,
             expected_handlers
         );
@@ -915,27 +948,70 @@ mod tests {
         let mut expected_handlers = HashMap::new();
         expected_handlers.insert(
             Handler::new("swayimg.desktop"),
-            vec!["a.png".to_owned(), "b.png".to_owned()],
+            vec![
+                "tests/assets/a.png".to_owned(),
+                "tests/assets/b.png".to_owned(),
+            ],
         );
-        expected_handlers
-            .insert(Handler::new("mupdf.desktop"), vec!["a.pdf".to_owned()]);
+        expected_handlers.insert(
+            Handler::new("mupdf.desktop"),
+            vec!["tests/assets/a.pdf".to_owned()],
+        );
 
         assert_eq!(
             config.assign_files_to_handlers(&[
-                UserPath::from_str("a.png")?,
-                UserPath::from_str("b.png")?,
-                UserPath::from_str("a.pdf")?
+                UserPath::from_str("tests/assets/a.png")?,
+                UserPath::from_str("tests/assets/b.png")?,
+                UserPath::from_str("tests/assets/a.pdf")?
             ])?,
             expected_handlers
         );
 
         assert_eq!(
             config.assign_files_to_handlers(&[
-                UserPath::from_str("a.pdf")?,
-                UserPath::from_str("a.png")?,
-                UserPath::from_str("b.png")?
+                UserPath::from_str("tests/assets/a.pdf")?,
+                UserPath::from_str("tests/assets/a.png")?,
+                UserPath::from_str("tests/assets/b.png")?
             ])?,
             expected_handlers
+        );
+    });
+
+    /// Helper function for testing language variable parsing
+    fn lang_var_test(
+        lang: Option<&str>,
+        languages: Option<&str>,
+        expected_languages: &[&str],
+    ) {
+        let languages = temp_env::with_vars(
+            [("LANG", lang), ("LANGUAGES", languages)],
+            get_languages,
+        );
+
+        assert_eq!(
+            languages,
+            expected_languages
+                .iter()
+                .map(|l| l.to_string())
+                .collect_vec()
+        );
+    }
+
+    logs_snapshot_test!(language_variable_parsing, {
+        // No variables
+        lang_var_test(None, None, &[]);
+
+        // Just $LANG
+        lang_var_test(Some("es"), None, &["es"]);
+
+        // Just $LANGUAGES
+        lang_var_test(None, Some("ja:fr:nl"), &["ja", "fr", "nl"]);
+
+        // Both variables
+        lang_var_test(
+            Some("bn"),
+            Some("hu:pa:it:ru"),
+            &["bn", "hu", "pa", "it", "ru"],
         );
     });
 }

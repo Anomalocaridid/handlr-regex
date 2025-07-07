@@ -14,4 +14,4 @@ tests/assets/rust.vim                      	text/plain
 tests/assets/SettingsWidgetFdoSecrets.ui   	application/x-designer   
 https://duckduckgo.com/                    	x-scheme-handler/https   
 .                                          	inode/directory          
-../README.md                               	text/markdown
+README.md                                  	text/markdown

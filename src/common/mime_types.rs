@@ -1,7 +1,7 @@
 use crate::error::{Error, Result};
 use derive_more::Deref;
 use mime::Mime;
-use std::{convert::TryFrom, path::Path, str::FromStr};
+use std::{convert::TryFrom, path::Path, str::FromStr, sync::LazyLock};
 use tracing_unwrap::{OptionExt, ResultExt};
 use url::Url;
 
@@ -40,18 +40,27 @@ impl TryFrom<&Url> for MimeType {
 impl TryFrom<&Path> for MimeType {
     type Error = Error;
     fn try_from(path: &Path) -> Result<Self> {
+        if !path.try_exists()? {
+            return Err(Error::NonexistentFile(
+                path.to_string_lossy().to_string(),
+            ));
+        }
+
         let db = xdg_mime::SharedMimeInfo::new();
 
         let mut guess = db.guess_mime_type();
         guess.file_name(&path.to_string_lossy());
 
         let mut mime = guess.guess().mime_type().clone();
-        // TODO: remove this check once xdg-mime crate makes a new release (currently v0.4.0)
-        if mime
-            == "application/x-zerosize"
+
+        static APPLICATION_X_ZEROSIZE: LazyLock<Mime> = LazyLock::new(|| {
+            "application/x-zerosize"
                 .parse::<Mime>()
                 .expect_or_log("Hardcoded mime should be valid")
-        {
+        });
+
+        // TODO: remove this check once xdg-mime crate makes a new release (currently v0.4.0)
+        if mime == *APPLICATION_X_ZEROSIZE {
             mime = guess.path(path).guess().mime_type().clone();
         }
 
@@ -151,5 +160,10 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn nonexistent_file() {
+        assert!(MimeType::try_from(Path::new("nonexistent_file")).is_err());
     }
 }

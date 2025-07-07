@@ -1,10 +1,11 @@
 use crate::{
     apps::DesktopList,
     common::{DesktopEntry, DesktopHandler, Handleable},
+    config::Languages,
     error::Result,
 };
 use mime::Mime;
-use std::{collections::BTreeMap, convert::TryFrom, ffi::OsString};
+use std::{collections::BTreeMap, ffi::OsString};
 use tracing::debug;
 
 #[derive(Debug, Default, Clone)]
@@ -42,7 +43,9 @@ impl SystemApps {
     /// Get all system-level desktop entries on the system
     #[mutants::skip] // Cannot test directly, depends on system state
     pub fn get_entries(
-    ) -> Result<impl Iterator<Item = (OsString, DesktopEntry)>> {
+        languages: &Languages,
+    ) -> Result<BTreeMap<OsString, DesktopEntry>> {
+        // ) -> Result<impl Iterator<Item = (OsString, DesktopEntry)> + use<'_>> {
         Ok(xdg::BaseDirectories::new()?
             .list_data_files_once("applications")
             .into_iter()
@@ -52,33 +55,36 @@ impl SystemApps {
             .filter_map(|p| {
                 Some((
                     p.file_name()?.to_owned(),
-                    DesktopEntry::try_from(p.clone()).ok()?,
+                    DesktopEntry::parse_file(&p.clone(), languages).ok()?,
                 ))
-            }))
+            })
+            .collect())
     }
 
     /// Create a new instance of `SystemApps`
     #[mutants::skip] // Cannot test directly, depends on system state
-    pub fn populate() -> Result<Self> {
+    pub fn populate(languages: &Languages) -> Result<Self> {
         let mut associations = BTreeMap::<Mime, DesktopList>::new();
         let mut unassociated = DesktopList::default();
 
-        Self::get_entries()?.for_each(|(_, entry)| {
-            let (file_name, mimes) = (entry.file_name, entry.mime_type);
-            let desktop_handler =
-                DesktopHandler::assume_valid(file_name.to_owned());
+        Self::get_entries(languages)?
+            .into_iter()
+            .for_each(|(_, entry)| {
+                let (file_name, mimes) = (entry.file_name, entry.mime_type);
+                let desktop_handler =
+                    DesktopHandler::assume_valid(file_name.to_owned());
 
-            if mimes.is_empty() {
-                unassociated.push_back(desktop_handler);
-            } else {
-                mimes.into_iter().for_each(|mime| {
-                    associations
-                        .entry(mime)
-                        .or_default()
-                        .push_back(desktop_handler.clone());
-                });
-            }
-        });
+                if mimes.is_empty() {
+                    unassociated.push_back(desktop_handler);
+                } else {
+                    mimes.into_iter().for_each(|mime| {
+                        associations
+                            .entry(mime)
+                            .or_default()
+                            .push_back(desktop_handler.clone());
+                    });
+                }
+            });
 
         Ok(Self {
             associations,
@@ -87,10 +93,13 @@ impl SystemApps {
     }
 
     /// Get an installed terminal emulator
-    pub fn terminal_emulator(&self) -> Option<DesktopEntry> {
+    pub fn terminal_emulator(
+        &self,
+        languages: &Languages,
+    ) -> Option<DesktopEntry> {
         self.unassociated
             .iter()
-            .filter_map(|h| h.get_entry().ok())
+            .filter_map(|h| h.get_entry(languages).ok())
             .find(|h| h.is_terminal_emulator())
     }
 
