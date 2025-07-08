@@ -110,52 +110,59 @@ impl DesktopEntry {
         path: &Path,
         languages: &Languages,
     ) -> Result<DesktopEntry> {
-        (|| -> Option<_> {
-            let fd_entry = Entry::parse_file(path).ok()?;
-            let fd_entry = fd_entry.section("Desktop Entry");
+        let fd_entry = Entry::parse_file(path)?;
+        let fd_entry = fd_entry.section("Desktop Entry");
 
-            let entry = DesktopEntry {
-                name: languages
-                    .iter()
-                    .filter_map(|lang| fd_entry.attr_with_param("Name", lang))
-                    .next()
-                    .or_else(|| fd_entry.attr("Name"))?
-                    .to_string(),
-                exec: fd_entry.attr("Exec")?.to_string(),
-                file_name: path.file_name()?.to_owned(),
-                terminal: fd_entry
-                    .attr("Terminal")
-                    .and_then(|t| t.parse().ok())
-                    .unwrap_or(false),
-                mime_type: fd_entry
-                    .attr("MimeType")
-                    .map(|m| {
-                        m.split(';')
-                            .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
-                            .unique() // Remove duplicate entries
-                            .filter_map(|m| Mime::from_str(m).ok())
-                            .collect_vec()
-                    })
-                    .unwrap_or_default(),
-                categories: fd_entry
-                    .attr("Categories")
-                    .map(|c| {
-                        c.split(';')
-                            .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
-                            .unique() // Remove duplicate entries
-                            .map(|c| c.to_string())
-                            .collect_vec()
-                    })
-                    .unwrap_or_default(),
-            };
+        let entry_error = |field_name: &str| -> Error {
+            Error::BadEntry(path.to_path_buf(), field_name.to_string())
+        };
 
-            if !entry.name.is_empty() && !entry.exec.is_empty() {
-                Some(entry)
-            } else {
-                None
-            }
-        })()
-        .ok_or(Error::BadEntry(path.to_path_buf()))
+        let entry = DesktopEntry {
+            name: languages
+                .iter()
+                .filter_map(|lang| fd_entry.attr_with_param("Name", lang))
+                .next()
+                .or_else(|| fd_entry.attr("Name"))
+                .ok_or(entry_error("Name"))?
+                .to_string(),
+            exec: fd_entry
+                .attr("Exec")
+                .ok_or(entry_error("Exec"))?
+                .to_string(),
+            file_name: path.file_name().unwrap_or_default().to_owned(),
+            terminal: fd_entry
+                .attr("Terminal")
+                .and_then(|t| t.parse().ok())
+                .unwrap_or(false),
+            mime_type: fd_entry
+                .attr("MimeType")
+                .map(|m| {
+                    m.split(';')
+                        .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
+                        .unique() // Remove duplicate entries
+                        .filter_map(|m| Mime::from_str(m).ok())
+                        .collect_vec()
+                })
+                .unwrap_or_default(),
+            categories: fd_entry
+                .attr("Categories")
+                .map(|c| {
+                    c.split(';')
+                        .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
+                        .unique() // Remove duplicate entries
+                        .map(|c| c.to_string())
+                        .collect_vec()
+                })
+                .unwrap_or_default(),
+        };
+
+        if entry.name.is_empty() {
+            Err(entry_error("Name"))
+        } else if entry.exec.is_empty() {
+            Err(entry_error("Exec"))
+        } else {
+            Ok(entry)
+        }
     }
 
     /// Make a fake DesktopEntry given only a value for exec and terminal.

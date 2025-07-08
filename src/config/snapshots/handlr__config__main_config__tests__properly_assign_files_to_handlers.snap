@@ -3,12 +3,12 @@ source: src/config/main_config.rs
 expression: "String :: from_utf8(buffer).expect(\"Buffer is invalid utf8\")"
 ---
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding swayimg.desktop to list of handlers for `image/png`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `swayimg.desktop` is invalid: Malformed desktop entry at swayimg.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `swayimg.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `image/png`: swayimg.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding mupdf.desktop to list of handlers for `application/pdf`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `mupdf.desktop` is invalid: Malformed desktop entry at mupdf.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `mupdf.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `application/pdf`: mupdf.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler

@@ -3,42 +3,42 @@ source: src/config/main_config.rs
 expression: "String :: from_utf8(buffer).expect(\"Buffer is invalid utf8\")"
 ---
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding mpv.desktop to list of handlers for `video/mp4`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `mpv.desktop` is invalid: Malformed desktop entry at mpv.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `mpv.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `video/mp4`: mpv.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding mpv.desktop to list of handlers for `video/asdf`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `mpv.desktop` is invalid: Malformed desktop entry at mpv.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `mpv.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `video/asdf`: mpv.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding brave.desktop to list of handlers for `video/webm`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `brave.desktop` is invalid: Malformed desktop entry at brave.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `brave.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `video/webm`: brave.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding helix.desktop to list of handlers for `text/plain`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `helix.desktop` is invalid: Malformed desktop entry at helix.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `helix.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `text/plain`: helix.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding nvim.desktop to list of handlers for `text/plain`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `nvim.desktop` is invalid: Malformed desktop entry at nvim.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `nvim.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `text/plain`: helix.desktop;nvim.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding kakoune.desktop to list of handlers for `text/plain`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `kakoune.desktop` is invalid: Malformed desktop entry at kakoune.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `kakoune.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `text/plain`: helix.desktop;nvim.desktop;kakoune.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding startcenter.desktop to list of handlers for `application/vnd.oasis.opendocument.*`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `startcenter.desktop` is invalid: Malformed desktop entry at startcenter.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `startcenter.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `application/vnd.oasis.opendocument.*`: startcenter.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding startcenter.desktop to list of handlers for `application/vnd.openxmlformats-officedocument.*`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `startcenter.desktop` is invalid: Malformed desktop entry at startcenter.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `startcenter.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `application/vnd.openxmlformats-officedocument.*`: startcenter.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
@@ -46,42 +46,42 @@ expression: "String :: from_utf8(buffer).expect(\"Buffer is invalid utf8\")"
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::main_config[0m[2m:[0m JSON output: true
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished printing associations
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding mpv.desktop to list of handlers for `video/mp4`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `mpv.desktop` is invalid: Malformed desktop entry at mpv.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `mpv.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `video/mp4`: mpv.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding mpv.desktop to list of handlers for `video/asdf`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `mpv.desktop` is invalid: Malformed desktop entry at mpv.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `mpv.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `video/asdf`: mpv.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding brave.desktop to list of handlers for `video/webm`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `brave.desktop` is invalid: Malformed desktop entry at brave.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `brave.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `video/webm`: brave.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding helix.desktop to list of handlers for `text/plain`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `helix.desktop` is invalid: Malformed desktop entry at helix.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `helix.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `text/plain`: helix.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding nvim.desktop to list of handlers for `text/plain`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `nvim.desktop` is invalid: Malformed desktop entry at nvim.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `nvim.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `text/plain`: helix.desktop;nvim.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding kakoune.desktop to list of handlers for `text/plain`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `kakoune.desktop` is invalid: Malformed desktop entry at kakoune.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `kakoune.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `text/plain`: helix.desktop;nvim.desktop;kakoune.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding startcenter.desktop to list of handlers for `application/vnd.oasis.opendocument.*`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `startcenter.desktop` is invalid: Malformed desktop entry at startcenter.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `startcenter.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `application/vnd.oasis.opendocument.*`: startcenter.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding startcenter.desktop to list of handlers for `application/vnd.openxmlformats-officedocument.*`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `startcenter.desktop` is invalid: Malformed desktop entry at startcenter.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `startcenter.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `application/vnd.openxmlformats-officedocument.*`: startcenter.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler

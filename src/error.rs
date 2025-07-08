@@ -1,4 +1,4 @@
-use std::process::ExitCode;
+use std::{path::PathBuf, process::ExitCode};
 
 use tracing::{error, info};
 
@@ -21,8 +21,8 @@ pub enum Error {
     BadMimeType(#[from] mime::FromStrError),
     #[error("Bad mime: {0}")]
     InvalidMime(mime::Mime),
-    #[error("Malformed desktop entry at {0}")]
-    BadEntry(std::path::PathBuf),
+    #[error("The desktop entry at '{0}' lacks a valid '{1}' field")]
+    BadEntry(PathBuf, String),
     #[error("Error spawning selector process '{0}'")]
     Selector(String),
     #[error("Selection cancelled")]

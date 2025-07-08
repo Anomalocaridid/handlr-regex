@@ -3,12 +3,12 @@ source: src/config/main_config.rs
 expression: "String :: from_utf8(buffer).expect(\"Buffer is invalid utf8\")"
 ---
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding mpv.desktop to list of handlers for `video/*`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `mpv.desktop` is invalid: Malformed desktop entry at mpv.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `mpv.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `video/*`: mpv.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding brave.desktop to list of handlers for `video/webm`
-[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `brave.desktop` is invalid: Malformed desktop entry at brave.desktop
+[2m[TIMESTAMP][0m [33m WARN[0m [2mhandlr::common::handler[0m[2m:[0m The desktop entry `brave.desktop` is invalid: No such file or directory (os error 2)
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `video/webm`: brave.desktop;
 [2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
