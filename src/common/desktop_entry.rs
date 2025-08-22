@@ -66,7 +66,9 @@ impl DesktopEntry {
 
         let mut cmd = execute::command(cmd);
 
-        if config.wait_for_handler_exit || (self.terminal && config.terminal_output) {
+        if config.wait_for_handler_exit
+            || (self.terminal && config.terminal_output)
+        {
             cmd.spawn()?.wait()?;
         } else {
             cmd.stdout(Stdio::null()).stderr(Stdio::null()).spawn()?;

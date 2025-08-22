@@ -67,7 +67,10 @@ pub fn get_languages() -> Languages {
 
 impl Config {
     /// Create a new instance of AppsConfig
-    pub fn new(terminal_output: bool, wait_for_handler_exit: bool) -> Result<Self> {
+    pub fn new(
+        terminal_output: bool,
+        wait_for_handler_exit: bool,
+    ) -> Result<Self> {
         let config = ConfigFile::load();
         let languages = get_languages();
 

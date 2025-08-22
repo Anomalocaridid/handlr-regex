@@ -115,7 +115,7 @@ pub enum Cmd {
     /// When using `--json` with `--all`, output will be in the form
     ///
     /// {
-    ///   "added_associations": [ ... ],   
+    ///   "added_associations": [ ... ],
     ///   "default_apps": [ ... ],
     ///   "system_apps": [ ... ]
     /// }
