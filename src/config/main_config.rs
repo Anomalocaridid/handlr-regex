@@ -33,6 +33,8 @@ pub struct Config {
     pub config: ConfigFile,
     /// Whether or not stdout is a terminal
     pub terminal_output: bool,
+    /// Whether or not to wait for handlers to exit
+    pub wait_for_handler_exit: bool,
     /// Configured languages
     pub languages: Vec<String>,
 }
@@ -65,7 +67,7 @@ pub fn get_languages() -> Languages {
 
 impl Config {
     /// Create a new instance of AppsConfig
-    pub fn new(terminal_output: bool) -> Result<Self> {
+    pub fn new(terminal_output: bool, wait_for_handler_exit: bool) -> Result<Self> {
         let config = ConfigFile::load();
         let languages = get_languages();
 
@@ -75,6 +77,7 @@ impl Config {
             system_apps: SystemApps::populate(&languages)?,
             config: config?,
             terminal_output,
+            wait_for_handler_exit,
             languages,
         })
     }
