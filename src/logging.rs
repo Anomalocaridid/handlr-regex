@@ -9,7 +9,7 @@ use crate::{cli::Cli, error::Result};
 pub fn init_tracing(cli: &Cli) -> Result<WorkerGuard> {
     let (file_writer, guard) =
         tracing_appender::non_blocking(tracing_appender::rolling::never(
-            xdg::BaseDirectories::new()?.create_cache_directory("handlr")?,
+            xdg::BaseDirectories::new().create_cache_directory("handlr")?,
             "handlr.log",
         ));
 

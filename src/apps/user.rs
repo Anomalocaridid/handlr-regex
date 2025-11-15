@@ -323,7 +323,9 @@ impl MimeApps {
     /// Get the path to the user's mimeapps.list file
     #[mutants::skip] // Cannot test directly, depends on system state
     fn path() -> Result<PathBuf> {
-        let mut config = xdg::BaseDirectories::new()?.get_config_home();
+        let mut config = xdg::BaseDirectories::new()
+            .get_config_home()
+            .ok_or(Error::NoHome)?;
         config.push("mimeapps.list");
         Ok(config)
     }

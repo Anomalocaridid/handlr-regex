@@ -111,7 +111,9 @@ impl DesktopEntry {
         languages: &Languages,
     ) -> Result<DesktopEntry> {
         let fd_entry = Entry::parse_file(path)?;
-        let fd_entry = fd_entry.section("Desktop Entry");
+        let fd_entry = fd_entry
+            .section("Desktop Entry")
+            .ok_or(Error::NoDesktopEntry(path.to_path_buf()))?;
 
         let entry_error = |field_name: &str| -> Error {
             Error::BadEntry(path.to_path_buf(), field_name.to_string())
@@ -120,22 +122,26 @@ impl DesktopEntry {
         let entry = DesktopEntry {
             name: languages
                 .iter()
-                .filter_map(|lang| fd_entry.attr_with_param("Name", lang))
+                .flat_map(|lang| fd_entry.attr_with_param("Name", lang))
                 .next()
-                .or_else(|| fd_entry.attr("Name"))
+                .or_else(|| fd_entry.attr("Name").first())
                 .ok_or(entry_error("Name"))?
                 .to_string(),
             exec: fd_entry
                 .attr("Exec")
+                .iter()
+                .next()
                 .ok_or(entry_error("Exec"))?
                 .to_string(),
             file_name: path.file_name().unwrap_or_default().to_owned(),
             terminal: fd_entry
                 .attr("Terminal")
+                .first()
                 .and_then(|t| t.parse().ok())
                 .unwrap_or(false),
             mime_type: fd_entry
                 .attr("MimeType")
+                .first()
                 .map(|m| {
                     m.split(';')
                         .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
@@ -146,6 +152,7 @@ impl DesktopEntry {
                 .unwrap_or_default(),
             categories: fd_entry
                 .attr("Categories")
+                .first()
                 .map(|c| {
                     c.split(';')
                         .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons

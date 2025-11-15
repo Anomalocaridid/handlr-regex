@@ -45,6 +45,7 @@
           mkShell {
             buildInputs = [
               cargo
+              cargo-edit
               cargo-insta # Adds `cargo insta` command for reviewing snapshots
               cargo-mutants # Adds `cargo mutants` command for mutation testing
               clippy # Adds more checks to cargo

@@ -46,7 +46,7 @@ impl SystemApps {
         languages: &Languages,
     ) -> Result<BTreeMap<OsString, DesktopEntry>> {
         // ) -> Result<impl Iterator<Item = (OsString, DesktopEntry)> + use<'_>> {
-        Ok(xdg::BaseDirectories::new()?
+        Ok(xdg::BaseDirectories::new()
             .list_data_files_once("applications")
             .into_iter()
             .filter(|p| {

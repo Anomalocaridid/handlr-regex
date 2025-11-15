@@ -393,7 +393,7 @@ impl Config {
 #[derive(PartialEq, Eq, PartialOrd, Ord, Tabled, Serialize)]
 struct MimeAppsEntry {
     mime: String,
-    #[tabled(display_with("Self::display_handlers", self))]
+    #[tabled(display("Self::display_handlers", &self.separator))]
     handlers: Vec<String>,
     #[tabled(skip)]
     #[serde(skip_serializing)]
@@ -420,8 +420,11 @@ impl MimeAppsEntry {
     }
 
     /// Display list of handlers as a string
-    fn display_handlers(&self) -> String {
-        self.handlers.join(&self.separator)
+    fn display_handlers(
+        handlers: &Vec<std::string::String>,
+        sep: &str,
+    ) -> String {
+        handlers.join(sep)
     }
 }
 
