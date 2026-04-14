@@ -24,10 +24,10 @@ pub struct ConfigFile {
     ///
     /// # Example
     /// `selector` calls rofi with `rofi -dmenu -show-icons -i -p 'Open With:'`
-    /// and `handler_format` is `{Name}\u0000icon\x1f{Icon}`.
+    /// and `handler_format` is `{Name}\x00icon\x1f{Icon}`.
     /// Rofi doesn't return the full input, but only the text part and doesn't include the icon.
     ///
-    /// So for a handler for Helix the input is `Helix\u000icon\x1ffhelix`, but when selected rofi outputs just `Helix`.
+    /// So for a handler for Helix the input is `Helix\x00icon\x1fhelix`, but when selected rofi outputs just `Helix`.
     /// `handler_identifier = "{Name}"` matches the return value directly.
     ///
     /// The above actually works without specifying `handler_identifier`:
