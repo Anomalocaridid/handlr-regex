@@ -282,14 +282,23 @@ pub enum Cmd {
     },
 }
 
-#[derive(Clone, Args)]
+#[derive(Default, Clone, Args)]
 pub struct SelectorArgs {
-    /// Override the configured selector command
-    #[clap(long, short)]
-    pub selector: Option<String>,
     /// Override whether or not the selector is enabled
     #[clap(long, short)]
     pub enable_selector: Option<bool>,
+    /// Override the configured selector command
+    #[clap(long, short)]
+    pub selector: Option<String>,
+    /// Override the configured selector handler format
+    #[clap(long)]
+    pub selector_handler_format: Option<String>,
+    /// Override the configured selector handler identifier
+    #[clap(long)]
+    pub selector_handler_identifier: Option<String>,
+    /// Override the configured selector handler separator
+    #[clap(long)]
+    pub selector_handler_separator: Option<String>,
 }
 
 /// Generate candidates for mimes and file extensions to use

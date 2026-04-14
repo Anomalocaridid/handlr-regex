@@ -19,9 +19,6 @@ pub struct ConfigFile {
     ///
     /// Note: `\0` is not valid inside a TOML document. Instead use its Unicode representation (like `\u0000`).
     pub selector_handler_format: String,
-    /// Separator between handlers when passed to `selector`.
-    /// Defaults to `\n`
-    pub selector_handler_separator: String,
     /// Value to match the result from `selector` with a handler.
     /// Should be used if the returned value from `selector` is different from the input (`handler_format`).
     ///
@@ -40,6 +37,9 @@ pub struct ConfigFile {
     /// `rofi -demnu -i -p 'Open With:' -format 'i'` returns the selected index instead of the selected text.
     /// In this case `handler_identifier = {%Index0}` is required!
     pub selector_handler_identifier: Option<String>,
+    /// Separator between handlers when passed to `selector`.
+    /// Defaults to `\n`
+    pub selector_handler_separator: String,
 
     /// Extra arguments to pass to terminal application
     pub term_exec_args: Option<String>,
@@ -83,14 +83,29 @@ impl ConfigFile {
     /// Override the set selector
     /// Currently assumes the config file will never be saved to
     pub fn override_selector(&mut self, selector_args: SelectorArgs) {
+        self.enable_selector = selector_args
+            .enable_selector
+            .unwrap_or(self.enable_selector);
+
         if let Some(selector) = selector_args.selector {
             debug!("Overriding selector command: {}", selector);
             self.selector = selector;
         }
 
-        self.enable_selector = selector_args
-            .enable_selector
-            .unwrap_or(self.enable_selector);
+        if let Some(selector_handler_format) = selector_args.selector_handler_format {
+            debug!("Overriding selector handler format: {}", selector_handler_format);
+            self.selector_handler_format = selector_handler_format;
+        }
+
+        if let Some(selector_handler_identifier) = selector_args.selector_handler_identifier {
+            debug!("Overriding selector handler identifier: {}", selector_handler_identifier);
+            self.selector_handler_identifier = Some(selector_handler_identifier);
+        }
+
+        if let Some(selector_handler_separator) = selector_args.selector_handler_separator {
+            debug!("Overriding selector handler separator: {}", selector_handler_separator);
+            self.selector_handler_separator = selector_handler_separator;
+        }
 
         debug!("Selector enabled: {}", self.enable_selector);
     }

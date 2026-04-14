@@ -851,6 +851,7 @@ mod tests {
         config.override_selector(SelectorArgs {
             selector: Some("fzf".to_string()),
             enable_selector: Some(true),
+            ..Default::default()
         });
 
         assert_eq!(config.config.selector, "fzf");
@@ -859,6 +860,7 @@ mod tests {
         config.override_selector(SelectorArgs {
             selector: Some("fuzzel --dmenu --prompt='Open With: '".to_string()),
             enable_selector: Some(false),
+            ..Default::default()
         });
 
         assert_eq!(
@@ -878,6 +880,7 @@ mod tests {
         config.override_selector(SelectorArgs {
             selector: None,
             enable_selector: None,
+            ..Default::default()
         });
 
         assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
@@ -886,6 +889,7 @@ mod tests {
         config.override_selector(SelectorArgs {
             selector: None,
             enable_selector: Some(false),
+            ..Default::default()
         });
 
         assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
@@ -897,6 +901,7 @@ mod tests {
         config.override_selector(SelectorArgs {
             selector: None,
             enable_selector: Some(true),
+            ..Default::default()
         });
 
         assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
@@ -905,6 +910,7 @@ mod tests {
         config.override_selector(SelectorArgs {
             selector: None,
             enable_selector: None,
+            ..Default::default()
         });
 
         assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
