@@ -1,0 +1,18 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Exec=/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=firefox --file-forwarding org.mozilla.firefox --private-window @@u %u @@
+Terminal=false
+X-MultipleArgs=false
+Icon=/home/user/.local/share/applications/icons/org.mozilla.firefox.private.svg
+StartupWMClass=firefox
+DBusActivatable=false
+Categories=GNOME;GTK;Network;WebBrowser;
+MimeType=application/json;application/pdf;application/rdf+xml;application/rss+xml;application/x-xpinstall;application/xhtml+xml;application/xml;audio/flac;audio/ogg;audio/webm;image/avif;image/gif;image/jpeg;image/png;image/svg+xml;image/webp;text/html;text/xml;video/ogg;video/webm;x-scheme-handler/chrome;x-scheme-handler/http;x-scheme-handler/https;x-scheme-handler/mailto;
+StartupNotify=true
+Name=Firefox (private)
+Comment=Private Window in Firefox browser
+GenericName=Web Browser (private)
+Keywords=Internet;WWW;Browser;Web;Explorer;
+X-GNOME-FullName=Mozilla Firefox (private)
+X-Flatpak=org.mozilla.firefox

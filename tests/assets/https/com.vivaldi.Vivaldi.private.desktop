@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=Vivaldi (private)
+GenericName=Web Browser (private)
+Exec=/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=vivaldi com.vivaldi.Vivaldi --incognito
+StartupWMClass=Vivaldi-flatpak
+StartupNotify=true
+Terminal=false
+Icon=com.vivaldi.Vivaldi
+Type=Application
+Categories=Network;WebBrowser;
+MimeType=application/pdf;application/rdf+xml;application/rss+xml;application/xhtml+xml;application/xhtml_xml;application/xml;image/gif;image/jpeg;image/png;image/webp;text/html;text/xml;x-scheme-handler/http;x-scheme-handler/https;x-scheme-handler/ftp;x-scheme-handler/mailto;x-scheme-handler/vivaldi;
+X-Flatpak=com.vivaldi.Vivaldi

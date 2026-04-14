@@ -27,6 +27,8 @@ pub enum Error {
     Selector(String),
     #[error("Selection cancelled")]
     Cancelled,
+    #[error("Selected handler '{0}' not valid")]
+    BadSelection(String),
     #[error("Please specify the default terminal with handlr set x-scheme-handler/terminal")]
     NoTerminal,
     #[error("Bad path: {0}")]

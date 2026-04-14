@@ -1,23 +1,25 @@
 use crate::{
-    common::{DesktopHandler, Handleable, MIME_TYPES},
+    common::{DesktopEntry, DesktopHandler, Handleable, UserPath, MIME_TYPES},
     config::{ConfigFile, Languages},
     error::{Error, Result},
 };
 use derive_more::{Deref, DerefMut};
 use itertools::Itertools;
+use lazy_regex::regex_replace_all;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
 use serde_with::{
     serde_as, DeserializeFromStr, DisplayFromStr, SerializeDisplay,
 };
 use std::{
+    borrow::Cow,
     collections::{BTreeMap, VecDeque},
     fmt::Display,
     io::{Read, Write},
     path::PathBuf,
     str::FromStr,
 };
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 use wildmatch::WildMatch;
 
 /// Represents user-configured mimeapps.list file
@@ -247,6 +249,7 @@ impl MimeApps {
     pub fn get_handler_from_user(
         &self,
         mime: &Mime,
+        path: Option<&UserPath>,
         config_file: &ConfigFile,
         languages: &Languages,
     ) -> Result<DesktopHandler> {
@@ -262,55 +265,35 @@ impl MimeApps {
                     "Configured handlers for `{}` in mimeapps.list Default Associations: {}",
                     mime, handlers
                 );
-                // Prepares for selector and filters out apps that do not exist
-                let handlers = handlers
-                    .iter()
-                    .flat_map(|h| -> Result<(&DesktopHandler, String)> {
-                        // Filtering breaks testing, so treat every app as valid
-
-                        if cfg!(test) {
-                            Ok((h, h.to_string()))
-                        } else {
-                            let entry = h.get_entry(languages);
-                            if let Err(ref e) = entry {
-                                debug!(
-                                    "Desktop entry `{}` is invalid: {}",
-                                    h, e
-                                );
-                            } else {
-                                debug!("Desktop entry `{}` is valid", h);
-                            }
-
-                            Ok((h, entry?.name))
-                        }
-                    })
-                    .collect_vec();
-
                 debug!(
                     "Selector enabled: {}, number of set handlers: {}",
                     config_file.enable_selector,
                     handlers.len()
                 );
                 if config_file.enable_selector && handlers.len() > 1 {
-                    info!("Running selector: {}", &config_file.selector);
-                    let handler = {
-                        let name = select(
-                            &config_file.selector,
-                            handlers.iter().map(|h| h.1.clone()),
-                        )?;
-
-                        handlers
-                            .into_iter()
-                            .find(|h| h.1 == name)
-                            .ok_or(error)?
-                            .0
-                            .clone()
-                    };
-
-                    Ok(handler)
+                    get_handler_from_selector(
+                        handlers,
+                        mime,
+                        path,
+                        config_file,
+                        languages,
+                    )
                 } else {
                     info!("Not running selector, choosing first handler");
-                    Ok(handlers.first().ok_or(error)?.0.clone())
+                    let handler = handlers
+                        .iter()
+                        .flat_map(|h| {
+                            // Filtering breaks testing, so treat every app as valid
+                            if cfg!(test) {
+                                Some(h)
+                            } else {
+                                // get entry to check if valid
+                                get_entry(h, languages).ok().map(|_| h)
+                            }
+                        })
+                        .next()
+                        .ok_or(error)?;
+                    Ok(handler.clone())
                 }
             }
             None => {
@@ -392,41 +375,298 @@ impl MimeApps {
     }
 }
 
+/// Returns the entry corresponding to the passed in handler and languages.
+/// 
+/// Logs a warning if desktop entry is not valid.
+fn get_entry(
+    handler: &DesktopHandler,
+    languages: &Languages,
+) -> Result<DesktopEntry> {
+    let entry = handler.get_entry(languages);
+    if let Err(ref e) = entry {
+        warn!("Desktop entry `{}` is invalid: {}", handler, e);
+    } else {
+        debug!("Desktop entry `{}` is valid", handler);
+    }
+    entry
+}
+/// Asks user which handler to use.
+/// Calls `config_file.selector`.
+#[mutants::skip] // Cannot test directly, runs external command
+fn get_handler_from_selector(
+    handlers: &DesktopList,
+    mime: &Mime,
+    path: Option<&UserPath>,
+    config_file: &ConfigFile,
+    languages: &Languages,
+) -> Result<DesktopHandler> {
+    info!("Running selector: {}", &config_file.selector);
+
+    let entries = handlers
+        .iter()
+        .flat_map(|h| get_entry(h, languages).map(|e| (h, e)))
+        .collect_vec();
+
+    let entry: &DesktopEntry = select(
+        &config_file.selector,
+        &config_file.selector_handler_format,
+        config_file
+            .selector_handler_identifier
+            .as_deref()
+            .unwrap_or(""),
+        &config_file.selector_handler_separator,
+        mime,
+        path,
+        languages,
+        entries.iter().map(|(_, e)| e),
+    )?;
+    info!("Selected: `{}`", entry.name);
+
+    entries
+        .iter()
+        .find(|(_, expected)| expected.name == entry.name)
+        .map(|(handler, _)| (*handler).clone())
+        .ok_or(Error::NotFound(mime.to_string()))
+}
+
+/// Replaces placeholders in the selector command format ([ConfigFile::selector]).
+///
+/// Placeholder Format: `{NAME}`
+///
+/// Available placeholders:
+/// * `%Path, %Url, %u, %U, %f, %F`: Path or url to open (
+///     (`handlr open https://github.com` -> `https://github.com`)
+/// * `%Mime`: Mime type
+///
+///
+/// # Notes
+/// * Capitalization must match exactly!
+/// * If Unrecognized Name: output name without surrounding braces
+/// * To display a `{` use two braces: `{{`: `{{%Url}` outputs `{%Url}`
+/// * Leading `%` to align with the format in [format_item] and `%u, %f, %U, %F` in the [XDG Desktop Entry specification](https://specifications.freedesktop.org/desktop-entry/latest/exec-variables.html)
+fn format_selector<'s>(
+    selector_format: &'s str,
+    mime: &Mime,
+    path: Option<&UserPath>,
+) -> Cow<'s, str> {
+    regex_replace_all!(
+        r"(\{\{)|(\{(%?[\w-]+)})",
+        selector_format,
+        |_, escaped: &str, inner: &str, placeholder: &str| {
+            if escaped.is_empty() {
+                match placeholder {
+                    "%Path" | "%Url" | "%u" | "%f" | "%U" | "%F" => {
+                        path.map(|p| p.to_string()).unwrap_or_default()
+                    }
+                    "%Mime" => mime.to_string(),
+                    _ => inner.to_string(),
+                }
+            } else {
+                "{".to_string()
+            }
+        }
+    )
+}
+/// Replaces placeholders in the selector handler format ([ConfigFile::selector_handler_format]).
+///
+/// Placeholder Format: `{NAME}`
+///
+/// Available placeholders:
+/// * Name without leading `%`: key inside the corresponding `.desktop` file inside the `[Desktop Entry]` section.
+///     For available keys see [XDG Desktop Entry specification](https://specifications.freedesktop.org/desktop-entry/latest/recognized-keys.html).
+///     * Examples: `Name`, `Icon`, `GenericName`
+///     * Note: All keys are localized with `languages`
+///     * Note: If key is not present in the desktop file: output empty string.
+/// * Name with leading `%`: Any of the following placeholders:
+///     * `%FileName`: Name of the .desktop file
+///     * `%Url, %Path, %u, %U, %f, %F`: Url or path to open
+///     * `%Index, %Index0, %i`: 0-based index of this handler in the list of all handlers for this mime type.  
+///        For use with `rofi -format i` wich returns the selected 0-based index.
+///     * `%Index1, %d`: 1-based index of this handler in the list of all handler for this mime type.  
+///        For use with `rofi -format d` wich returns the selected 1-based index.
+///     * Note: If name is not one of the recognized ones: output name without surrounding braces.
+fn format_item<'s>(
+    item_format: &'s str,
+    mime: &Mime,
+    path: Option<&UserPath>,
+    entry: &DesktopEntry,
+    index: usize,
+    languages: &Languages,
+) -> Cow<'s, str> {
+    regex_replace_all!(
+        r"(\{\{)|(\{(%?[\w-]+)})",
+        item_format,
+        |_, escaped: &str, inner: &str, placeholder: &str| {
+            if escaped.is_empty() {
+                // without leading `%`: pass on to Desktop Entry
+                // with    leading `%`: not in Desktop Entry, but data from outside (like index or passed path)
+                match placeholder {
+                    // Shortcut for name: probably the most uses placeholder (and default!)
+                    "Name" => entry.name.clone(),
+                    "%FileName" => {
+                        entry.file_name.to_str().unwrap_or_default().to_string()
+                    }
+                    "%Url" | "%Path" | "%u" | "%f" | "%U" | "%F" => {
+                        path.map(|p| p.to_string()).unwrap_or_default()
+                    }
+                    "%Mime" => mime.to_string(),
+                    // 0-based index
+                    "%Index" | "%Index0" | "%i" => index.to_string(),
+                    // 1-based index
+                    "%Index1" | "%d" => (index + 1).to_string(),
+                    _ if placeholder.starts_with('%') => inner.to_string(),
+                    _ => entry
+                        .get_first_with_language(placeholder, languages)
+                        .unwrap_or_default()
+                        .to_string(),
+                }
+            } else {
+                "{".to_string()
+            }
+        }
+    )
+}
+
+/// Try to pair `output` from selector with the correct handler/Desktop Entry.
+///
+/// Issue is: `output` might not be same as the input.
+/// Example in rofi: `Helix\0icon\x1fhelix` -> `Helix`: Input includes icon, which is NOT returned by rofi.
+///
+/// If `config.selector_handler_identifier` is specified that can be used to match input with output (done elsewhere).
+/// Otherwise this function tries some simple rules to detect the correct handler.
+///
+/// # Parameters
+/// * `items`: for each handler: DesktopEntry and corresponding line passed to selector
+/// * `output`: output of selector
+fn guess_matching_entry<'e>(
+    items: &[(&'e DesktopEntry, Cow<'_, str>)],
+    output: &str,
+) -> Result<&'e DesktopEntry> {
+    // match output with input
+    if let Some((entry, _)) = items.iter().find(|(_, input)| *input == output) {
+        return Ok(entry);
+    }
+
+    // match name
+    if let Some((entry, _)) =
+        items.iter().find(|(entry, _)| entry.name == output)
+    {
+        return Ok(entry);
+    }
+
+    // match before 1st control character
+    //   example: `Helix\0icon\x1fhelix` -> match `Helix`
+    if let Some((entry, _)) = items.iter().find(|(_, input)| {
+        input.split(|c: char| c.is_control()).next() == Some(output)
+    }) {
+        return Ok(entry);
+    }
+
+    Err(Error::BadSelection(output.to_string()))
+}
+
 /// Run given selector command
 #[mutants::skip] // Cannot test directly, runs external command
-fn select<O: Iterator<Item = String>>(
+fn select<'e>(
     selector: &str,
-    mut opts: O,
-) -> Result<String> {
+    item_format: &str,
+    item_identifier: &str,
+    item_separator: &str,
+    mime: &Mime,
+    path: Option<&UserPath>,
+    languages: &Languages,
+    entries: impl Iterator<Item = &'e DesktopEntry>,
+) -> Result<&'e DesktopEntry> {
     use std::{io::prelude::*, process::Stdio};
 
+    let selector = format_selector(selector, mime, path);
     let process = {
-        execute::command(selector)
+        execute::command(&selector)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()?
     };
 
+    let items: Vec<_> = entries
+        .enumerate()
+        .map(|(i, entry)| {
+            let item =
+                format_item(item_format, mime, path, &entry, i, languages);
+            (entry, item)
+        })
+        .collect();
+
     let output = {
+        let es = items.iter().map(|(_, t)| t).join(item_separator);
+
+        /// Pretty print and escape control chars.
+        /// For debugging purposes.
+        fn format_cmd(text: &str) -> String {
+            text.chars()
+                .map(|c| {
+                    if c.is_control() {
+                        // Note: `c.escape_default()` formats unicode as `\u{...}`, but we need `\u....` or `\x..` or `\U.....`
+                        //       but good enough for debugging -> only do `\xHH` for ascii, and keep rust format otherwise
+                        match c {
+                            '\n' => "\\n".to_string(),
+                            '\t' => "\\t".to_string(),
+                            '\0' => "\\0".to_string(),
+                            _ if c.is_ascii_control() => format!("\\x{:x?}", c as u32),
+                            _ => c.escape_default().to_string(),
+                        }
+                    } else {
+                        c.to_string()
+                    }
+                })
+                .collect()
+        }
+        // Line to copy & paste into shell. For debugging purposes.
+        info!("echo -en '{}' | {}", format_cmd(&es), format_cmd(&selector));
+
         process
             .stdin
             .ok_or_else(|| Error::Selector(selector.to_string()))?
-            .write_all(opts.join("\n").as_bytes())?;
+            .write_all(es.as_bytes())?;
 
-        let mut output = String::with_capacity(24);
-
-        process
-            .stdout
-            .ok_or_else(|| Error::Selector(selector.to_string()))?
-            .read_to_string(&mut output)?;
+        let output = {
+            let mut output = String::with_capacity(24);
+            process
+                .stdout
+                .ok_or_else(|| Error::Selector(selector.to_string()))?
+                .read_to_string(&mut output)?;
+            output
+        };
+        info!("Selector output: {}", output);
 
         output.trim_end().to_owned()
     };
 
     if output.is_empty() {
         Err(Error::Cancelled)
+    } else if item_identifier.is_empty() {
+        // guess identifier
+        guess_matching_entry(items.as_slice(), &output)
     } else {
-        Ok(output)
+        // match according to `item_identifier`
+        items
+            .into_iter()
+            .enumerate()
+            .find_map(|(i, (entry, _))| {
+                let expected = format_item(
+                    item_identifier,
+                    mime,
+                    path,
+                    entry,
+                    i,
+                    languages,
+                );
+                if expected == output {
+                    Some(entry)
+                } else {
+                    None
+                }
+            })
+            .ok_or(Error::BadSelection(output))
     }
 }
 
@@ -511,6 +751,7 @@ mod tests {
             mime_apps
                 .get_handler_from_user(
                     &mime::TEXT_PLAIN,
+                    None,
                     &config_file,
                     &Vec::new()
                 )?
@@ -712,5 +953,264 @@ mod tests {
         insta::assert_snapshot!(String::from_utf8(buffer)?);
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod select_tests {
+    use super::*;
+    use similar_asserts::assert_eq;
+    use std::str::FromStr;
+
+    #[test]
+    fn formatting_selector() {
+        let mime = Mime::from_str("x-scheme-handler/https").unwrap();
+        let url: UserPath = "https://specifications.freedesktop.org/desktop-entry/latest/"
+            .parse()
+            .unwrap();
+
+        let actual = format_selector("rofi -dmenu -show-icons -i -p 'Open With: ' -mesg 'Open {%Path}\n\t({%Mime})'", &mime, Some(&url));
+        let expected = format!("rofi -dmenu -show-icons -i -p 'Open With: ' -mesg 'Open {url}\n\t({mime})'");
+        assert_eq!(actual, expected);
+
+        let actual = format_selector("rofi -dmenu -show-icons -i -p 'Open With: ' -mesg 'Open {%Path}\n\t({%Mime})'", &mime, None);
+        let expected = format!("rofi -dmenu -show-icons -i -p 'Open With: ' -mesg 'Open {url}\n\t({mime})'", url="");
+        assert_eq!(actual, expected);
+
+        let actual = format_selector(
+            "UserPath: {%u} {%f} {%U} {%F} {%Path} {%Url}; Mime: {%Mime}",
+            &mime,
+            Some(&url),
+        );
+        let expected = format!(
+            "UserPath: {url} {url} {url} {url} {url} {url}; Mime: {mime}"
+        );
+        assert_eq!(actual, expected);
+
+        let actual = format_selector(
+            "{%Path} {{%Path} {Path} {%Path}",
+            &mime,
+            Some(&url),
+        );
+        let expected = format!("{url} {{%Path}} {{Path}} {url}");
+        assert_eq!(actual, expected);
+
+        let actual = format_selector("{Foo}", &mime, Some(&url));
+        let expected = "{Foo}";
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn formatting_item() {
+        let mime = Mime::from_str("x-scheme-handler/https").unwrap();
+        let path: UserPath = "https://specifications.freedesktop.org/desktop-entry/latest/"
+            .parse()
+            .unwrap();
+        let entry = DesktopEntry::parse_file(
+            &PathBuf::from("./tests/assets/https/org.mozilla.firefox.desktop"),
+            &vec![],
+        )
+        .unwrap();
+        let index = 2;
+        let languages = vec![];
+
+        let actual = format_item(
+            "{Name}",
+            &mime,
+            Some(&path),
+            &entry,
+            index,
+            &languages,
+        );
+        let expected = format!("{name}", name=entry.name);
+        assert_eq!(actual, expected);
+
+        // {Name}\0icon\x1f{Icon}
+        //   but in TOML: cannot use `\0` -> must use one of the Unicode formats (`\x00, \u0000, \U00000000`)
+        let actual = format_item(
+            r"{Name}\x00icon\x1f{Icon}",
+            &mime,
+            Some(&path),
+            &entry,
+            index,
+            &languages,
+        );
+        let expected = format!(
+            r"{name}\x00icon\x1f{icon}",
+            name=entry.name,
+            icon=entry.get_first("Icon").unwrap()
+        );
+        assert_eq!(actual, expected);
+
+        let actual = format_item(
+            "{%Index}",
+            &mime,
+            Some(&path),
+            &entry,
+            index,
+            &languages,
+        );
+        let expected = format!("{index}");
+        assert_eq!(actual, expected);
+
+        let actual = format_item(
+            "{%Index1}",
+            &mime,
+            Some(&path),
+            &entry,
+            index,
+            &languages,
+        );
+        let expected = format!("{index}", index=index + 1);
+        assert_eq!(actual, expected);
+
+        let actual = format_item(
+            "{Name} {GenericName} {Comment} {Icon} {X-GNOME-FullName}",
+            &mime,
+            Some(&path),
+            &entry,
+            index,
+            &languages,
+        );
+        let expected = [
+            entry.get_first("Name").unwrap(),
+            entry.get_first("GenericName").unwrap(),
+            entry.get_first("Comment").unwrap(),
+            entry.get_first("Icon").unwrap(),
+            entry.get_first("X-GNOME-FullName").unwrap(),
+        ]
+        .join(" ");
+        assert_eq!(actual, expected);
+
+        // Index in rofi: `-format i`: 0-based, `-format d`: 1-based
+        let actual = format_item(
+            "{%FileName} {%Url} {%Path} {%Index} {%Index0} {%Index1}",
+            &mime,
+            Some(&path),
+            &entry,
+            index,
+            &languages,
+        );
+        // let actual = format_item("%name %genericName %comment %icon %path %url %index0 %index1 %index %i %d", Some(&path), &entry, index, &languages);
+        let expected = format!(
+            "{file_name} {path} {path} {index0} {index0} {index1}",
+            file_name=entry.file_name.to_str().unwrap(),
+            index0 = index,
+            index1 = (index + 1)
+        );
+        assert_eq!(actual, expected);
+
+        let actual = format_item(
+            "{Name} {{Name} {{Name}} {{foo {Name} bar {{{{Name}}}}",
+            &mime,
+            Some(&path),
+            &entry,
+            index,
+            &languages,
+        );
+        let expected = [
+            &entry.name,
+            "{Name}",
+            "{Name}}",
+            "{foo",
+            &entry.name,
+            "bar",
+            "{{Name}}}}",
+        ]
+        .join(" ");
+        assert_eq!(actual, expected);
+
+
+        // different languages
+        let actual = format_item("{Comment}", 
+            &mime,
+            Some(&path),
+            &entry,
+            index,
+            &vec!["de".to_string()],
+        );
+        assert_eq!(actual, "Schneller und privater Browser");
+
+        let actual = format_item("{Comment}", 
+            &mime,
+            Some(&path),
+            &entry,
+            index,
+            // fall back to unlocalized
+            &vec!["foo".to_string()],   
+        );
+        assert_eq!(actual, "Fast and private browser");
+
+        let actual = format_item("{Comment}", 
+            &mime,
+            Some(&path),
+            &entry,
+            index,
+            // both exist -> use first
+            &vec!["de".to_string(), "fr".to_string()],   
+        );
+        assert_eq!(actual, "Schneller und privater Browser");
+
+        let actual = format_item("{Comment}", 
+            &mime,
+            Some(&path),
+            &entry,
+            index,
+            // 2nd exist -> use 2nd
+            &vec!["foo".to_string(), "fr".to_string()],   
+        );
+        assert_eq!(actual, "Navigateur rapide et privé");
+    }
+
+    #[test]
+    fn match_entry_to_output() {
+        let langs = vec![];
+        let entries = 
+            [
+                "./tests/assets/https/org.mozilla.firefox.desktop",
+                "./tests/assets/https/org.mozilla.firefox.private.desktop",
+                "./tests/assets/https/com.vivaldi.Vivaldi.desktop",
+                "./tests/assets/https/com.vivaldi.Vivaldi.private.desktop",
+                "./tests/assets/https/copy-to-clipboard.desktop",
+            ]
+            .map(|path| DesktopEntry::parse_file(&PathBuf::from(path), &langs).unwrap())
+            ;
+        let mime = Mime::from_str("x-scheme-handler/https").unwrap();
+        let path: UserPath = "https://github.com/Anomalocaridid/handlr-regex".parse().unwrap();
+
+        let assert_entry = |item_format: &str, output: &str, expected: Option<&DesktopEntry>| {
+            let items = 
+                entries.iter().enumerate().map(|(i,entry)| {
+                    let item = format_item(item_format, &mime, Some(&path), entry, i, &langs);
+                    (entry, item)
+                }).collect_vec();
+            
+            let actual = guess_matching_entry(items.as_slice(), output);
+            assert_eq!(actual.ok(), expected, "item_format='{}', output='{}', items={:?}", item_format, output, items.iter().map(|(_,item)| item).collect_vec());
+        };
+
+
+
+        let name = "Vivaldi (private)";
+        let entry = entries.iter().find(|e| e.name == name).unwrap();
+        let name_generic = format!("{} {}", name, entry.get_first_with_language("GenericName", &langs).unwrap());
+
+        assert_entry("{Name}", name, Some(entry));
+        assert_entry("{Name}", &name_generic, None);
+        assert_entry("{Name} {GenericName}", &name_generic, Some(entry));
+        assert_entry("{Name}\0icon\x1f{Icon}", name, Some(entry));
+        assert_entry("{Name}\x00icon\x1f{Icon}", name, Some(entry));
+        assert_entry("{Name}\0icon\x1f{Icon}", &name_generic, None);
+        assert_entry("{Name}\x00icon\x1f{Icon}", &name_generic, None);
+        assert_entry("{Name} {GenericName}\0icon\x1f{Icon}", name, Some(entry));
+        assert_entry("{Name} {GenericName}\x00icon\x1f{Icon}", name, Some(entry));
+        assert_entry("{Name} {GenericName}\0icon\x1f%icon", &name_generic, Some(entry));
+
+        let idx = entries.iter().position(|e| e.name == name).unwrap();
+        assert_entry(r"{%Index0}", &format!("{}", idx), Some(entry));
+        assert_entry(r"{%Index1}", &format!("{}", idx+1), Some(entry));
+
+        assert_entry("{Name}", "", None);
+        assert_entry("{Name}", "FooBar", None);
     }
 }

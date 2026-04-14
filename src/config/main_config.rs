@@ -81,8 +81,8 @@ impl Config {
 
     /// Get the handler associated with a given mime
     #[mutants::skip] // Cannot test match guard because it relies on user interactivity
-    pub fn get_handler(&self, mime: &Mime) -> Result<DesktopHandler> {
-        match self.mime_apps.get_handler_from_user(mime, &self.config, &self.languages) {
+    pub fn get_handler(&self, mime: &Mime, path: Option<&UserPath>) -> Result<DesktopHandler> {
+        match self.mime_apps.get_handler_from_user(mime, path, &self.config, &self.languages) {
             Err(e) if matches!(e, Error::Cancelled) => Err(e),
             h => h
                 .inspect(|_| {
@@ -126,7 +126,7 @@ impl Config {
             "Launching handler for `{}` with arguments: {:?}",
             mime, args
         );
-        self.get_handler(mime)?
+        self.get_handler(mime, None)?
             .launch(self, args.into_iter().map(|a| a.to_string()).collect())?;
         info!("Finished launching handler");
         Ok(())
@@ -142,7 +142,7 @@ impl Config {
         info!("Showing handler for `{}`", mime);
         debug!("JSON output: {}", output_json);
 
-        let handler = self.get_handler(mime)?;
+        let handler = self.get_handler(mime, None)?;
 
         let output = if output_json {
             let entry = handler.get_entry(&self.languages)?;
@@ -253,7 +253,7 @@ impl Config {
             handler.into()
         } else {
             info!("No matching regex handlers found for `{}`", path);
-            self.get_handler(&path.get_mime()?)?.into()
+            self.get_handler(&path.get_mime()?, Some(path))?.into()
         })
     }
 
@@ -262,7 +262,7 @@ impl Config {
     // TODO: test falling back to system
     pub fn terminal(&self) -> Result<String> {
         // Get the terminal handler if there is one set
-        self.get_handler(&Mime::from_str("x-scheme-handler/terminal")?)
+        self.get_handler(&Mime::from_str("x-scheme-handler/terminal")?, None)
             .ok()
             .and_then(|h| h.get_entry(&self.languages).ok())
             // Otherwise, get a terminal emulator program
@@ -487,19 +487,19 @@ mod tests {
 
         assert_eq!(
             config
-                .get_handler(&Mime::from_str("video/mp4")?)?
+                .get_handler(&Mime::from_str("video/mp4")?, None)?
                 .to_string(),
             "mpv.desktop"
         );
         assert_eq!(
             config
-                .get_handler(&Mime::from_str("video/asdf")?)?
+                .get_handler(&Mime::from_str("video/asdf")?, None)?
                 .to_string(),
             "mpv.desktop"
         );
         assert_eq!(
             config
-                .get_handler(&Mime::from_str("video/webm")?)?
+                .get_handler(&Mime::from_str("video/webm")?, None)?
                 .to_string(),
             "brave.desktop"
         );
@@ -521,14 +521,14 @@ mod tests {
             config
                 .get_handler(&Mime::from_str(
                     "application/vnd.oasis.opendocument.text"
-                )?,)?
+                )?, None)?
                 .to_string(),
             "startcenter.desktop"
         );
         assert_eq!(
             config
                 .get_handler(
-                    &Mime::from_str("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")?,
+                    &Mime::from_str("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")?, None
                 )?
                 .to_string(),
             "startcenter.desktop"
@@ -742,7 +742,7 @@ mod tests {
 
         // Should return first added handler
         assert_eq!(
-            config.get_handler(&mime::TEXT_PLAIN)?.to_string(),
+            config.get_handler(&mime::TEXT_PLAIN, None)?.to_string(),
             "Helix.desktop"
         );
 
@@ -753,7 +753,7 @@ mod tests {
 
         // Should still return first added handler
         assert_eq!(
-            config.get_handler(&mime::TEXT_PLAIN)?.to_string(),
+            config.get_handler(&mime::TEXT_PLAIN, None)?.to_string(),
             "Helix.desktop"
         );
 
@@ -768,7 +768,7 @@ mod tests {
 
         // With first added handler removed, second handler replaces it
         assert_eq!(
-            config.get_handler(&mime::TEXT_PLAIN)?.to_string(),
+            config.get_handler(&mime::TEXT_PLAIN, None)?.to_string(),
             "nvim.desktop"
         );
 
@@ -778,7 +778,7 @@ mod tests {
         )?;
 
         // Both handlers removed, should not be any left
-        assert!(config.get_handler(&mime::TEXT_PLAIN).is_err());
+        assert!(config.get_handler(&mime::TEXT_PLAIN, None).is_err());
 
         Ok(())
     }
@@ -790,7 +790,7 @@ mod tests {
         )?;
 
         assert_eq!(
-            config.get_handler(&mime::TEXT_PLAIN)?.to_string(),
+            config.get_handler(&mime::TEXT_PLAIN, None)?.to_string(),
             "Helix.desktop"
         );
 
@@ -801,7 +801,7 @@ mod tests {
 
         // Should return second set handler because it should replace the first one
         assert_eq!(
-            config.get_handler(&mime::TEXT_PLAIN)?.to_string(),
+            config.get_handler(&mime::TEXT_PLAIN, None)?.to_string(),
             "nvim.desktop"
         );
 
@@ -812,7 +812,7 @@ mod tests {
         config.unset_handler(&mime::TEXT_PLAIN)?;
 
         // Handler completely unset, should not be any left
-        assert!(config.get_handler(&mime::TEXT_PLAIN).is_err());
+        assert!(config.get_handler(&mime::TEXT_PLAIN, None).is_err());
 
         Ok(())
     }
