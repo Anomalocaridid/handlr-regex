@@ -83,7 +83,7 @@ impl Config {
     #[mutants::skip] // Cannot test match guard because it relies on user interactivity
     pub fn get_handler(&self, mime: &Mime, path: Option<&UserPath>) -> Result<DesktopHandler> {
         match self.mime_apps.get_handler_from_user(mime, path, &self.config, &self.languages) {
-            Err(e) if matches!(e, Error::Cancelled) => Err(e),
+            Err(e) if matches!(e, Error::Cancelled | Error::BadSelection(_)) => Err(e),
             h => h
                 .inspect(|_| {
                     info!("Match found for `{}` in mimeapps.list Default Associations", mime);
