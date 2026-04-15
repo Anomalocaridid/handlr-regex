@@ -636,9 +636,10 @@ fn select<'e>(
                 .read_to_string(&mut output)?;
             output
         };
+        
+        let output = output.trim_end().to_owned();
         info!("Selector output: {}", output);
-
-        output.trim_end().to_owned()
+        output
     };
 
     if output.is_empty() {
