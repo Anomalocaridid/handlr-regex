@@ -49,6 +49,7 @@ impl DesktopEntry {
     /// Note: If key exist, but is empty, it returns `Some("")`.
     /// 
     /// Note: A `key` can occur multiple times. This here returns only the first one!
+    #[allow(dead_code)] // used in tests
     pub(crate) fn get_first(&self, key: &str) -> Option<&str> {
         DesktopEntry::get_first_in_section(self.main_section()?, key)
     }
