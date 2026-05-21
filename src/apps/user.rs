@@ -1,6 +1,5 @@
 use crate::{
-    common::{DesktopHandler, Handleable, MIME_TYPES},
-    config::{ConfigFile, Languages},
+    common::{DesktopHandler, MIME_TYPES},
     error::{Error, Result},
 };
 use derive_more::{Deref, DerefMut};
@@ -243,15 +242,7 @@ impl MimeApps {
     }
 
     /// Get the handler associated with a given mime from mimeapps.list's default apps
-    #[mutants::skip] // Cannot entirely test, namely cannot test selector or filtering and associated logging
-    pub fn get_handler_from_user(
-        &self,
-        mime: &Mime,
-        config_file: &ConfigFile,
-        languages: &Languages,
-    ) -> Result<DesktopHandler> {
-        let error = Error::NotFound(mime.to_string());
-        // Check for an exact match first and then fall back to wildcard
+    pub fn get_default_handlers(&self, mime: &Mime) -> Result<&DesktopList> {
         match self
             .default_apps
             .get(mime)
@@ -262,60 +253,11 @@ impl MimeApps {
                     "Configured handlers for `{}` in mimeapps.list Default Associations: {}",
                     mime, handlers
                 );
-                // Prepares for selector and filters out apps that do not exist
-                let handlers = handlers
-                    .iter()
-                    .flat_map(|h| -> Result<(&DesktopHandler, String)> {
-                        // Filtering breaks testing, so treat every app as valid
-
-                        if cfg!(test) {
-                            Ok((h, h.to_string()))
-                        } else {
-                            let entry = h.get_entry(languages);
-                            if let Err(ref e) = entry {
-                                debug!(
-                                    "Desktop entry `{}` is invalid: {}",
-                                    h, e
-                                );
-                            } else {
-                                debug!("Desktop entry `{}` is valid", h);
-                            }
-
-                            Ok((h, entry?.name))
-                        }
-                    })
-                    .collect_vec();
-
-                debug!(
-                    "Selector enabled: {}, number of set handlers: {}",
-                    config_file.enable_selector,
-                    handlers.len()
-                );
-                if config_file.enable_selector && handlers.len() > 1 {
-                    info!("Running selector: {}", &config_file.selector);
-                    let handler = {
-                        let name = select(
-                            &config_file.selector,
-                            handlers.iter().map(|h| h.1.clone()),
-                        )?;
-
-                        handlers
-                            .into_iter()
-                            .find(|h| h.1 == name)
-                            .ok_or(error)?
-                            .0
-                            .clone()
-                    };
-
-                    Ok(handler)
-                } else {
-                    info!("Not running selector, choosing first handler");
-                    Ok(handlers.first().ok_or(error)?.0.clone())
-                }
+                Ok(handlers)
             }
             None => {
                 info!("No handlers configured for `{}` in mimeapps.list Default associations", mime);
-                Err(error)
+                Err(Error::NotFound(mime.to_string()))
             }
         }
     }
@@ -387,44 +329,6 @@ impl MimeApps {
         self.serialize(&mut ser)?;
 
         Ok(())
-    }
-}
-
-/// Run given selector command
-#[mutants::skip] // Cannot test directly, runs external command
-fn select<O: Iterator<Item = String>>(
-    selector: &str,
-    mut opts: O,
-) -> Result<String> {
-    use std::{io::prelude::*, process::Stdio};
-
-    let process = {
-        execute::command(selector)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()?
-    };
-
-    let output = {
-        process
-            .stdin
-            .ok_or_else(|| Error::Selector(selector.to_string()))?
-            .write_all(opts.join("\n").as_bytes())?;
-
-        let mut output = String::with_capacity(24);
-
-        process
-            .stdout
-            .ok_or_else(|| Error::Selector(selector.to_string()))?
-            .read_to_string(&mut output)?;
-
-        output.trim_end().to_owned()
-    };
-
-    if output.is_empty() {
-        Err(Error::Cancelled)
-    } else {
-        Ok(output)
     }
 }
 
@@ -503,17 +407,12 @@ mod tests {
     fn mimeapps_empty_entry_fallback() -> Result<()> {
         let file = File::open("./tests/assets/mimeapps_empty_entry.list")?;
         let mime_apps = MimeApps::read_from(file)?;
-        let config_file = ConfigFile::default();
 
         assert_eq!(
             mime_apps
-                .get_handler_from_user(
-                    &mime::TEXT_PLAIN,
-                    &config_file,
-                    &Vec::new()
-                )?
+                .get_default_handlers(&mime::TEXT_PLAIN)?
                 .to_string(),
-            "nvim.desktop"
+            "nvim.desktop;Helix.desktop;"
         );
 
         Ok(())
