@@ -248,13 +248,30 @@ impl Config {
 
     /// Get the handler associated with a given path
     fn get_handler_from_path(&self, path: &UserPath) -> Result<Handler> {
-        Ok(if let Ok(handler) = self.config.get_regex_handler(path) {
+        if let Ok(handler) = self.config.get_regex_handler(path) {
             info!("Using regex handler for `{}`", path);
-            handler.into()
+            return Ok(handler.into());
         } else {
             info!("No matching regex handlers found for `{}`", path);
-            self.get_handler(&path.get_mime()?)?.into()
-        })
+            let initial_mime = path.get_mime()?;
+            let initial_mime_name = initial_mime.to_string();
+            let mut all_mime = VecDeque::new();
+            all_mime.push_back(initial_mime);
+            let mimedb = xdg_mime::SharedMimeInfo::new();
+            while let Some(mime) = all_mime.pop_front() {
+                match self.get_handler(&mime) {
+                    Ok(h) => return Ok(h.into()),
+                    Err(Error::NotFound(_)) => {
+                        if let Some(parents) = mimedb.get_parents_aliased(&mime) {
+                            info!("Found parents for mime {}: {:?}", mime, parents);
+                            all_mime.append(&mut parents.into());
+                        }
+                    },
+                    Err(e) => return Err(e),
+                }
+            }
+            return Err(Error::NotFound(initial_mime_name));
+        }
     }
 
     /// Get the command for the x-scheme-handler/terminal handler if one is set.
@@ -918,6 +935,10 @@ mod tests {
             &Mime::from_str("application/pdf")?,
             &DesktopHandler::assume_valid("mupdf.desktop".into()),
         )?;
+        config.add_handler(
+            &Mime::from_str("text/plain")?,
+            &DesktopHandler::assume_valid("nvim.desktop".into()),
+        )?;
 
         let mut expected_handlers = HashMap::new();
         expected_handlers.insert(
@@ -972,6 +993,46 @@ mod tests {
                 UserPath::from_str("tests/assets/a.pdf")?,
                 UserPath::from_str("tests/assets/a.png")?,
                 UserPath::from_str("tests/assets/b.png")?
+            ])?,
+            expected_handlers
+        );
+
+        let mut expected_handlers = HashMap::new();
+        expected_handlers.insert(
+            Handler::new("nvim.desktop"),
+            vec![
+                "tests/assets/empty.md".to_owned(),
+                "tests/assets/empty.txt".to_owned(),
+            ],
+        );
+
+        assert_eq!(
+            config.assign_files_to_handlers(&[
+                UserPath::from_str("tests/assets/empty.md")?,
+                UserPath::from_str("tests/assets/empty.txt")?
+            ])?,
+            expected_handlers
+        );
+
+        config.add_handler(
+            &Mime::from_str("text/markdown")?,
+            &DesktopHandler::assume_valid("emacs.desktop".into()),
+        )?;
+
+        let mut expected_handlers = HashMap::new();
+        expected_handlers.insert(
+            Handler::new("nvim.desktop"),
+            vec!["tests/assets/empty.txt".to_owned()],
+        );
+        expected_handlers.insert(
+            Handler::new("emacs.desktop"),
+            vec!["tests/assets/empty.md".to_owned()],
+        );
+
+        assert_eq!(
+            config.assign_files_to_handlers(&[
+                UserPath::from_str("tests/assets/empty.md")?,
+                UserPath::from_str("tests/assets/empty.txt")?
             ])?,
             expected_handlers
         );
