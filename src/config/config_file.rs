@@ -6,21 +6,21 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
-/// The config file
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(default)]
-pub struct ConfigFile {
+pub struct SelectorConfig {
     /// Whether to enable the selector when multiple handlers are set
-    pub enable_selector: bool,
+    pub enabled: bool,
     /// The selector command to run
-    pub selector: String,
-    /// The format for each handler passed to `selector`.
+    pub command: String,
+    /// The format for each handler passed to `command`.
+    ///
     /// Defaults to the handler name (`{Name}`).
     ///
     /// Note: `\0` is not valid inside a TOML document. Instead use its Unicode representation (like `\u0000`).
-    pub selector_handler_format: String,
-    /// Value to match the result from `selector` with a handler.
-    /// Should be used if the returned value from `selector` is different from the input (`handler_format`).
+    pub handler_format: String,
+    /// Value to match the result from `command` with a handler.
+    /// Should be used if the returned value from command is different from the input (`handler_format`]).
     ///
     /// # Example
     /// `selector` calls rofi with `rofi -dmenu -show-icons -i -p 'Open With:'`
@@ -36,10 +36,30 @@ pub struct ConfigFile {
     ///
     /// `rofi -demnu -i -p 'Open With:' -format 'i'` returns the selected index instead of the selected text.
     /// In this case `handler_identifier = {%Index0}` is required!
-    pub selector_handler_identifier: Option<String>,
-    /// Separator between handlers when passed to `selector`.
+    pub handler_identifier: Option<String>,
+    /// Separator between handlers when passed to `command`.
+    ///
     /// Defaults to `\n`
-    pub selector_handler_separator: String,
+    pub handler_separator: String,
+}
+impl Default for SelectorConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            command: "rofi -dmenu -i -p 'Open With:'".to_string(),
+            handler_format: "{Name}".to_string(),
+            handler_identifier: None,
+            handler_separator: "\n".to_string(),
+        }
+    }
+}
+
+/// The config file
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ConfigFile {
+    /// Configuration for Selector command
+    pub selector: SelectorConfig,
 
     /// Extra arguments to pass to terminal application
     pub term_exec_args: Option<String>,
@@ -54,11 +74,7 @@ pub struct ConfigFile {
 impl Default for ConfigFile {
     fn default() -> Self {
         ConfigFile {
-            enable_selector: false,
-            selector: "rofi -dmenu -i -p 'Open With: '".into(),
-            selector_handler_format: "{Name}".to_string(),
-            selector_handler_separator: "\n".to_string(),
-            selector_handler_identifier: None,
+            selector: Default::default(),
             // Required for many xterm-compatible terminal emulators
             // Unfortunately, messes up emulators that don't accept it
             term_exec_args: Some("-e".into()),
@@ -83,30 +99,41 @@ impl ConfigFile {
     /// Override the set selector
     /// Currently assumes the config file will never be saved to
     pub fn override_selector(&mut self, selector_args: SelectorArgs) {
-        self.enable_selector = selector_args
-            .enable_selector
-            .unwrap_or(self.enable_selector);
-
-        if let Some(selector) = selector_args.selector {
-            debug!("Overriding selector command: {}", selector);
-            self.selector = selector;
+        if let Some(enabled) = selector_args.selector_enabled {
+            debug!("Overriding selector enabled: {}", enabled);
+            self.selector.enabled = enabled;
         }
 
-        if let Some(selector_handler_format) = selector_args.selector_handler_format {
-            debug!("Overriding selector handler format: {}", selector_handler_format);
-            self.selector_handler_format = selector_handler_format;
+        if let Some(command) = selector_args.selector_command {
+            debug!("Overriding selector command: {}", command);
+            self.selector.command = command;
         }
 
-        if let Some(selector_handler_identifier) = selector_args.selector_handler_identifier {
-            debug!("Overriding selector handler identifier: {}", selector_handler_identifier);
-            self.selector_handler_identifier = Some(selector_handler_identifier);
+        if let Some(handler_format) = selector_args.selector_handler_format {
+            debug!("Overriding selector handler format: {}", handler_format);
+            self.selector.handler_format = handler_format;
         }
 
-        if let Some(selector_handler_separator) = selector_args.selector_handler_separator {
-            debug!("Overriding selector handler separator: {}", selector_handler_separator);
-            self.selector_handler_separator = selector_handler_separator;
+        if let Some(handler_identifier) =
+            selector_args.selector_handler_identifier
+        {
+            debug!(
+                "Overriding selector handler identifier: {}",
+                handler_identifier
+            );
+            self.selector.handler_identifier = Some(handler_identifier);
         }
 
-        debug!("Selector enabled: {}", self.enable_selector);
+        if let Some(handler_separator) =
+            selector_args.selector_handler_separator
+        {
+            debug!(
+                "Overriding selector handler separator: {}",
+                handler_separator
+            );
+            self.selector.handler_separator = handler_separator;
+        }
+
+        debug!("Selector enabled: {}", self.selector.enabled);
     }
 }

@@ -81,7 +81,11 @@ impl Config {
 
     /// Get the handler associated with a given mime
     #[mutants::skip] // Cannot test match guard because it relies on user interactivity
-    pub fn get_handler(&self, mime: &Mime, path: Option<&UserPath>) -> Result<DesktopHandler> {
+    pub fn get_handler(
+        &self,
+        mime: &Mime,
+        path: Option<&UserPath>,
+    ) -> Result<DesktopHandler> {
         match self.mime_apps.get_handler_from_user(mime, path, &self.config, &self.languages) {
             Err(e) if matches!(e, Error::Cancelled | Error::BadSelection(_)) => Err(e),
             h => h
@@ -519,9 +523,10 @@ mod tests {
 
         assert_eq!(
             config
-                .get_handler(&Mime::from_str(
-                    "application/vnd.oasis.opendocument.text"
-                )?, None)?
+                .get_handler(
+                    &Mime::from_str("application/vnd.oasis.opendocument.text")?,
+                    None
+                )?
                 .to_string(),
             "startcenter.desktop"
         );
@@ -845,76 +850,96 @@ mod tests {
         let mut config = Config::default();
 
         // Ensure defaults are as expected just in case
-        assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
-        assert_eq!(config.config.enable_selector, false);
+        assert_eq!(
+            config.config.selector.command,
+            "rofi -dmenu -i -p 'Open With:'"
+        );
+        assert_eq!(config.config.selector.enabled, false);
 
         config.override_selector(SelectorArgs {
-            selector: Some("fzf".to_string()),
-            enable_selector: Some(true),
+            selector_command: Some("fzf".to_string()),
+            selector_enabled: Some(true),
             ..Default::default()
         });
 
-        assert_eq!(config.config.selector, "fzf");
-        assert_eq!(config.config.enable_selector, true);
+        assert_eq!(config.config.selector.command, "fzf");
+        assert_eq!(config.config.selector.enabled, true);
 
         config.override_selector(SelectorArgs {
-            selector: Some("fuzzel --dmenu --prompt='Open With: '".to_string()),
-            enable_selector: Some(false),
+            selector_command: Some(
+                "fuzzel --dmenu --prompt='Open With:'".to_string(),
+            ),
+            selector_enabled: Some(false),
             ..Default::default()
         });
 
         assert_eq!(
-            config.config.selector,
-            "fuzzel --dmenu --prompt='Open With: '"
+            config.config.selector.command,
+            "fuzzel --dmenu --prompt='Open With:'"
         );
-        assert_eq!(config.config.enable_selector, false);
+        assert_eq!(config.config.selector.enabled, false);
     });
 
     crate::logs_snapshot_test!(dont_override_selector, {
         let mut config = Config::default();
 
         // Ensure defaults are as expected just in case
-        assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
-        assert_eq!(config.config.enable_selector, false);
+        assert_eq!(
+            config.config.selector.command,
+            "rofi -dmenu -i -p 'Open With:'"
+        );
+        assert_eq!(config.config.selector.enabled, false);
 
         config.override_selector(SelectorArgs {
-            selector: None,
-            enable_selector: None,
+            selector_command: None,
+            selector_enabled: None,
             ..Default::default()
         });
 
-        assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
-        assert_eq!(config.config.enable_selector, false);
+        assert_eq!(
+            config.config.selector.command,
+            "rofi -dmenu -i -p 'Open With:'"
+        );
+        assert_eq!(config.config.selector.enabled, false);
 
         config.override_selector(SelectorArgs {
-            selector: None,
-            enable_selector: Some(false),
+            selector_command: None,
+            selector_enabled: Some(false),
             ..Default::default()
         });
 
-        assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
-        assert_eq!(config.config.enable_selector, false);
+        assert_eq!(
+            config.config.selector.command,
+            "rofi -dmenu -i -p 'Open With:'"
+        );
+        assert_eq!(config.config.selector.enabled, false);
 
         // Now repeat with `enable_selector` set to true
-        config.config.enable_selector = true;
+        config.config.selector.enabled = true;
 
         config.override_selector(SelectorArgs {
-            selector: None,
-            enable_selector: Some(true),
+            selector_command: None,
+            selector_enabled: Some(true),
             ..Default::default()
         });
 
-        assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
-        assert_eq!(config.config.enable_selector, true);
+        assert_eq!(
+            config.config.selector.command,
+            "rofi -dmenu -i -p 'Open With:'"
+        );
+        assert_eq!(config.config.selector.enabled, true);
 
         config.override_selector(SelectorArgs {
-            selector: None,
-            enable_selector: None,
+            selector_command: None,
+            selector_enabled: None,
             ..Default::default()
         });
 
-        assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
-        assert_eq!(config.config.enable_selector, true);
+        assert_eq!(
+            config.config.selector.command,
+            "rofi -dmenu -i -p 'Open With:'"
+        );
+        assert_eq!(config.config.selector.enabled, true);
     });
 
     crate::logs_snapshot_test!(properly_assign_files_to_handlers, {

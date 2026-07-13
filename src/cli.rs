@@ -285,19 +285,19 @@ pub enum Cmd {
 #[derive(Default, Clone, Args)]
 pub struct SelectorArgs {
     /// Override whether or not the selector is enabled
-    #[clap(long, short)]
-    pub enable_selector: Option<bool>,
+    #[clap(long, short = 's', value_name = "ENABLED")]
+    pub selector_enabled: Option<bool>,
     /// Override the configured selector command
-    #[clap(long, short)]
-    pub selector: Option<String>,
+    #[clap(long, short = 'c', value_name = "COMMAND")]
+    pub selector_command: Option<String>,
     /// Override the configured selector handler format
-    #[clap(long)]
+    #[clap(long, value_name = "FORMAT")]
     pub selector_handler_format: Option<String>,
     /// Override the configured selector handler identifier
-    #[clap(long)]
+    #[clap(long, value_name = "IDENTIFIER")]
     pub selector_handler_identifier: Option<String>,
     /// Override the configured selector handler separator
-    #[clap(long)]
+    #[clap(long, value_name = "SEPARATOR")]
     pub selector_handler_separator: Option<String>,
 }
 

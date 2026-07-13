@@ -267,10 +267,10 @@ impl MimeApps {
                 );
                 debug!(
                     "Selector enabled: {}, number of set handlers: {}",
-                    config_file.enable_selector,
+                    config_file.selector.enabled,
                     handlers.len()
                 );
-                if config_file.enable_selector && handlers.len() > 1 {
+                if config_file.selector.enabled && handlers.len() > 1 {
                     get_handler_from_selector(
                         handlers,
                         mime,
@@ -376,7 +376,7 @@ impl MimeApps {
 }
 
 /// Returns the entry corresponding to the passed in handler and languages.
-/// 
+///
 /// Logs a warning if desktop entry is not valid.
 fn get_entry(
     handler: &DesktopHandler,
@@ -400,7 +400,7 @@ fn get_handler_from_selector(
     config_file: &ConfigFile,
     languages: &Languages,
 ) -> Result<DesktopHandler> {
-    info!("Running selector: {}", &config_file.selector);
+    info!("Running selector: {}", &config_file.selector.command);
 
     let entries = handlers
         .iter()
@@ -408,13 +408,14 @@ fn get_handler_from_selector(
         .collect_vec();
 
     let entry: &DesktopEntry = select(
-        &config_file.selector,
-        &config_file.selector_handler_format,
+        &config_file.selector.command,
+        &config_file.selector.handler_format,
         config_file
-            .selector_handler_identifier
+            .selector
+            .handler_identifier
             .as_deref()
             .unwrap_or(""),
-        &config_file.selector_handler_separator,
+        &config_file.selector.handler_separator,
         mime,
         path,
         languages,
@@ -611,7 +612,9 @@ fn select<'e>(
                             '\n' => "\\n".to_string(),
                             '\t' => "\\t".to_string(),
                             '\0' => "\\0".to_string(),
-                            _ if c.is_ascii_control() => format!("\\x{:x?}", c as u32),
+                            _ if c.is_ascii_control() => {
+                                format!("\\x{:x?}", c as u32)
+                            }
                             _ => c.escape_default().to_string(),
                         }
                     } else {
@@ -636,7 +639,7 @@ fn select<'e>(
                 .read_to_string(&mut output)?;
             output
         };
-        
+
         let output = output.trim_end().to_owned();
         info!("Selector output: {}", output);
         output
@@ -966,9 +969,10 @@ mod select_tests {
     #[test]
     fn formatting_selector() {
         let mime = Mime::from_str("x-scheme-handler/https").unwrap();
-        let url: UserPath = "https://specifications.freedesktop.org/desktop-entry/latest/"
-            .parse()
-            .unwrap();
+        let url: UserPath =
+            "https://specifications.freedesktop.org/desktop-entry/latest/"
+                .parse()
+                .unwrap();
 
         let actual = format_selector("rofi -dmenu -show-icons -i -p 'Open With: ' -mesg 'Open {%Path}\n\t({%Mime})'", &mime, Some(&url));
         let expected = format!("rofi -dmenu -show-icons -i -p 'Open With: ' -mesg 'Open {url}\n\t({mime})'");
@@ -1004,9 +1008,10 @@ mod select_tests {
     #[test]
     fn formatting_item() {
         let mime = Mime::from_str("x-scheme-handler/https").unwrap();
-        let path: UserPath = "https://specifications.freedesktop.org/desktop-entry/latest/"
-            .parse()
-            .unwrap();
+        let path: UserPath =
+            "https://specifications.freedesktop.org/desktop-entry/latest/"
+                .parse()
+                .unwrap();
         let entry = DesktopEntry::parse_file(
             &PathBuf::from("./tests/assets/https/org.mozilla.firefox.desktop"),
             &vec![],
@@ -1023,7 +1028,7 @@ mod select_tests {
             index,
             &languages,
         );
-        let expected = format!("{name}", name=entry.name);
+        let expected = format!("{name}", name = entry.name);
         assert_eq!(actual, expected);
 
         // {Name}\0icon\x1f{Icon}
@@ -1038,8 +1043,8 @@ mod select_tests {
         );
         let expected = format!(
             r"{name}\x00icon\x1f{icon}",
-            name=entry.name,
-            icon=entry.get_first("Icon").unwrap()
+            name = entry.name,
+            icon = entry.get_first("Icon").unwrap()
         );
         assert_eq!(actual, expected);
 
@@ -1062,7 +1067,7 @@ mod select_tests {
             index,
             &languages,
         );
-        let expected = format!("{index}", index=index + 1);
+        let expected = format!("{index}", index = index + 1);
         assert_eq!(actual, expected);
 
         let actual = format_item(
@@ -1095,7 +1100,7 @@ mod select_tests {
         // let actual = format_item("%name %genericName %comment %icon %path %url %index0 %index1 %index %i %d", Some(&path), &entry, index, &languages);
         let expected = format!(
             "{file_name} {path} {path} {index0} {index0} {index1}",
-            file_name=entry.file_name.to_str().unwrap(),
+            file_name = entry.file_name.to_str().unwrap(),
             index0 = index,
             index1 = (index + 1)
         );
@@ -1121,9 +1126,9 @@ mod select_tests {
         .join(" ");
         assert_eq!(actual, expected);
 
-
         // different languages
-        let actual = format_item("{Comment}", 
+        let actual = format_item(
+            "{Comment}",
             &mime,
             Some(&path),
             &entry,
@@ -1132,33 +1137,36 @@ mod select_tests {
         );
         assert_eq!(actual, "Schneller und privater Browser");
 
-        let actual = format_item("{Comment}", 
+        let actual = format_item(
+            "{Comment}",
             &mime,
             Some(&path),
             &entry,
             index,
             // fall back to unlocalized
-            &vec!["foo".to_string()],   
+            &vec!["foo".to_string()],
         );
         assert_eq!(actual, "Fast and private browser");
 
-        let actual = format_item("{Comment}", 
+        let actual = format_item(
+            "{Comment}",
             &mime,
             Some(&path),
             &entry,
             index,
             // both exist -> use first
-            &vec!["de".to_string(), "fr".to_string()],   
+            &vec!["de".to_string(), "fr".to_string()],
         );
         assert_eq!(actual, "Schneller und privater Browser");
 
-        let actual = format_item("{Comment}", 
+        let actual = format_item(
+            "{Comment}",
             &mime,
             Some(&path),
             &entry,
             index,
             // 2nd exist -> use 2nd
-            &vec!["foo".to_string(), "fr".to_string()],   
+            &vec!["foo".to_string(), "fr".to_string()],
         );
         assert_eq!(actual, "Navigateur rapide et privé");
     }
@@ -1166,35 +1174,61 @@ mod select_tests {
     #[test]
     fn match_entry_to_output() {
         let langs = vec![];
-        let entries = 
-            [
-                "./tests/assets/https/org.mozilla.firefox.desktop",
-                "./tests/assets/https/org.mozilla.firefox.private.desktop",
-                "./tests/assets/https/com.vivaldi.Vivaldi.desktop",
-                "./tests/assets/https/com.vivaldi.Vivaldi.private.desktop",
-                "./tests/assets/https/copy-to-clipboard.desktop",
-            ]
-            .map(|path| DesktopEntry::parse_file(&PathBuf::from(path), &langs).unwrap())
-            ;
+        let entries = [
+            "./tests/assets/https/org.mozilla.firefox.desktop",
+            "./tests/assets/https/org.mozilla.firefox.private.desktop",
+            "./tests/assets/https/com.vivaldi.Vivaldi.desktop",
+            "./tests/assets/https/com.vivaldi.Vivaldi.private.desktop",
+            "./tests/assets/https/copy-to-clipboard.desktop",
+        ]
+        .map(|path| {
+            DesktopEntry::parse_file(&PathBuf::from(path), &langs).unwrap()
+        });
         let mime = Mime::from_str("x-scheme-handler/https").unwrap();
-        let path: UserPath = "https://github.com/Anomalocaridid/handlr-regex".parse().unwrap();
+        let path: UserPath = "https://github.com/Anomalocaridid/handlr-regex"
+            .parse()
+            .unwrap();
 
-        let assert_entry = |item_format: &str, output: &str, expected: Option<&DesktopEntry>| {
-            let items = 
-                entries.iter().enumerate().map(|(i,entry)| {
-                    let item = format_item(item_format, &mime, Some(&path), entry, i, &langs);
-                    (entry, item)
-                }).collect_vec();
-            
-            let actual = guess_matching_entry(items.as_slice(), output);
-            assert_eq!(actual.ok(), expected, "item_format='{}', output='{}', items={:?}", item_format, output, items.iter().map(|(_,item)| item).collect_vec());
-        };
+        let assert_entry =
+            |item_format: &str,
+             output: &str,
+             expected: Option<&DesktopEntry>| {
+                let items = entries
+                    .iter()
+                    .enumerate()
+                    .map(|(i, entry)| {
+                        let item = format_item(
+                            item_format,
+                            &mime,
+                            Some(&path),
+                            entry,
+                            i,
+                            &langs,
+                        );
+                        (entry, item)
+                    })
+                    .collect_vec();
 
-
+                let actual = guess_matching_entry(items.as_slice(), output);
+                assert_eq!(
+                    actual.ok(),
+                    expected,
+                    "item_format='{}', output='{}', items={:?}",
+                    item_format,
+                    output,
+                    items.iter().map(|(_, item)| item).collect_vec()
+                );
+            };
 
         let name = "Vivaldi (private)";
         let entry = entries.iter().find(|e| e.name == name).unwrap();
-        let name_generic = format!("{} {}", name, entry.get_first_with_language("GenericName", &langs).unwrap());
+        let name_generic = format!(
+            "{} {}",
+            name,
+            entry
+                .get_first_with_language("GenericName", &langs)
+                .unwrap()
+        );
 
         assert_entry("{Name}", name, Some(entry));
         assert_entry("{Name}", &name_generic, None);
@@ -1204,12 +1238,20 @@ mod select_tests {
         assert_entry("{Name}\0icon\x1f{Icon}", &name_generic, None);
         assert_entry("{Name}\x00icon\x1f{Icon}", &name_generic, None);
         assert_entry("{Name} {GenericName}\0icon\x1f{Icon}", name, Some(entry));
-        assert_entry("{Name} {GenericName}\x00icon\x1f{Icon}", name, Some(entry));
-        assert_entry("{Name} {GenericName}\0icon\x1f%icon", &name_generic, Some(entry));
+        assert_entry(
+            "{Name} {GenericName}\x00icon\x1f{Icon}",
+            name,
+            Some(entry),
+        );
+        assert_entry(
+            "{Name} {GenericName}\0icon\x1f%icon",
+            &name_generic,
+            Some(entry),
+        );
 
         let idx = entries.iter().position(|e| e.name == name).unwrap();
         assert_entry(r"{%Index0}", &format!("{}", idx), Some(entry));
-        assert_entry(r"{%Index1}", &format!("{}", idx+1), Some(entry));
+        assert_entry(r"{%Index1}", &format!("{}", idx + 1), Some(entry));
 
         assert_entry("{Name}", "", None);
         assert_entry("{Name}", "FooBar", None);

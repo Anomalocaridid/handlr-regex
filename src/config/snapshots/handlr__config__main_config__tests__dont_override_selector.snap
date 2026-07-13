@@ -3,6 +3,8 @@ source: src/config/main_config.rs
 expression: "String :: from_utf8(buffer).expect(\"Buffer is invalid utf8\")"
 ---
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::config_file[0m[2m:[0m Selector enabled: false
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::config_file[0m[2m:[0m Overriding selector enabled: false
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::config_file[0m[2m:[0m Selector enabled: false
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::config_file[0m[2m:[0m Overriding selector enabled: true
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::config_file[0m[2m:[0m Selector enabled: true
 [2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::config::config_file[0m[2m:[0m Selector enabled: true
