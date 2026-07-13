@@ -66,6 +66,12 @@ pub fn handle(result: Result<()>) -> ExitCode {
                 info!("{}", error);
                 ExitCode::SUCCESS
             }
+            // Special handling for BadTomlData: Default `fmt` prints just 'Bad TOML data' without any details.
+            //      Printing the contained error provides a detailed error message with Line&Column and description.
+            Error::Config(confy::ConfyError::BadTomlData(error)) => {
+                error!("{}", error);
+                ExitCode::FAILURE
+            }
             _ => {
                 error!("{}", error);
                 ExitCode::FAILURE
