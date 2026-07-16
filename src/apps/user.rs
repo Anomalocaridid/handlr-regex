@@ -378,6 +378,7 @@ impl MimeApps {
 /// Returns the entry corresponding to the passed in handler and languages.
 ///
 /// Logs a warning if desktop entry is not valid.
+#[mutants::skip] // Only a logger wrapper around `DesktopHandler::get_entry`. Only called in other fns with `#[mutants::skip]`.
 fn get_entry(
     handler: &DesktopHandler,
     languages: &Languages,
