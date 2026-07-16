@@ -118,8 +118,9 @@ There are multiple additional settings and placeholders available to customize t
 
 Some commands support placeholders to insert data. Placeholders are inside curly braces: `{NAME}`. If you want an actual `{` use `{{`.
 
-Available selector settings in `handlr.toml`:
-* `selector`: selector command. For example: `rofi -dmenu -i -p 'Open With'`. Handlers are passed into the command via stdin.
+All selector settings are inside the `[selector]` section in `handlr.toml`:
+* `enabled` (`true|false`): Switch to enabled/disable selector
+* `command`: selector command. For example: `rofi -dmenu -i -p 'Open With'`. Handlers are passed into the command via stdin.
   * Can contain some placeholders:
     * `%Path`, `%Url`: Path or Url to open. 
       * Example: `handlr open https://github.com` -> `https://github.com`
@@ -129,10 +130,12 @@ Available selector settings in `handlr.toml`:
       * Example: `handlr open https://github.com` -> `x-scheme-handler/https`
   * Example:
     ```toml
-    selector = "rofi -dmenu -i -p 'Open With' -mesg 'Open {%Path}\n\t({%Mime})'"
+    [selector]
+    enabled = true
+    command = "rofi -dmenu -i -p 'Open With' -mesg 'Open {%Path}\n\t({%Mime})'"
     ```
     Displays the Url/Path & Mimetype to open (like in the image above).
-* `selector_handler_format`: Format of each handler passed to the selector.
+* `handler_format`: Format of each handler passed to the selector command.
     If not specified that's just the name of the handler.
     * Can contain placeholders:
       * `NAME` (no leading `%`!): get value for key `NAME` from the corresponding `.desktop` file in its main `[Desktop Entry]` section.
@@ -143,37 +146,43 @@ Available selector settings in `handlr.toml`:
       * `%FileName`: File name of the `.desktop` file for the app.
       * `%Index0`, `%Index1`: Index of the current handler in the list of all handlers passed to the `selector`.
         * Index is 0- respectively 1- based.
-        * For usage with `rofi` `-format i` (0-based) and `-format d` (1-based). See `selector_handler_identifier`.
+        * For usage with `rofi` `-format i` (0-based) and `-format d` (1-based). See `handler_identifier`.
     * Example:
       ```toml
-      selector = "rofi -dmenu -show-icons -i -p 'Open With'"
-      selector_handler_format = "{Name}\x00icon\x1f{Icon}"
+      [selector]
+      enabled = true
+      command = "rofi -dmenu -show-icons -i -p 'Open With'"
+      handler_format = "{Name}\x00icon\x1f{Icon}"
       ```
       Shows the apps with their icons (like in the image above).
       * Note: in the [rofi docs](https://davatorium.github.io/rofi/current/rofi-script.5/#parsing-row-options) you see `\0`. But that's not valid in toml. As such we have to use one of the [Unicode formats](https://toml.io/en/v1.1.0#string).
-* `selector_handler_identifier`: Value to match the output of `selector` with the correct handler.
-    Should be used if the returned value from `selector` is different from the input (`selector_handler_format`).
+* `handler_identifier`: Value to match the output of `command` with the correct handler.
+    Should be used if the returned value from `selector` is different from the input (`handler_format`).
     * Example: 
         ```toml
-        selector = "rofi -dmenu -show-icons -i -p 'Open With'"
-        selector_handler_format = "{Name}\x00icon\x1f{Icon}"
-        selector_handler_identifier = "{Name}"
+        [selector]
+        enabled = true
+        command = "rofi -dmenu -show-icons -i -p 'Open With'"
+        handler_format = "{Name}\x00icon\x1f{Icon}"
+        handler_identifier = "{Name}"
         ```
         For helix the input is `Helix\x00icon\x1fhelix`, but rofi only returns the text part (just `Helix`).  
-        `selector_handler_identifier = "{Name}"` matches the output value directly. 
+        `handler_identifier = "{Name}"` matches the output value directly. 
     * Example:
         ```toml
-        selector = "rofi -dmenu -i -p 'Open With' -format i"
-        selector_handler_format = "{Name}"
-        selector_handler_identifier = "{%Index0}"
+        [selector]
+        enabled = true
+        command = "rofi -dmenu -i -p 'Open With' -format i"
+        handler_format = "{Name}"
+        handler_identifier = "{%Index0}"
         ```
         The input is the handler name, but output is the index of the selected handler.  
-        `selector_handler_identifier = "{%Index0}"` matches the 0-based index.
-* `selector_handler_separator`: separator between the formatted handlers when passed to `selector`.
+        `handler_identifier = "{%Index0}"` matches the 0-based index.
+* `handler_separator`: separator between the formatted handlers when passed to selector `command`.
   * By default: `\n`
 
 **Debugging**:  
-Call your handlr command with `--verbose`. One of the log messages is a command that can be copied into your shell.  
+Call your handlr executable with `--verbose`. One of the log messages is a command that can be copied into your shell.  
 The command looks like:
 ```sh
 echo -en 'Helix\0icon\x1fhelix\nNeovim\0icon\x1fnvim' | rofi -dmenu -show-icons -i -p 'Open With'
