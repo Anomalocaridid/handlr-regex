@@ -2,7 +2,7 @@ use crate::{
     config::{Config, Languages},
     error::{Error, Result},
 };
-use freedesktop_entry_parser::Entry;
+use freedesktop_entry_parser::{Entry, Section};
 use itertools::Itertools;
 use mime::Mime;
 use std::{ffi::OsString, path::Path, process::Stdio, str::FromStr};
@@ -19,10 +19,99 @@ pub struct DesktopEntry {
     pub file_name: OsString,
     /// Whether the program runs in a terminal window
     pub terminal: bool,
+
+    /// Backing Desktop Entry loaded from `file_name`.
+    /// Other fields in this struct are extracted from this `entry` for frequent use.
+    ///
+    /// Empty if no real Desktop Entry file, for example for tests or regex match.
+    pub(crate) entry: Option<Entry>,
+}
+
+/// `[Desktop Entry]` in `.desktop` file
+const MAIN_SECTION: &str = "Desktop Entry";
+
+impl DesktopEntry {
+    /// Main Section `[Desktop Entry]` in the `.desktop` file.
+    /// Contains keys like `Name` or `Exec`.
+    fn main_section(&self) -> Option<&Section> {
+        self.entry.as_ref()?.section(MAIN_SECTION)
+    }
+
+    /// Note: A section can contain a `key` multiple times. This here returns only the first occurrence!
+    fn get_first_in_section<'s>(section: &'s Section, key: &str) -> Option<&'s str> {
+        section
+            .attr(key)
+            .first()
+            .map(String::as_str)
+    }
+    /// Returns `None` if no such key in the `MAIN_SECTION`.
+    ///
+    /// Note: If key exist, but is empty, it returns `Some("")`.
+    /// 
+    /// Note: A `key` can occur multiple times. This here returns only the first one!
+    #[allow(dead_code)] // used in tests
+    pub(crate) fn get_first(&self, key: &str) -> Option<&str> {
+        DesktopEntry::get_first_in_section(self.main_section()?, key)
+    }
+    fn get_first_with_language_in_section<'s>(section: &'s Section, key: &str, languages: &Languages) -> Option<&'s str> {
+        languages
+            .iter()
+            .find_map(|lang| section.attr_with_param(key, lang).first())
+            .or_else(|| section.attr(key).first())
+            .map(String::as_str)
+    }
+    /// While `get_first` returns the first match without language, this tries to return a localized value in order of `languages`.
+    /// Falls back to unlocalized key (-> same as `get_first`)
+    /// 
+    /// # Example
+    /// If `entry` contains the following names: 
+    /// ```
+    /// Name=VLC media player
+    /// Name[de]=VLC Media Player
+    /// Name[fr]=Lecteur multimédia VLC
+    /// ```
+    /// `get_first_with_language` for `[it,de,fr]` returns the german name `VLC Media Player`,
+    ///     while `[it,pl]` returns the default `VLC media player`
+    pub(crate) fn get_first_with_language(
+        &self,
+        key: &str,
+        languages: &Languages,
+    ) -> Option<&str> {
+        DesktopEntry::get_first_with_language_in_section(self.main_section()?, key, languages)
+    }
+    /// While `get_first` returns only the first key occurrence, this returns all.
+    pub(crate) fn get_all(&self, key: &str) -> Option<&[String]> {
+        self.main_section().map(|s| s.attr(key))
+    }
+    /// Besides getting all key occurrences (like `get_all`), it further splits the values at the passed separator.
+    /// 
+    /// # Example
+    /// `Categories=AudioVideo;Player;` is split into `["AudioVideo", "Player"]`
+    pub(crate) fn get_all_separated<'e>(
+        &'e self,
+        entry_name: &str,
+        separator: &'e str,
+    ) -> Option<impl Iterator<Item = &'e str>> {
+        let values = self.get_all(entry_name)?;
+        Some(values.iter().flat_map(move |v| {
+            v.split(separator)
+                .filter(|s| !s.is_empty())  // Account for ending/duplicated semicolons
+                .unique()   // Remove duplicate entries
+        }))
+    }
+}
+
+impl DesktopEntry {
     /// The MIME type(s) supported by this application
-    pub mime_type: Vec<Mime>,
+    pub fn mime_type(&self) -> Option<impl Iterator<Item = Mime> + use<'_>> {
+        let ms = self.get_all_separated("MimeType", ";")?
+            .flat_map(|m| Mime::from_str(m).ok());
+        Some(ms)
+    }
     /// Categories in which the entry should be shown in a menu
-    pub categories: Vec<String>,
+    pub fn categories(&self) -> Option<impl Iterator<Item = &str>> {
+        self.get_all_separated("Categories", ";")
+    }
 }
 
 /// Modes for running a DesktopFile's `exec` command
@@ -105,55 +194,19 @@ impl DesktopEntry {
         Ok(exec.trim().to_string())
     }
 
-    /// Parse a desktop entry file, given a path
-    pub fn parse_file(
-        path: &Path,
-        languages: &Languages,
-    ) -> Result<DesktopEntry> {
-        let fd_entry = Entry::parse_file(path)?;
-        let fd_entry = fd_entry.section("Desktop Entry");
-
+    pub fn new( path: &Path, entry: Entry, languages: &Languages) -> Result<DesktopEntry> {
         let entry_error = |field_name: &str| -> Error {
             Error::BadEntry(path.to_path_buf(), field_name.to_string())
         };
 
+        let section = entry.section(MAIN_SECTION).ok_or_else(|| entry_error(MAIN_SECTION))?;
+
         let entry = DesktopEntry {
-            name: languages
-                .iter()
-                .filter_map(|lang| fd_entry.attr_with_param("Name", lang))
-                .next()
-                .or_else(|| fd_entry.attr("Name"))
-                .ok_or(entry_error("Name"))?
-                .to_string(),
-            exec: fd_entry
-                .attr("Exec")
-                .ok_or(entry_error("Exec"))?
-                .to_string(),
+            name: Self::get_first_with_language_in_section(section, "Name", languages).ok_or_else(|| entry_error("Name"))?.to_string(),
+            exec: Self::get_first_in_section(section, "Exec").ok_or_else(|| entry_error("Exec"))?.to_string(),
             file_name: path.file_name().unwrap_or_default().to_owned(),
-            terminal: fd_entry
-                .attr("Terminal")
-                .and_then(|t| t.parse().ok())
-                .unwrap_or(false),
-            mime_type: fd_entry
-                .attr("MimeType")
-                .map(|m| {
-                    m.split(';')
-                        .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
-                        .unique() // Remove duplicate entries
-                        .filter_map(|m| Mime::from_str(m).ok())
-                        .collect_vec()
-                })
-                .unwrap_or_default(),
-            categories: fd_entry
-                .attr("Categories")
-                .map(|c| {
-                    c.split(';')
-                        .filter(|s| !s.is_empty()) // Account for ending/duplicated semicolons
-                        .unique() // Remove duplicate entries
-                        .map(|c| c.to_string())
-                        .collect_vec()
-                })
-                .unwrap_or_default(),
+            terminal: Self::get_first_in_section(section, "Terminal").and_then(|t| t.parse().ok()).unwrap_or(false),
+            entry: Some(entry),
         };
 
         if entry.name.is_empty() {
@@ -163,6 +216,14 @@ impl DesktopEntry {
         } else {
             Ok(entry)
         }
+    }
+
+    /// Parse a desktop entry file, given a path
+    pub fn parse_file(
+        path: &Path,
+        languages: &Languages,
+    ) -> Result<DesktopEntry> {
+        Self::new(path, Entry::parse_file(path)?, languages)
     }
 
     /// Make a fake DesktopEntry given only a value for exec and terminal.
@@ -177,7 +238,8 @@ impl DesktopEntry {
 
     /// Check if the given desktop entry represents a terminal emulator
     pub fn is_terminal_emulator(&self) -> bool {
-        self.categories.contains(&"TerminalEmulator".to_string())
+        let Some(mut categories) = self.categories() else { return false };
+        categories.contains(&"TerminalEmulator")
     }
 }
 
@@ -209,9 +271,10 @@ mod tests {
             &PathBuf::from("tests/assets/cmus.desktop"),
             &Vec::new(),
         )?;
-        assert_eq!(entry.mime_type.len(), 2);
-        assert_eq!(entry.mime_type[0].essence_str(), "audio/mp3");
-        assert_eq!(entry.mime_type[1].essence_str(), "audio/ogg");
+        let mime_type = entry.mime_type().unwrap().collect_vec();
+        assert_eq!(mime_type.len(), 2);
+        assert_eq!(mime_type[0].essence_str(), "audio/mp3");
+        assert_eq!(mime_type[1].essence_str(), "audio/ogg");
         assert!(!entry.is_terminal_emulator());
 
         test_get_cmd(
@@ -227,7 +290,7 @@ mod tests {
             &PathBuf::from("tests/assets/org.wezfurlong.wezterm.desktop"),
             &Vec::new(),
         )?;
-        assert!(entry.mime_type.is_empty());
+        assert!(entry.mime_type().is_none_or(|mt| mt.collect_vec().is_empty()));
         assert!(entry.is_terminal_emulator());
 
         test_get_cmd(&entry, &Config::default(), "wezterm start --cwd . test")

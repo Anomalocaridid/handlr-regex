@@ -4,6 +4,7 @@ use crate::{
     config::Languages,
     error::Result,
 };
+use itertools::Itertools;
 use mime::Mime;
 use std::{collections::BTreeMap, ffi::OsString};
 use tracing::debug;
@@ -46,7 +47,7 @@ impl SystemApps {
         languages: &Languages,
     ) -> Result<BTreeMap<OsString, DesktopEntry>> {
         // ) -> Result<impl Iterator<Item = (OsString, DesktopEntry)> + use<'_>> {
-        Ok(xdg::BaseDirectories::new()?
+        Ok(xdg::BaseDirectories::new()
             .list_data_files_once("applications")
             .into_iter()
             .filter(|p| {
@@ -70,7 +71,7 @@ impl SystemApps {
         Self::get_entries(languages)?
             .into_iter()
             .for_each(|(_, entry)| {
-                let (file_name, mimes) = (entry.file_name, entry.mime_type);
+                let (file_name, mimes) = (&entry.file_name, entry.mime_type().map_or_else(|| vec![], |mt| mt.collect_vec()));
                 let desktop_handler =
                     DesktopHandler::assume_valid(file_name.to_owned());
 

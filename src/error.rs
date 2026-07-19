@@ -27,6 +27,8 @@ pub enum Error {
     Selector(String),
     #[error("Selection cancelled")]
     Cancelled,
+    #[error("Selected handler '{0}' not valid")]
+    BadSelection(String),
     #[error("Please specify the default terminal with handlr set x-scheme-handler/terminal")]
     NoTerminal,
     #[error("Bad path: {0}")]
@@ -47,6 +49,10 @@ pub enum Error {
     #[cfg(test)]
     #[error(transparent)]
     FromUtf8(#[from] std::string::FromUtf8Error),
+    #[error("Home directory not found")]
+    NoHome,
+    #[error("No Desktop Entry")]
+    NoDesktopEntry(PathBuf),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -59,6 +65,12 @@ pub fn handle(result: Result<()>) -> ExitCode {
             Error::Cancelled => {
                 info!("{}", error);
                 ExitCode::SUCCESS
+            }
+            // Special handling for BadTomlData: Default `fmt` prints just 'Bad TOML data' without any details.
+            //      Printing the contained error provides a detailed error message with Line&Column and description.
+            Error::Config(confy::ConfyError::BadTomlData(error)) => {
+                error!("{}", error);
+                ExitCode::FAILURE
             }
             _ => {
                 error!("{}", error);

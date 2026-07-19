@@ -81,9 +81,13 @@ impl Config {
 
     /// Get the handler associated with a given mime
     #[mutants::skip] // Cannot test match guard because it relies on user interactivity
-    pub fn get_handler(&self, mime: &Mime) -> Result<DesktopHandler> {
-        match self.mime_apps.get_handler_from_user(mime, &self.config, &self.languages) {
-            Err(e) if matches!(e, Error::Cancelled) => Err(e),
+    pub fn get_handler(
+        &self,
+        mime: &Mime,
+        path: Option<&UserPath>,
+    ) -> Result<DesktopHandler> {
+        match self.mime_apps.get_handler_from_user(mime, path, &self.config, &self.languages) {
+            Err(e) if matches!(e, Error::Cancelled | Error::BadSelection(_)) => Err(e),
             h => h
                 .inspect(|_| {
                     info!("Match found for `{}` in mimeapps.list Default Associations", mime);
@@ -126,7 +130,7 @@ impl Config {
             "Launching handler for `{}` with arguments: {:?}",
             mime, args
         );
-        self.get_handler(mime)?
+        self.get_handler(mime, None)?
             .launch(self, args.into_iter().map(|a| a.to_string()).collect())?;
         info!("Finished launching handler");
         Ok(())
@@ -142,7 +146,7 @@ impl Config {
         info!("Showing handler for `{}`", mime);
         debug!("JSON output: {}", output_json);
 
-        let handler = self.get_handler(mime)?;
+        let handler = self.get_handler(mime, None)?;
 
         let output = if output_json {
             let entry = handler.get_entry(&self.languages)?;
@@ -253,7 +257,7 @@ impl Config {
             handler.into()
         } else {
             info!("No matching regex handlers found for `{}`", path);
-            self.get_handler(&path.get_mime()?)?.into()
+            self.get_handler(&path.get_mime()?, Some(path))?.into()
         })
     }
 
@@ -262,7 +266,7 @@ impl Config {
     // TODO: test falling back to system
     pub fn terminal(&self) -> Result<String> {
         // Get the terminal handler if there is one set
-        self.get_handler(&Mime::from_str("x-scheme-handler/terminal")?)
+        self.get_handler(&Mime::from_str("x-scheme-handler/terminal")?, None)
             .ok()
             .and_then(|h| h.get_entry(&self.languages).ok())
             // Otherwise, get a terminal emulator program
@@ -393,7 +397,7 @@ impl Config {
 #[derive(PartialEq, Eq, PartialOrd, Ord, Tabled, Serialize)]
 struct MimeAppsEntry {
     mime: String,
-    #[tabled(display_with("Self::display_handlers", self))]
+    #[tabled(display("Self::display_handlers", &self.separator))]
     handlers: Vec<String>,
     #[tabled(skip)]
     #[serde(skip_serializing)]
@@ -420,8 +424,11 @@ impl MimeAppsEntry {
     }
 
     /// Display list of handlers as a string
-    fn display_handlers(&self) -> String {
-        self.handlers.join(&self.separator)
+    fn display_handlers(
+        handlers: &Vec<std::string::String>,
+        sep: &str,
+    ) -> String {
+        handlers.join(sep)
     }
 }
 
@@ -484,19 +491,19 @@ mod tests {
 
         assert_eq!(
             config
-                .get_handler(&Mime::from_str("video/mp4")?)?
+                .get_handler(&Mime::from_str("video/mp4")?, None)?
                 .to_string(),
             "mpv.desktop"
         );
         assert_eq!(
             config
-                .get_handler(&Mime::from_str("video/asdf")?)?
+                .get_handler(&Mime::from_str("video/asdf")?, None)?
                 .to_string(),
             "mpv.desktop"
         );
         assert_eq!(
             config
-                .get_handler(&Mime::from_str("video/webm")?)?
+                .get_handler(&Mime::from_str("video/webm")?, None)?
                 .to_string(),
             "brave.desktop"
         );
@@ -516,16 +523,17 @@ mod tests {
 
         assert_eq!(
             config
-                .get_handler(&Mime::from_str(
-                    "application/vnd.oasis.opendocument.text"
-                )?,)?
+                .get_handler(
+                    &Mime::from_str("application/vnd.oasis.opendocument.text")?,
+                    None
+                )?
                 .to_string(),
             "startcenter.desktop"
         );
         assert_eq!(
             config
                 .get_handler(
-                    &Mime::from_str("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")?,
+                    &Mime::from_str("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")?, None
                 )?
                 .to_string(),
             "startcenter.desktop"
@@ -739,7 +747,7 @@ mod tests {
 
         // Should return first added handler
         assert_eq!(
-            config.get_handler(&mime::TEXT_PLAIN)?.to_string(),
+            config.get_handler(&mime::TEXT_PLAIN, None)?.to_string(),
             "Helix.desktop"
         );
 
@@ -750,7 +758,7 @@ mod tests {
 
         // Should still return first added handler
         assert_eq!(
-            config.get_handler(&mime::TEXT_PLAIN)?.to_string(),
+            config.get_handler(&mime::TEXT_PLAIN, None)?.to_string(),
             "Helix.desktop"
         );
 
@@ -765,7 +773,7 @@ mod tests {
 
         // With first added handler removed, second handler replaces it
         assert_eq!(
-            config.get_handler(&mime::TEXT_PLAIN)?.to_string(),
+            config.get_handler(&mime::TEXT_PLAIN, None)?.to_string(),
             "nvim.desktop"
         );
 
@@ -775,7 +783,7 @@ mod tests {
         )?;
 
         // Both handlers removed, should not be any left
-        assert!(config.get_handler(&mime::TEXT_PLAIN).is_err());
+        assert!(config.get_handler(&mime::TEXT_PLAIN, None).is_err());
 
         Ok(())
     }
@@ -787,7 +795,7 @@ mod tests {
         )?;
 
         assert_eq!(
-            config.get_handler(&mime::TEXT_PLAIN)?.to_string(),
+            config.get_handler(&mime::TEXT_PLAIN, None)?.to_string(),
             "Helix.desktop"
         );
 
@@ -798,7 +806,7 @@ mod tests {
 
         // Should return second set handler because it should replace the first one
         assert_eq!(
-            config.get_handler(&mime::TEXT_PLAIN)?.to_string(),
+            config.get_handler(&mime::TEXT_PLAIN, None)?.to_string(),
             "nvim.desktop"
         );
 
@@ -809,7 +817,7 @@ mod tests {
         config.unset_handler(&mime::TEXT_PLAIN)?;
 
         // Handler completely unset, should not be any left
-        assert!(config.get_handler(&mime::TEXT_PLAIN).is_err());
+        assert!(config.get_handler(&mime::TEXT_PLAIN, None).is_err());
 
         Ok(())
     }
@@ -842,70 +850,96 @@ mod tests {
         let mut config = Config::default();
 
         // Ensure defaults are as expected just in case
-        assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
-        assert_eq!(config.config.enable_selector, false);
+        assert_eq!(
+            config.config.selector.command,
+            "rofi -dmenu -i -p 'Open With:'"
+        );
+        assert_eq!(config.config.selector.enabled, false);
 
         config.override_selector(SelectorArgs {
-            selector: Some("fzf".to_string()),
-            enable_selector: Some(true),
+            selector_command: Some("fzf".to_string()),
+            selector_enabled: Some(true),
+            ..Default::default()
         });
 
-        assert_eq!(config.config.selector, "fzf");
-        assert_eq!(config.config.enable_selector, true);
+        assert_eq!(config.config.selector.command, "fzf");
+        assert_eq!(config.config.selector.enabled, true);
 
         config.override_selector(SelectorArgs {
-            selector: Some("fuzzel --dmenu --prompt='Open With: '".to_string()),
-            enable_selector: Some(false),
+            selector_command: Some(
+                "fuzzel --dmenu --prompt='Open With:'".to_string(),
+            ),
+            selector_enabled: Some(false),
+            ..Default::default()
         });
 
         assert_eq!(
-            config.config.selector,
-            "fuzzel --dmenu --prompt='Open With: '"
+            config.config.selector.command,
+            "fuzzel --dmenu --prompt='Open With:'"
         );
-        assert_eq!(config.config.enable_selector, false);
+        assert_eq!(config.config.selector.enabled, false);
     });
 
     crate::logs_snapshot_test!(dont_override_selector, {
         let mut config = Config::default();
 
         // Ensure defaults are as expected just in case
-        assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
-        assert_eq!(config.config.enable_selector, false);
+        assert_eq!(
+            config.config.selector.command,
+            "rofi -dmenu -i -p 'Open With:'"
+        );
+        assert_eq!(config.config.selector.enabled, false);
 
         config.override_selector(SelectorArgs {
-            selector: None,
-            enable_selector: None,
+            selector_command: None,
+            selector_enabled: None,
+            ..Default::default()
         });
 
-        assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
-        assert_eq!(config.config.enable_selector, false);
+        assert_eq!(
+            config.config.selector.command,
+            "rofi -dmenu -i -p 'Open With:'"
+        );
+        assert_eq!(config.config.selector.enabled, false);
 
         config.override_selector(SelectorArgs {
-            selector: None,
-            enable_selector: Some(false),
+            selector_command: None,
+            selector_enabled: Some(false),
+            ..Default::default()
         });
 
-        assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
-        assert_eq!(config.config.enable_selector, false);
+        assert_eq!(
+            config.config.selector.command,
+            "rofi -dmenu -i -p 'Open With:'"
+        );
+        assert_eq!(config.config.selector.enabled, false);
 
         // Now repeat with `enable_selector` set to true
-        config.config.enable_selector = true;
+        config.config.selector.enabled = true;
 
         config.override_selector(SelectorArgs {
-            selector: None,
-            enable_selector: Some(true),
+            selector_command: None,
+            selector_enabled: Some(true),
+            ..Default::default()
         });
 
-        assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
-        assert_eq!(config.config.enable_selector, true);
+        assert_eq!(
+            config.config.selector.command,
+            "rofi -dmenu -i -p 'Open With:'"
+        );
+        assert_eq!(config.config.selector.enabled, true);
 
         config.override_selector(SelectorArgs {
-            selector: None,
-            enable_selector: None,
+            selector_command: None,
+            selector_enabled: None,
+            ..Default::default()
         });
 
-        assert_eq!(config.config.selector, "rofi -dmenu -i -p 'Open With: '");
-        assert_eq!(config.config.enable_selector, true);
+        assert_eq!(
+            config.config.selector.command,
+            "rofi -dmenu -i -p 'Open With:'"
+        );
+        assert_eq!(config.config.selector.enabled, true);
     });
 
     crate::logs_snapshot_test!(properly_assign_files_to_handlers, {
