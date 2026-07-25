@@ -84,7 +84,7 @@ impl DesktopHandler {
         } else {
             let mut path = PathBuf::from("applications");
             path.push(name);
-            Ok(xdg::BaseDirectories::new()?
+            Ok(xdg::BaseDirectories::new()
                 .find_data_file(path)
                 .ok_or_else(|| {
                     Error::NotFound(name.to_string_lossy().into())
@@ -112,7 +112,7 @@ impl DesktopHandler {
 
 /// Represents a regex handler from the config
 #[derive(Display, Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
-#[display(fmt = "\"{}\" (Regex Handler)", exec)]
+#[display("\"{}\" (Regex Handler)", exec)]
 pub struct RegexHandler {
     exec: String,
     #[serde(default)]

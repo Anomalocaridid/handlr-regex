@@ -47,6 +47,10 @@ pub enum Error {
     #[cfg(test)]
     #[error(transparent)]
     FromUtf8(#[from] std::string::FromUtf8Error),
+    #[error("Home directory not found")]
+    NoHome,
+    #[error("No Desktop Entry")]
+    NoDesktopEntry(PathBuf),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
