@@ -36,7 +36,8 @@ fn main() -> ExitCode {
 /// Run main program logic
 #[mutants::skip] // Cannot test directly at the moment
 fn run(cli: Cli) -> Result<()> {
-    let mut config = Config::new(cli.terminal_output())?;
+    let mut config =
+        Config::new(cli.terminal_output(), cli.wait_for_handler_exit())?;
 
     let mut stdout = std::io::stdout().lock();
 

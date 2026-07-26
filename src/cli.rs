@@ -58,12 +58,21 @@ pub struct Cli {
     #[clap(global = true, long = "force-terminal-output", short = 't')]
     terminal_output: Option<bool>,
 
+    /// Overrides whether or not to wait for the handler childprocess
+    // NOTE: `handlr --sync open a b ...` is equivalent to `handlr --sync launch a ; handlr --sync launch b ; ...`)
+    #[clap(global = true, long = "sync", short = 'S', action = ArgAction::SetTrue)]
+    pub wait_for_handler_exit: Option<bool>,
+
     #[command(flatten)]
     pub verbosity: Verbosity<WarnLevel>,
 }
 
 #[cfg(executable)]
 impl Cli {
+    pub fn wait_for_handler_exit(&self) -> bool {
+        self.wait_for_handler_exit.unwrap_or(false)
+    }
+
     pub fn terminal_output(&self) -> bool {
         self.terminal_output
             .unwrap_or(std::io::stdout().is_terminal())
@@ -106,7 +115,7 @@ pub enum Cmd {
     /// When using `--json` with `--all`, output will be in the form
     ///
     /// {
-    ///   "added_associations": [ ... ],   
+    ///   "added_associations": [ ... ],
     ///   "default_apps": [ ... ],
     ///   "system_apps": [ ... ]
     /// }
@@ -349,6 +358,7 @@ mod tests {
             },
             enable_notifications: Some(true),
             terminal_output: Some(false),
+            wait_for_handler_exit: Some(false),
             verbosity: Verbosity::default(),
         };
 
