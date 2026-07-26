@@ -5,7 +5,7 @@ use crate::{
 use freedesktop_entry_parser::Entry;
 use itertools::Itertools;
 use mime::Mime;
-use std::{ffi::OsString, path::Path, process::Stdio, str::FromStr};
+use std::{ffi::OsString, os::unix::process::CommandExt, path::Path, process::Stdio, str::FromStr};
 use tracing::debug;
 
 /// Represents a desktop entry file for an application
@@ -69,7 +69,7 @@ impl DesktopEntry {
         if self.terminal && config.terminal_output {
             cmd.spawn()?.wait()?;
         } else {
-            cmd.stdout(Stdio::null()).stderr(Stdio::null()).spawn()?;
+            cmd.process_group(0).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn()?;
         }
 
         Ok(())
