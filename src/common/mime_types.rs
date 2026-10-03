@@ -111,7 +111,7 @@ mod tests {
         );
         assert_eq!(
             MimeType::try_from(Path::new("./tests/assets/cat"))?.0,
-            "application/x-shellscript"
+            "text/x-shellscript"
         );
         assert_eq!(
             MimeType::try_from(Path::new(
