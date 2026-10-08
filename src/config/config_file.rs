@@ -47,7 +47,7 @@ impl ConfigFile {
     /// Load ~/.config/handlr/handlr.toml
     #[mutants::skip] // Cannot test directly, depends on system state
     pub fn load() -> Result<Self> {
-        Ok(confy::load("handlr", None)?)
+        Ok(confy::load("handlr", "handlr")?)
     }
 
     /// Override the set selector
