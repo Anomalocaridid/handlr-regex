@@ -84,7 +84,7 @@ impl DesktopEntry {
         let special = lazy_regex::regex!("%(f|u)"i);
 
         let mut exec = self.exec.clone();
-        let args = args.join(" ");
+        let args = args.iter().map(|s| format!("'{}'", s)).join(" ");
 
         if special.is_match(&exec) {
             exec = special.replace_all(&exec, args).to_string();
@@ -224,7 +224,7 @@ mod tests {
         test_get_cmd(
             &entry,
             &Config::default(),
-            "bash -c \"(! pgrep cmus && tilix -e cmus && tilix -a session-add-down -e cava); sleep 0.1 && cmus-remote -q test\""
+            "bash -c \"(! pgrep cmus && tilix -e cmus && tilix -a session-add-down -e cava); sleep 0.1 && cmus-remote -q 'test'\""
         )
     }
 
@@ -237,7 +237,7 @@ mod tests {
         assert!(entry.mime_type.is_empty());
         assert!(entry.is_terminal_emulator());
 
-        test_get_cmd(&entry, &Config::default(), "wezterm start --cwd . test")
+        test_get_cmd(&entry, &Config::default(), "wezterm start --cwd . 'test'")
     }
 
     #[test]
@@ -279,7 +279,25 @@ mod tests {
             &Vec::new(),
         )?;
 
-        test_get_cmd(&entry, &config, "wezterm start --cwd . -e hx test")
+        test_get_cmd(&entry, &config, "wezterm start --cwd . -e hx 'test'")
+    }
+
+    #[test]
+    fn filename_arguments_with_spaces() -> Result<()> {
+        let entry = DesktopEntry::parse_file(
+            &PathBuf::from("tests/assets/vlc.desktop"),
+            &Vec::new(),
+        )?;
+
+        assert_eq!(
+            entry.get_cmd(
+                &Config::default(),
+                vec!["abc".to_string(), "a b c".to_string()]
+            )?,
+            "vlc 'abc' 'a b c'"
+        );
+
+        Ok(())
     }
 
     /// Helper function for testing language support
