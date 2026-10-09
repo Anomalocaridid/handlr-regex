@@ -33,13 +33,6 @@ impl SystemApps {
         Some(associations?.clone())
     }
 
-    /// Get the primary of handler associated with a given mime
-    pub fn get_handler(&self, mime: &Mime) -> Option<DesktopHandler> {
-        let handler = self.get_handlers(mime)?.front()?.clone();
-        debug!("Installed handler chosen for `{}`: {}", mime, handler);
-        Some(handler)
-    }
-
     /// Get all system-level desktop entries on the system
     #[mutants::skip] // Cannot test directly, depends on system state
     pub fn get_entries(
@@ -131,13 +124,6 @@ mod tests {
             ..Default::default()
         };
 
-        assert_eq!(
-            system_apps
-                .get_handler(&mime::TEXT_PLAIN)
-                .expect("Could not get handler")
-                .to_string(),
-            "helix.desktop"
-        );
         assert_eq!(
             system_apps
                 .get_handlers(&mime::TEXT_PLAIN)

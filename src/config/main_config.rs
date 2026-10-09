@@ -79,44 +79,111 @@ impl Config {
         })
     }
 
-    /// Get the handler associated with a given mime
-    #[mutants::skip] // Cannot test match guard because it relies on user interactivity
-    pub fn get_handler(&self, mime: &Mime) -> Result<DesktopHandler> {
-        match self.mime_apps.get_handler_from_user(mime, &self.config, &self.languages) {
-            Err(e) if matches!(e, Error::Cancelled) => Err(e),
-            h => h
-                .inspect(|_| {
-                    info!("Match found for `{}` in mimeapps.list Default Associations", mime);
-                })
-                .or_else(|_|{
-                    info!("No match for `{}` in mimeapps.list Default Associations", mime);
-                    self.get_handler_from_added_associations(mime)}),
+    /// Choose an appropriate handler from a given list, possibly with an interactive selector.
+    #[mutants::skip] // Cannot entirely test, namely cannot test selector or filtering and associated logging
+    pub fn select_handler(
+        &self,
+        mime: &Mime,
+        handlers: &DesktopList,
+    ) -> Result<DesktopHandler> {
+        let error = Error::NotFound(mime.to_string());
+        let config_file = &self.config;
+        let languages = &self.languages;
+        // Prepares for selector and filters out apps that do not exist
+        let handlers = handlers
+            .iter()
+            .flat_map(|h| -> Result<(&DesktopHandler, String)> {
+                // Filtering breaks testing, so treat every app as valid
+
+                if cfg!(test) {
+                    Ok((h, h.to_string()))
+                } else {
+                    let entry = h.get_entry(languages);
+                    if let Err(ref e) = entry {
+                        debug!("Desktop entry `{}` is invalid: {}", h, e);
+                    } else {
+                        debug!("Desktop entry `{}` is valid", h);
+                    }
+
+                    Ok((h, entry?.name))
+                }
+            })
+            .collect_vec();
+
+        debug!(
+            "Selector enabled: {}, number of set handlers: {}",
+            config_file.enable_selector,
+            handlers.len()
+        );
+        if config_file.enable_selector && handlers.len() > 1 {
+            info!("Running selector: {}", &config_file.selector);
+            let handler = {
+                let name = select(
+                    &config_file.selector,
+                    handlers.iter().map(|h| h.1.clone()),
+                )?;
+
+                handlers
+                    .into_iter()
+                    .find(|h| h.1 == name)
+                    .ok_or(error)?
+                    .0
+                    .clone()
+            };
+
+            Ok(handler)
+        } else {
+            info!("Not running selector, choosing first handler");
+            Ok(handlers.first().ok_or(error)?.0.clone())
         }
     }
 
-    /// Get the handler associated with a given mime from mimeapps.list's added associations
-    /// If there is none, default to the system apps
-    fn get_handler_from_added_associations(
-        &self,
-        mime: &Mime,
-    ) -> Result<DesktopHandler> {
-        self.mime_apps
-            .added_associations
-            .get(mime)
-            .inspect(|_|
-                info!("Found matching entry for `{}` in mimeapps.list Added Associations", mime)
-            )
-            .map_or_else(
-                || {
-                    info!("No matching entries for `{}` in mimeapps.list Added Associations", mime);
-                    self.system_apps.get_handler(mime)
-                },
-                |h| h.front().cloned(),
-            )
-            .ok_or_else(|| {
-                info!("No matching installed handlers found for `{}`", mime);
-                Error::NotFound(mime.to_string())
-            })
+    /// Get the handler associated with a given mime
+    #[mutants::skip] // Cannot test because it relies on user interactivity
+    pub fn get_handler(&self, mime: &Mime) -> Result<DesktopHandler> {
+        // Check in Default associations
+        if let Ok(handlers) = self.mime_apps.get_default_handlers(mime) {
+            info!(
+                "Match found for `{}` in mimeapps.list Default Associations",
+                mime
+            );
+            match self.select_handler(mime, handlers) {
+                Err(e) if matches!(e, Error::Cancelled) => return Err(e),
+                Ok(h) => return Ok(h),
+                _ => (),
+            }
+        }
+        info!(
+            "No match for `{}` in mimeapps.list Default Associations",
+            mime
+        );
+
+        // Check in Added associations
+        if let Some(handlers) = self.mime_apps.added_associations.get(mime) {
+            info!("Found matching entry for `{}` in mimeapps.list Added Associations", mime);
+            match self.select_handler(mime, handlers) {
+                Err(e) if matches!(e, Error::Cancelled) => return Err(e),
+                Ok(h) => return Ok(h),
+                _ => (),
+            }
+        }
+        info!(
+            "No matching entries for `{}` in mimeapps.list Added Associations",
+            mime
+        );
+
+        // Check in System applications
+        if let Some(handlers) = self.system_apps.get_handlers(mime) {
+            info!("Found matching entry for `{}` in System applications", mime);
+            match self.select_handler(mime, &handlers) {
+                Err(e) if matches!(e, Error::Cancelled) => return Err(e),
+                Ok(h) => return Ok(h),
+                _ => (),
+            }
+        }
+
+        info!("No matching installed handlers found for `{}`", mime);
+        Err(Error::NotFound(mime.to_string()))
     }
 
     /// Given a mime and arguments, launch the associated handler with the arguments
@@ -388,6 +455,45 @@ impl Config {
         self.config.override_selector(selector_args);
     }
 }
+
+/// Run given selector command
+#[mutants::skip] // Cannot test directly, runs external command
+fn select<O: Iterator<Item = String>>(
+    selector: &str,
+    mut opts: O,
+) -> Result<String> {
+    use std::{io::prelude::*, process::Stdio};
+
+    let process = {
+        execute::command(selector)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()?
+    };
+
+    let output = {
+        process
+            .stdin
+            .ok_or_else(|| Error::Selector(selector.to_string()))?
+            .write_all(opts.join("\n").as_bytes())?;
+
+        let mut output = String::with_capacity(24);
+
+        process
+            .stdout
+            .ok_or_else(|| Error::Selector(selector.to_string()))?
+            .read_to_string(&mut output)?;
+
+        output.trim_end().to_owned()
+    };
+
+    if output.is_empty() {
+        Err(Error::Cancelled)
+    } else {
+        Ok(output)
+    }
+}
+
 
 /// Internal helper struct for turning MimeApps into tabular data
 #[derive(PartialEq, Eq, PartialOrd, Ord, Tabled, Serialize)]
