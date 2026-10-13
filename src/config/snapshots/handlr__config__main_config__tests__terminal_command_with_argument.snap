@@ -1,0 +1,12 @@
+---
+source: src/config/main_config.rs
+expression: "String :: from_utf8(buffer).expect(\"Buffer is invalid utf8\")"
+---
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Adding tests/assets/kitty.desktop to list of handlers for `x-scheme-handler/terminal`
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Expanding wildcards in mimeapps.list: false
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m New handlers for `x-scheme-handler/terminal`: tests/assets/kitty.desktop;
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Finished adding handler
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Configured handlers for `x-scheme-handler/terminal` in mimeapps.list Default Associations: tests/assets/kitty.desktop;
+[2m[TIMESTAMP][0m [34mDEBUG[0m [2mhandlr::apps::user[0m[2m:[0m Selector enabled: false, number of set handlers: 1
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::apps::user[0m[2m:[0m Not running selector, choosing first handler
+[2m[TIMESTAMP][0m [32m INFO[0m [2mhandlr::config::main_config[0m[2m:[0m Match found for `x-scheme-handler/terminal` in mimeapps.list Default Associations

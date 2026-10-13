@@ -23,6 +23,8 @@ pub struct DesktopEntry {
     pub mime_type: Vec<Mime>,
     /// Categories in which the entry should be shown in a menu
     pub categories: Vec<String>,
+    /// The command execution argument for terminals, if available
+    pub terminal_arg_exec: Option<String>,
 }
 
 /// Modes for running a DesktopFile's `exec` command
@@ -161,6 +163,11 @@ impl DesktopEntry {
                         .collect_vec()
                 })
                 .unwrap_or_default(),
+            terminal_arg_exec: fd_entry
+                .attr("X-TerminalArgExec")
+                .iter()
+                .next()
+                .cloned(),
         };
 
         if entry.name.is_empty() {

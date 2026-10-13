@@ -270,7 +270,7 @@ impl Config {
             .map(|e| {
                 let mut exec = e.exec.to_owned();
 
-                if let Some(opts) = &self.config.term_exec_args {
+                if let Some(opts) = e.terminal_arg_exec.as_ref().or_else(|| self.config.term_exec_args.as_ref()) {
                     exec.push(' ');
                     exec.push_str(opts)
                 }
@@ -677,6 +677,19 @@ mod tests {
             )?);
 
         assert_eq!(config.terminal()?, "wezterm start --cwd . -e");
+    });
+
+    crate::logs_snapshot_test!(terminal_command_with_argument, {
+        let mut config = Config::default();
+
+        config.add_handler(
+            &Mime::from_str("x-scheme-handler/terminal")?,
+            &DesktopHandler::from_str(
+                "tests/assets/kitty.desktop",
+            )?,
+        )?;
+
+        assert_eq!(config.terminal()?, "kitty --");
     });
 
     fn test_show_handler<W: Write>(
